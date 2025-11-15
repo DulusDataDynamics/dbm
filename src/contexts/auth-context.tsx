@@ -23,13 +23,32 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const GlobalLoader = () => (
+    <div className="w-full h-screen flex items-center justify-center flex-col gap-4 bg-background">
+        <Logo />
+        <div className="text-center">
+            <p className="text-lg font-medium text-foreground">
+                Getting things ready...
+            </p>
+            <p className="text-sm text-muted-foreground">Please wait a moment while we load the app.</p>
+        </div>
+      </div>
+);
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<any | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [isClient, setIsClient] = useState(false);
   const router = useRouter();
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
+    if (!isClient) return;
+    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
 
@@ -49,7 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [isClient]);
 
   const login = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
@@ -64,18 +83,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
-  if (initializing) {
-    return (
-      <div className="w-full h-screen flex items-center justify-center flex-col gap-4 bg-background">
-        <Logo />
-        <div className="text-center">
-            <p className="text-lg font-medium text-foreground">
-                Getting things ready...
-            </p>
-            <p className="text-sm text-muted-foreground">Please wait a moment while we load the app.</p>
-        </div>
-      </div>
-    );
+  if (!isClient || initializing) {
+    return <GlobalLoader />;
   }
 
   const value = { user, profile, initializing, login, signup, logout };
