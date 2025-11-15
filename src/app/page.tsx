@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { collection, getDocs, limit, query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Logo } from "@/components/logo";
 
 export default function LandingPage() {
   const [data, setData] = useState<any | null>(null);
@@ -37,8 +38,17 @@ export default function LandingPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        Loading data from Firestore...
+      <div className="w-full h-screen flex items-center justify-center flex-col gap-4 bg-background">
+        <Logo />
+        <div className="text-center">
+            <p className="text-lg font-medium text-foreground">
+                Getting things ready
+                <span className="animate-pulse">.</span>
+                <span className="animate-pulse" style={{ animationDelay: '200ms' }}>.</span>
+                <span className="animate-pulse" style={{ animationDelay: '400ms' }}>.</span>
+            </p>
+            <p className="text-sm text-muted-foreground">Please wait a moment.</p>
+        </div>
       </div>
     );
   }
