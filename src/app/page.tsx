@@ -1,12 +1,17 @@
 "use client";
-import { useAuth } from "@/contexts/auth-context";
+import { useAuth } from "@/hooks/use-auth";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, initializing } = useAuth();
 
-  if (!user) {
-    return <div>Please sign in.</div>;
+  if (initializing) {
+    return null; // The AuthProvider will show a global loader
   }
 
-  return <div>Welcome back!</div>;
+  if (user) {
+    redirect('/dashboard');
+  } else {
+    redirect('/login');
+  }
 }
