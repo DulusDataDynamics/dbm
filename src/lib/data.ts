@@ -2,7 +2,7 @@
 // It is only used by the /api/seed route to populate the database.
 // The application itself fetches data from Firestore in real-time.
 
-import { Client, Invoice, Task, InventoryItem } from './types';
+import { Client, Invoice, Task, InventoryItem, TaskStatus, TaskPriority } from './types';
 
 export const clients: Omit<Client, 'id'>[] = [
   { name: 'Innovate LLC', email: 'contact@innovate.com', phone: '555-0101' },
@@ -22,17 +22,17 @@ export const invoices: Omit<Invoice, 'id' | 'client'>[] = [
 ];
 
 export const tasks: Omit<Task, 'id'>[] = [
-  { description: 'Finalize project proposal for Quantum Solutions', priority: 'High', dueDate: '2024-07-10', completed: false },
-  { description: 'Follow up with Apex Designs on invoice INV-003', priority: 'Medium', dueDate: '2024-07-12', completed: false },
-  { description: 'Onboard new client Momentum Inc.', priority: 'High', dueDate: '2024-07-08', completed: true },
-  { description: 'Prepare monthly report', priority: 'Low', dueDate: '2024-07-25', completed: false },
-  { description: 'Update inventory for new stock', priority: 'Medium', dueDate: '2024-07-09', completed: false },
+  { title: 'Finalize project proposal for Quantum Solutions', description: 'Review and send the final proposal document.', status: 'In Progress' as TaskStatus, priority: 'High' as TaskPriority, dueDate: '2024-07-10' },
+  { title: 'Follow up with Apex Designs on invoice INV-003', description: 'Client has an outstanding balance.', status: 'Pending' as TaskStatus, priority: 'Medium' as TaskPriority, dueDate: '2024-07-12' },
+  { title: 'Onboard new client Momentum Inc.', description: 'Initial setup and welcome meeting.', status: 'Completed' as TaskStatus, priority: 'High' as TaskPriority, dueDate: '2024-07-08' },
+  { title: 'Prepare monthly financial report', description: 'Summarize income and expenses for June.', status: 'Pending' as TaskStatus, priority: 'Low' as TaskPriority, dueDate: '2024-07-25' },
+  { title: 'Update inventory for new stock shipment', description: 'Add new items received today.', status: 'In Progress' as TaskStatus, priority: 'Medium' as TaskPriority, dueDate: '2024-07-09' },
 ];
 
 export const inventory: Omit<InventoryItem, 'id'>[] = [
-  { sku: 'DBM-PRO-001', name: 'Pro Website Package', quantity: 15, price: 2500 },
-  { sku: 'DBM-STD-001', name: 'Standard Logo Design', quantity: 30, price: 800 },
-  { sku: 'DBM-HR-CON', name: 'Hourly Consulting', quantity: 100, price: 150 },
-  { sku: 'DBM-SOC-MGT', name: 'Social Media Mgmt (Month)', quantity: 8, price: 1200 },
-  { sku: 'DBM-SEO-AUD', name: 'SEO Audit', quantity: 22, price: 600 },
+  { sku: 'DBM-PRO-001', name: 'Pro Website Package', category: 'Digital Services', quantity: 15, price: 2500, reorderLevel: 5 },
+  { sku: 'DBM-STD-001', name: 'Standard Logo Design', category: 'Design', quantity: 30, price: 800, reorderLevel: 10 },
+  { sku: 'DBM-HR-CON', name: 'Hourly Consulting', category: 'Services', quantity: 100, price: 150, reorderLevel: 20 },
+  { sku: 'DBM-SOC-MGT', name: 'Social Media Mgmt (Month)', category: 'Marketing', quantity: 8, price: 1200, reorderLevel: 3 },
+  { sku: 'DBM-SEO-AUD', name: 'SEO Audit', category: 'Marketing', quantity: 22, price: 600, reorderLevel: 10 },
 ];
