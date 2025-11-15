@@ -1,7 +1,7 @@
 'use client';
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBI6ZGvLdzW1k2_EgWDw0GU99HblD1L_cs",
@@ -23,5 +23,14 @@ if (!getApps().length) {
 
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+enableIndexedDbPersistence(db).catch((err) => {
+  if (err.code === "failed-precondition") {
+    console.log("Multiple tabs open — persistence disabled");
+  } else if (err.code === "unimplemented") {
+    console.log("Persistence not supported by browser");
+  }
+});
+
 
 export { app, auth, db };
