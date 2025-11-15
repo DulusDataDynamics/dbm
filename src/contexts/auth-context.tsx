@@ -70,12 +70,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         <Logo />
         <div className="text-center">
             <p className="text-lg font-medium text-foreground">
-                Getting things ready
-                <span className="animate-pulse">.</span>
-                <span className="animate-pulse" style={{ animationDelay: '200ms' }}>.</span>
-                <span className="animate-pulse" style={{ animationDelay: '400ms' }}>.</span>
+                Getting things ready...
             </p>
-            <p className="text-sm text-muted-foreground">Please wait a moment.</p>
+            <p className="text-sm text-muted-foreground">Please wait a moment while we load the app.</p>
         </div>
       </div>
     );
