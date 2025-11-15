@@ -24,13 +24,15 @@ if (!getApps().length) {
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-enableIndexedDbPersistence(db).catch((err) => {
-  if (err.code === "failed-precondition") {
-    console.log("Multiple tabs open — persistence disabled");
-  } else if (err.code === "unimplemented") {
-    console.log("Persistence not supported by browser");
-  }
-});
-
+// NOTE: Disabling persistence to prevent "client is offline" errors in Next.js
+// try {
+//   enableIndexedDbPersistence(db)
+// } catch (err) {
+//   if (err.code === "failed-precondition") {
+//     console.log("Multiple tabs open — persistence disabled");
+//   } else if (err.code === "unimplemented") {
+//     console.log("Persistence not supported by browser");
+//   }
+// }
 
 export { app, auth, db };
