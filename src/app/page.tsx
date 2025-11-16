@@ -73,8 +73,8 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#0B122A] text-white">
-      <header className="sticky top-0 z-50 w-full bg-[#0B122A]/80 backdrop-blur-sm">
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="sticky top-0 z-50 w-full bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Logo />
           <nav className="flex items-center gap-4">
@@ -93,7 +93,7 @@ export default function LandingPage() {
             <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
                 Streamline Your Business with an AI-Powered Manager
             </h1>
-            <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
+            <p className="mx-auto mt-6 max-w-[700px] text-lg text-muted-foreground md:text-xl">
                 DBM helps you manage tasks, invoices, and clients effortlessly. Automate your workflow, get smart insights, and focus on what matters most: growing your business.
             </p>
             <div className="mt-8 flex gap-4">
@@ -118,12 +118,12 @@ export default function LandingPage() {
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
                 The Ultimate Toolkit for Small Business
             </h2>
-            <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
+            <p className="mx-auto mt-6 max-w-[700px] text-lg text-muted-foreground md:text-xl">
                 From intelligent automation to comprehensive management, Dulus provides everything you need to succeed.
             </p>
         </section>
 
-        <section className="bg-[#121A33] py-16 md:py-24">
+        <section className="bg-muted/40 py-16 md:py-24">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="text-center mb-12">
                     <p className="font-semibold text-primary">Key Features</p>
@@ -136,7 +136,7 @@ export default function LandingPage() {
                                <feature.icon className="h-7 w-7" />
                             </div>
                             <h3 className="mb-2 text-2xl font-bold">{feature.title}</h3>
-                            <p className="max-w-md text-gray-400">{feature.description}</p>
+                            <p className="max-w-md text-muted-foreground">{feature.description}</p>
                         </div>
                     ))}
                 </div>
@@ -151,26 +151,26 @@ export default function LandingPage() {
                            <feature.icon className="h-6 w-6" />
                         </div>
                         <h3 className="mb-2 text-xl font-bold">{feature.title}</h3>
-                        <p className="max-w-md text-gray-400 text-sm">{feature.description}</p>
+                        <p className="max-w-md text-muted-foreground text-sm">{feature.description}</p>
                     </div>
                 ))}
             </div>
         </section>
         
-        <section className="bg-[#0B122A] py-16 md:py-24">
+        <section className="bg-background py-16 md:py-24">
             <div className="container mx-auto flex justify-center px-4 md:px-6">
-                <div className="w-full max-w-sm rounded-2xl border border-blue-500/30 bg-gradient-to-br from-[#121A33] to-[#0B122A] p-8 shadow-2xl shadow-blue-500/10">
+                <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-8 shadow-2xl shadow-primary/10">
                     <h3 className="text-3xl font-bold">Unlimited Plan</h3>
-                    <p className="mt-2 text-gray-400">14-day free trial (up to 20 clients + 20 invoices).</p>
+                    <p className="mt-2 text-muted-foreground">14-day free trial (up to 20 clients + 20 invoices).</p>
                     <div className="my-6">
                         <span className="text-5xl font-extrabold">R349</span>
-                        <span className="text-gray-400">/month</span>
+                        <span className="text-muted-foreground">/month</span>
                     </div>
-                    <p className="text-gray-500 text-sm mb-6">or approx. $20/month</p>
+                    <p className="text-muted-foreground text-sm mb-6">or approx. $20/month</p>
                     <Button size="lg" className="w-full" asChild>
                         <Link href="/signup">Get Started</Link>
                     </Button>
-                    <ul className="mt-8 space-y-3 text-gray-300">
+                    <ul className="mt-8 space-y-3 text-foreground/80">
                         {planFeatures.map((text, i) => (
                            <li key={i} className="flex items-center gap-3">
                                <Check className="h-5 w-5 text-green-500" />
@@ -184,13 +184,13 @@ export default function LandingPage() {
 
       </main>
 
-      <footer className="w-full bg-[#0B122A]/80 py-6 mt-16 border-t border-gray-800">
+      <footer className="w-full bg-background py-6 mt-16 border-t">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-center md:flex-row md:px-6">
-            <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Dulus Data Dynamics. All rights reserved.</p>
+            <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} Dulus Data Dynamics. All rights reserved.</p>
             <div className="flex gap-4">
-                <Link href="/terms" className="text-sm text-gray-400 hover:underline">Terms of Service</Link>
-                <Link href="/privacy" className="text-sm text-gray-400 hover:underline">Privacy Policy</Link>
-                 <a href="https://dulusdatadynamics.netlify.app" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:underline">Website</a>
+                <Link href="/terms" className="text-sm text-muted-foreground hover:underline">Terms of Service</Link>
+                <Link href="/privacy" className="text-sm text-muted-foreground hover:underline">Privacy Policy</Link>
+                 <a href="https://dulusdatadynamics.netlify.app" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:underline">Website</a>
             </div>
         </div>
       </footer>
