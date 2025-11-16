@@ -6,6 +6,30 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { FileText, Users, Shield, BookMarked } from 'lucide-react';
+
+const features = [
+    {
+        icon: FileText,
+        title: 'Invoice Tracking',
+        description: 'Create and manage invoices with ease, and keep track of payments.',
+    },
+    {
+        icon: Users,
+        title: 'Client Management',
+        description: 'Maintain a complete directory of your clients and their information.',
+    },
+    {
+        icon: Shield,
+        title: 'Secure & Private',
+        description: 'Built with security in mind, with data protection and privacy at its core.',
+    },
+    {
+        icon: BookMarked,
+        title: 'Legal Documents',
+        description: 'Includes templates for your Privacy Policy and Terms of Service.',
+    },
+];
 
 export default function LandingPage() {
   const { user, initializing } = useAuth();
@@ -40,8 +64,9 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Hero Section */}
+      {/* Main Content */}
       <main className="flex-1">
+        {/* Hero Section */}
         <section className="container mx-auto flex flex-col items-center justify-center px-4 py-16 text-center md:px-6 md:py-24 lg:py-32">
           <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
             Streamline Your Business with an AI-Powered Manager
@@ -70,6 +95,21 @@ export default function LandingPage() {
             />
             <div className="absolute inset-0 bg-gradient-to-t from-[#0B122A] to-transparent"></div>
           </div>
+        </section>
+
+        {/* Features Section */}
+        <section className="container mx-auto px-4 py-16 md:px-6 md:py-24">
+            <div className="grid gap-12 text-center md:grid-cols-2 lg:grid-cols-4">
+                {features.map((feature) => (
+                    <div key={feature.title} className="flex flex-col items-center">
+                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                           <feature.icon className="h-8 w-8" />
+                        </div>
+                        <h3 className="mb-2 text-xl font-bold">{feature.title}</h3>
+                        <p className="text-gray-400">{feature.description}</p>
+                    </div>
+                ))}
+            </div>
         </section>
       </main>
 
