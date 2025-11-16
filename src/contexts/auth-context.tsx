@@ -24,7 +24,8 @@ interface AuthContextType {
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const GlobalLoader = () => (
-    <div className="w-full h-screen flex items-center justify-center flex-col gap-4 bg-background">
+    <div className="flex min-h-screen w-full items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
         <Logo />
         <div className="text-center">
             <p className="text-lg font-medium text-foreground">
@@ -33,6 +34,7 @@ const GlobalLoader = () => (
             <p className="text-sm text-muted-foreground">Please wait a moment while we load the app.</p>
         </div>
       </div>
+    </div>
 );
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
