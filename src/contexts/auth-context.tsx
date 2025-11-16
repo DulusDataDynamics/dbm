@@ -78,15 +78,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     router.push('/login');
   };
 
-  if (initializing) {
-    return <GlobalLoader />;
-  }
-
   const value = { user, profile, initializing, login, signup, logout };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {initializing ? <GlobalLoader /> : children}
     </AuthContext.Provider>
   );
 };
