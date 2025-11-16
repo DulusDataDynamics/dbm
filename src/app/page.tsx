@@ -6,28 +6,23 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FileText, Users, Shield, BookMarked } from 'lucide-react';
+import { Zap, ClipboardCheck, FileText } from 'lucide-react';
 
 const features = [
     {
+        icon: Zap,
+        title: 'AI Assistant',
+        description: 'Leverage AI to get daily summaries, business insights, and execute commands with natural language.',
+    },
+    {
+        icon: ClipboardCheck,
+        title: 'Task Management',
+        description: 'Organize, assign, and track tasks to keep your projects on schedule.',
+    },
+    {
         icon: FileText,
-        title: 'Invoice Tracking',
-        description: 'Create and manage invoices with ease, and keep track of payments.',
-    },
-    {
-        icon: Users,
-        title: 'Client Management',
-        description: 'Maintain a complete directory of your clients and their information.',
-    },
-    {
-        icon: Shield,
-        title: 'Secure & Private',
-        description: 'Built with security in mind, with data protection and privacy at its core.',
-    },
-    {
-        icon: BookMarked,
-        title: 'Legal Documents',
-        description: 'Includes templates for your Privacy Policy and Terms of Service.',
+        title: 'Invoice Management',
+        description: 'Create, send, and track invoices effortlessly. Get paid faster with automated reminders.',
     },
 ];
 
@@ -41,15 +36,12 @@ export default function LandingPage() {
     }
   }, [user, initializing, router]);
 
-  // Don't render the landing page if we are still checking for a user
-  // or if the user is already logged in.
   if (initializing || user) {
     return null; 
   }
 
   return (
     <div className="flex min-h-screen flex-col bg-[#0B122A] text-white">
-      {/* Header */}
       <header className="sticky top-0 z-50 w-full bg-[#0B122A]/80 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           <Logo />
@@ -64,56 +56,32 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1">
-        {/* Hero Section */}
         <section className="container mx-auto flex flex-col items-center justify-center px-4 py-16 text-center md:px-6 md:py-24 lg:py-32">
+          <p className="font-semibold text-primary">Key Features</p>
           <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-            Streamline Your Business with an AI-Powered Manager
+            The Ultimate Toolkit for Small Business
           </h1>
           <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
-            DBM helps you manage tasks, invoices, and clients effortlessly.
-            Automate your workflow, get smart insights, and focus on what matters
-            most: growing your business.
+            From intelligent automation to comprehensive management, Dulus provides everything you need to succeed.
           </p>
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:gap-6">
-            <Button size="lg" asChild>
-              <Link href="/signup">Sign Up for Free</Link>
-            </Button>
-            <Button size="lg" variant="outline" className="border-gray-600 bg-transparent hover:bg-white/10">
-              Learn More
-            </Button>
-          </div>
-          <div className="relative mt-12 w-full max-w-4xl">
-             <Image
-                src="https://picsum.photos/seed/tech-abstract/1200/600"
-                alt="Abstract digital network"
-                width={1200}
-                height={600}
-                className="rounded-xl object-cover"
-                data-ai-hint="abstract network"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0B122A] to-transparent"></div>
-          </div>
         </section>
 
-        {/* Features Section */}
         <section className="container mx-auto px-4 py-16 md:px-6 md:py-24">
-            <div className="grid gap-12 text-center md:grid-cols-2 lg:grid-cols-4">
+            <div className="mx-auto grid max-w-3xl gap-16 text-center">
                 {features.map((feature) => (
                     <div key={feature.title} className="flex flex-col items-center">
-                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                           <feature.icon className="h-8 w-8" />
+                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                           <feature.icon className="h-6 w-6" />
                         </div>
-                        <h3 className="mb-2 text-xl font-bold">{feature.title}</h3>
-                        <p className="text-gray-400">{feature.description}</p>
+                        <h3 className="mb-2 text-2xl font-bold">{feature.title}</h3>
+                        <p className="max-w-md text-gray-400">{feature.description}</p>
                     </div>
                 ))}
             </div>
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="w-full bg-[#0B122A]/80 py-6">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-center md:flex-row md:px-6">
             <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Dulus Business Manager. All rights reserved.</p>
