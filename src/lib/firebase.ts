@@ -27,7 +27,7 @@ const db = getFirestore(app);
 // NOTE: Disabling persistence to prevent "client is offline" errors in Next.js
 // try {
 //   enableIndexedDbPersistence(db)
-// } catch (err) {
+// } catch (err: any) {
 //   if (err.code === "failed-precondition") {
 //     console.log("Multiple tabs open — persistence disabled");
 //   } else if (err.code === "unimplemented") {
