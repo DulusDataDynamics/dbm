@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Zap, ClipboardCheck, FileText, Users, Shield, BookUser } from 'lucide-react';
+import { Zap, ClipboardCheck, FileText, Users, Shield, BookUser, Check } from 'lucide-react';
 
 const features = [
     {
@@ -47,6 +47,14 @@ const secondaryFeatures = [
         title: 'Legal Documents',
         description: 'Includes templates for your Privacy Policy and Terms of Service.',
     },
+];
+
+const planFeatures = [
+    "Unlimited Clients",
+    "Unlimited Invoices",
+    "AI-Powered Insights",
+    "Task & Inventory Management",
+    "Email & WhatsApp Support",
 ];
 
 
@@ -92,9 +100,6 @@ export default function LandingPage() {
                 <Button size="lg" asChild>
                     <Link href="/signup">Sign Up for Free</Link>
                 </Button>
-                <Button size="lg" variant="outline" asChild>
-                    <Link href="#">Learn More</Link>
-                </Button>
             </div>
         </section>
 
@@ -110,38 +115,40 @@ export default function LandingPage() {
         </section>
 
         <section className="container mx-auto flex flex-col items-center justify-center px-4 py-16 text-center md:px-6 md:py-24 lg:py-32">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            The Ultimate Toolkit for Small Business
-          </h2>
-          <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
-            From intelligent automation to comprehensive management, Dulus provides everything you need to succeed.
-          </p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+                The Ultimate Toolkit for Small Business
+            </h2>
+            <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
+                From intelligent automation to comprehensive management, Dulus provides everything you need to succeed.
+            </p>
         </section>
 
-        <section className="container mx-auto px-4 py-16 md:px-6 md:py-24">
-            <div className="text-center mb-12">
-                <p className="font-semibold text-primary">Key Features</p>
-                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Why Choose Dulus?</h2>
-            </div>
-            <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-3 text-center">
-                {features.map((feature) => (
-                    <div key={feature.title} className="flex flex-col items-center">
-                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                           <feature.icon className="h-7 w-7" />
+        <section className="bg-[#121A33] py-16 md:py-24">
+            <div className="container mx-auto px-4 md:px-6">
+                <div className="text-center mb-12">
+                    <p className="font-semibold text-primary">Key Features</p>
+                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Why Choose Dulus?</h2>
+                </div>
+                <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-3 text-center">
+                    {features.map((feature) => (
+                        <div key={feature.title} className="flex flex-col items-center">
+                            <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                               <feature.icon className="h-7 w-7" />
+                            </div>
+                            <h3 className="mb-2 text-2xl font-bold">{feature.title}</h3>
+                            <p className="max-w-md text-gray-400">{feature.description}</p>
                         </div>
-                        <h3 className="mb-2 text-2xl font-bold">{feature.title}</h3>
-                        <p className="max-w-md text-gray-400">{feature.description}</p>
-                    </div>
-                ))}
+                    ))}
+                </div>
             </div>
         </section>
-
-        <section className="container mx-auto px-4 pb-16 md:px-6 md:pb-24">
-            <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-2 lg:grid-cols-4 text-center">
+        
+        <section className="container mx-auto px-4 py-16 md:px-6 md:py-24">
+             <div className="mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-center">
                 {secondaryFeatures.map((feature) => (
-                    <div key={feature.title} className="flex flex-col items-center">
-                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-                           <feature.icon className="h-7 w-7" />
+                    <div key={feature.title} className="flex flex-col items-center p-4">
+                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                           <feature.icon className="h-6 w-6" />
                         </div>
                         <h3 className="mb-2 text-xl font-bold">{feature.title}</h3>
                         <p className="max-w-md text-gray-400 text-sm">{feature.description}</p>
@@ -149,15 +156,41 @@ export default function LandingPage() {
                 ))}
             </div>
         </section>
+        
+        <section className="bg-[#0B122A] py-16 md:py-24">
+            <div className="container mx-auto flex justify-center px-4 md:px-6">
+                <div className="w-full max-w-sm rounded-2xl border border-blue-500/30 bg-gradient-to-br from-[#121A33] to-[#0B122A] p-8 shadow-2xl shadow-blue-500/10">
+                    <h3 className="text-3xl font-bold">Unlimited Plan</h3>
+                    <p className="mt-2 text-gray-400">14-day free trial (up to 20 clients + 20 invoices).</p>
+                    <div className="my-6">
+                        <span className="text-5xl font-extrabold">R349</span>
+                        <span className="text-gray-400">/month</span>
+                    </div>
+                    <p className="text-gray-500 text-sm mb-6">or approx. $20/month</p>
+                    <Button size="lg" className="w-full" asChild>
+                        <Link href="/signup">Get Started</Link>
+                    </Button>
+                    <ul className="mt-8 space-y-3 text-gray-300">
+                        {planFeatures.map((text, i) => (
+                           <li key={i} className="flex items-center gap-3">
+                               <Check className="h-5 w-5 text-green-500" />
+                               <span>{text}</span>
+                           </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+        </section>
 
       </main>
 
-      <footer className="w-full bg-[#0B122A]/80 py-6">
+      <footer className="w-full bg-[#0B122A]/80 py-6 mt-16 border-t border-gray-800">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 text-center md:flex-row md:px-6">
-            <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Dulus Business Manager. All rights reserved.</p>
+            <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Dulus Data Dynamics. All rights reserved.</p>
             <div className="flex gap-4">
                 <Link href="/terms" className="text-sm text-gray-400 hover:underline">Terms of Service</Link>
                 <Link href="/privacy" className="text-sm text-gray-400 hover:underline">Privacy Policy</Link>
+                 <a href="https://dulusdatadynamics.netlify.app" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:underline">Website</a>
             </div>
         </div>
       </footer>
