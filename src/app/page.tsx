@@ -82,14 +82,24 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <section className="container mx-auto flex flex-col items-center justify-center px-4 py-16 text-center md:px-6 md:py-24 lg:py-32">
-          <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-            The Ultimate Toolkit for Small Business
-          </h1>
-          <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
-            From intelligent automation to comprehensive management, Dulus provides everything you need to succeed.
-          </p>
-          <div className="mt-8">
-            <Image
+            <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
+                Streamline Your Business with an AI-Powered Manager
+            </h1>
+            <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
+                DBM helps you manage tasks, invoices, and clients effortlessly. Automate your workflow, get smart insights, and focus on what matters most: growing your business.
+            </p>
+            <div className="mt-8 flex gap-4">
+                <Button size="lg" asChild>
+                    <Link href="/signup">Sign Up for Free</Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                    <Link href="#">Learn More</Link>
+                </Button>
+            </div>
+        </section>
+
+        <section className="container mx-auto px-4 pb-16 md:px-6 md:pb-24">
+             <Image
                 src="https://images.unsplash.com/photo-1644088379091-d574269d422f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMHRlY2h8ZW58MHx8fHwxNzYyNzAzMzk2fDA&ixlib=rb-4.1.0&q=80&w=1080"
                 alt="Abstract hero image for business software"
                 width={1200}
@@ -97,7 +107,15 @@ export default function LandingPage() {
                 className="rounded-lg shadow-2xl"
                 data-ai-hint="abstract tech"
             />
-          </div>
+        </section>
+
+        <section className="container mx-auto flex flex-col items-center justify-center px-4 py-16 text-center md:px-6 md:py-24 lg:py-32">
+          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            The Ultimate Toolkit for Small Business
+          </h2>
+          <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
+            From intelligent automation to comprehensive management, Dulus provides everything you need to succeed.
+          </p>
         </section>
 
         <section className="container mx-auto px-4 py-16 md:px-6 md:py-24">
