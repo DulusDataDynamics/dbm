@@ -58,21 +58,34 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <section className="container mx-auto flex flex-col items-center justify-center px-4 py-16 text-center md:px-6 md:py-24 lg:py-32">
-          <p className="font-semibold text-primary">Key Features</p>
           <h1 className="text-4xl font-extrabold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
             The Ultimate Toolkit for Small Business
           </h1>
           <p className="mx-auto mt-6 max-w-[700px] text-lg text-gray-300 md:text-xl">
             From intelligent automation to comprehensive management, Dulus provides everything you need to succeed.
           </p>
+          <div className="mt-8">
+            <Image
+                src="https://images.unsplash.com/photo-1644088379091-d574269d422f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhYnN0cmFjdCUyMHRlY2h8ZW58MHx8fHwxNzYyNzAzMzk2fDA&ixlib=rb-4.1.0&q=80&w=1080"
+                alt="Abstract hero image for business software"
+                width={1200}
+                height={600}
+                className="rounded-lg shadow-2xl"
+                data-ai-hint="abstract tech"
+            />
+          </div>
         </section>
 
         <section className="container mx-auto px-4 py-16 md:px-6 md:py-24">
-            <div className="mx-auto grid max-w-3xl gap-16 text-center">
+            <div className="text-center mb-12">
+                <p className="font-semibold text-primary">Key Features</p>
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Why Choose Dulus?</h2>
+            </div>
+            <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-3 text-center">
                 {features.map((feature) => (
                     <div key={feature.title} className="flex flex-col items-center">
-                        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                           <feature.icon className="h-6 w-6" />
+                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                           <feature.icon className="h-7 w-7" />
                         </div>
                         <h3 className="mb-2 text-2xl font-bold">{feature.title}</h3>
                         <p className="max-w-md text-gray-400">{feature.description}</p>
