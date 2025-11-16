@@ -1,37 +1,22 @@
 
-"use client";
+// src/lib/firebase.ts
+import { initializeApp, getApps } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
-import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getFirestore, Firestore } from "firebase/firestore";
-import { getAuth, Auth } from "firebase/auth";
-
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-};
+    apiKey: "AIzaSyBI6ZGvLdzW1k2_EgWDw0GU99HblD1L_cs",
+    authDomain: "studio-7996997189-78be3.firebaseapp.com",
+    projectId: "studio-7996997189-78be3",
+    storageBucket: "studio-7996997189-78be3.firebasestorage.app",
+    messagingSenderId: "567409477647",
+    appId: "1:567409477647:web:846147bd1d96e51b467b7a",
+    measurementId: "G-VP7JPGVJ7Z"
+  };
 
-let app: FirebaseApp;
-let auth: Auth;
-let db: Firestore;
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 
-// This function ensures Firebase is initialized only once
-function initializeFirebase() {
-    if (typeof window !== 'undefined') {
-        if (!getApps().length) {
-            app = initializeApp(firebaseConfig);
-        } else {
-            app = getApp();
-        }
-        auth = getAuth(app);
-        db = getFirestore(app);
-    }
-}
-
-// Immediately initialize Firebase on the client
-initializeFirebase();
-
-export { db, auth, app };
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export default app;
