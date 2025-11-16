@@ -52,18 +52,23 @@ export function subscribeToInvoices(callback: (data: Invoice[]) => void) {
       ...(d.data() as Omit<Invoice, 'id'>),
     }));
 
-    const clientPromises = invoicesData.map((invoice) => {
-      if (invoice.clientId) {
-        return getDoc(doc(db, 'clients', invoice.clientId));
-      }
-      return Promise.resolve(null);
-    });
+    if (invoicesData.length === 0) {
+      callback([]);
+      return;
+    }
 
-    const clientSnapshots = await Promise.all(clientPromises);
+    const clientIds = [...new Set(invoicesData.map(inv => inv.clientId).filter(Boolean))];
+    
+    if (clientIds.length === 0) {
+        const enrichedInvoices = invoicesData.map(invoice => ({ ...invoice, client: undefined }));
+        callback(enrichedInvoices);
+        return;
+    }
+
+    const clientsQuery = query(collection(db, 'clients'), where('__name__', 'in', clientIds));
+    const clientSnapshots = await getDocs(clientsQuery);
     const clientsMap = new Map(
-      clientSnapshots
-        .filter((snap) => snap?.exists())
-        .map((snap) => [snap!.id, { id: snap!.id, ...snap!.data() } as Client])
+      clientSnapshots.docs.map((snap) => [snap.id, { id: snap.id, ...snap.data() } as Client])
     );
 
     const enrichedInvoices = invoicesData.map((invoice) => ({
