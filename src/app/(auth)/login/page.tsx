@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -43,6 +43,12 @@ export default function LoginPage() {
     }
     return () => clearInterval(interval);
   }, [loading]);
+  
+  useEffect(() => {
+      if (user) {
+        router.replace('/dashboard');
+    }
+  }, [user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,10 +60,6 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
-
-  if (user) {
-    return redirect('/dashboard');
-  }
 
   return (
     <Card>

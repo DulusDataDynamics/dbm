@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,13 @@ export default function SignupPage() {
     }
     return () => clearInterval(interval);
   }, [loading]);
+  
+  useEffect(() => {
+      if (user) {
+        router.replace('/dashboard');
+    }
+  }, [user, router]);
+
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,14 +63,10 @@ export default function SignupPage() {
     }
   };
 
-  if (user) {
-    return redirect('/dashboard');
-  }
-
   return (
     <Card>
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Create an account</CardTitle>trib
+        <CardTitle className="text-2xl">Create an account</CardTitle>
         <CardDescription>
           Enter your email below to create your account
         </CardDescription>

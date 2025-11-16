@@ -27,14 +27,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    // If initialization is done and there's no user, redirect to login.
     if (!initializing && !user) {
       router.replace('/login');
     }
   }, [user, initializing, router]);
 
-  // If still initializing, the AuthProvider shows a global loader.
-  // If done initializing and there's no user, we'll redirect, so we can return null.
   if (initializing || !user) {
     return null;
   }
