@@ -1,156 +1,43 @@
-'use client';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { StatCard } from '@/components/app/stat-card';
-import { RevenueChart } from '@/components/app/revenue-chart';
+"use client";
 
-import { DollarSign, Users, FileText, CheckCircle2 } from 'lucide-react';
-import { subscribeToInvoices, subscribeToTasks, subscribeToClients } from '@/lib/firestore';
-import { Invoice, Task, Client } from '@/lib/types';
-import { useEffect, useState } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { RevenueInsightsGenerator } from '@/components/app/revenue-insights-generator';
-import { subscribeToInventory } from '@/lib/firestore';
-import { InventoryItem } from '@/lib/types';
+import { useEffect, useState } from "react";
+import { subscribeToClients } from "@/lib/firestore";
 
 export default function DashboardPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubInvoices = subscribeToInvoices((invoicesData) => {
-      setInvoices(invoicesData);
+    const unsub = subscribeToClients((list) => {
+      setClients(list);
       setLoading(false);
     });
-    const unsubTasks = subscribeToTasks(setTasks);
-    const unsubClients = subscribeToClients(setClients);
-    const unsubInventory = subscribeToInventory(setInventory);
 
-    return () => {
-      unsubInvoices();
-      unsubTasks();
-      unsubClients();
-      unsubInventory();
-    };
+    return () => unsub();
   }, []);
 
-  const totalRevenue = invoices
-    .filter((invoice) => invoice.status === 'Paid')
-    .reduce((sum, invoice) => sum + invoice.amount, 0);
-  
-  const pendingInvoices = invoices.filter(
-    (invoice) => invoice.status === 'Unpaid' || invoice.status === 'Overdue'
-  ).length;
-
-  const tasksToComplete = tasks.filter((task) => task.status !== 'Completed').length;
-
-  const recentInvoices = invoices.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()).slice(0, 5);
+  if (loading) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Revenue"
-          value={`R${totalRevenue.toLocaleString()}`}
-          icon={DollarSign}
-          description="Total revenue from paid invoices"
-        />
-        <StatCard
-          title="Total Clients"
-          value={clients.length.toString()}
-          icon={Users}
-          description="All-time clients"
-        />
-        <StatCard
-          title="Pending Invoices"
-          value={pendingInvoices.toString()}
-          icon={FileText}
-          description="Awaiting payment"
-        />
-        <StatCard
-          title="Tasks to Complete"
-          value={tasksToComplete.toString()}
-          icon={CheckCircle2}
-          description="Incomplete tasks"
-        />
-      </div>
+    <div className="p-6">
+      <h1 className="text-xl font-bold mb-4">Clients</h1>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-7">
-        <div className="lg:col-span-4">
-           {loading ? <Skeleton className="h-96" /> : <RevenueChart invoices={invoices} />}
-        </div>
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Recent Invoices</CardTitle>
-            <CardDescription>
-              A summary of your 5 most recent invoices.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
-                </div>
-              ) : (
-                <ScrollArea className="h-[300px]">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentInvoices.map((invoice) => (
-                        <TableRow key={invoice.id}>
-                          <TableCell>
-                            <div className="font-medium">{invoice.client?.name || '...'}</div>
-                            <div className="text-sm text-muted-foreground">{invoice.client?.email || '...'}</div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge 
-                              variant={
-                                invoice.status === 'Paid' ? 'default' : 
-                                invoice.status === 'Overdue' ? 'destructive' : 'secondary'
-                              }
-                              className={
-                                invoice.status === 'Paid' ? 'bg-green-500/20 text-green-700 border-green-500/20 hover:bg-green-500/30' : ''
-                              }
-                            >
-                              {invoice.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">R{invoice.amount.toLocaleString()}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </ScrollArea>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-      <div>
-        <RevenueInsightsGenerator invoices={invoices} inventory={inventory} />
+      <div className="flex flex-col gap-4">
+        {clients.map((c) => (
+          <div
+            key={c.id}
+            className="p-4 border rounded-lg bg-card text-card-foreground shadow"
+          >
+            <p className="font-semibold">{c.name || "No Name"}</p>
+            <p className="text-sm text-muted-foreground">ID: {c.id}</p>
+          </div>
+        ))}
       </div>
     </div>
   );

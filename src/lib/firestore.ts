@@ -1,168 +1,255 @@
-'use client';
-import { db } from '@/lib/firebase';
+"use client";
+
 import {
   collection,
-  getDocs,
+  onSnapshot,
   doc,
   getDoc,
-  updateDoc,
-  onSnapshot,
-  QuerySnapshot,
-  DocumentData,
+  setDoc,
   addDoc,
   deleteDoc,
-  setDoc
+  updateDoc,
+  query,
+  where,
+  getDocs,
+  orderBy,
 } from 'firebase/firestore';
-import { Client, Invoice, Task, TaskStatus, TaskPriority, InventoryItem, BusinessProfile, InvoiceSettings } from './types';
+import { db } from './firebase';
+import { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority } from './types';
 
-// Generic fetch function for real-time updates
-function subscribeToCollection<T>(collectionName: string, callback: (data: T[]) => void): () => void {
-  const collectionRef = collection(db, collectionName);
-  const unsubscribe = onSnapshot(collectionRef, (querySnapshot: QuerySnapshot<DocumentData>) => {
-    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
-    callback(data);
+// ============================================================================
+// Real-time Subscriptions
+// ============================================================================
+
+/**
+ * Subscribes to the clients collection and provides real-time updates.
+ * @param callback Function to call with the updated list of clients.
+ * @returns Unsubscribe function.
+ */
+export function subscribeToClients(callback: (data: Client[]) => void) {
+  const q = query(collection(db, 'clients'));
+  return onSnapshot(q, (snapshot) => {
+    const clientsData = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Client[];
+    callback(clientsData);
   });
-  return unsubscribe;
 }
 
-
-// Client functions
-export const subscribeToClients = (callback: (clients: Client[]) => void) => subscribeToCollection<Client>('clients', callback);
-export const getClient = async (id: string) => {
-  const docRef = doc(db, 'clients', id);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? { id: docSnap.id, ...docSnap.data() } as Client : null;
-}
-export const saveClient = async (id: string | undefined, data: Omit<Client, 'id'>) => {
-  if (id) {
-    const clientDoc = doc(db, 'clients', id);
-    return await updateDoc(clientDoc, data);
-  } else {
-    return await addDoc(collection(db, 'clients'), data);
-  }
-}
-export const deleteClient = async (id: string) => {
-    const clientDoc = doc(db, 'clients', id);
-    return await deleteDoc(clientDoc);
-}
-
-
-// Invoice functions
-export const subscribeToInvoices = (callback: (invoices: Invoice[]) => void): () => void => {
+/**
+ * Subscribes to the invoices collection and enriches them with client data.
+ * @param callback Function to call with the updated list of invoices.
+ * @returns Unsubscribe function.
+ */
+export function subscribeToInvoices(callback: (data: Invoice[]) => void) {
   const invoicesRef = collection(db, 'invoices');
-  
-  // Keep a map of clients to avoid re-fetching
-  const clientsMap = new Map<string, Client>();
+  const q = query(invoicesRef, orderBy('dueDate', 'desc'));
 
-  const unsubInvoices = onSnapshot(invoicesRef, async (invoiceSnapshot) => {
-    const invoicesPromises = invoiceSnapshot.docs.map(async (doc) => {
-      const data = doc.data();
-      let client = clientsMap.get(data.clientId);
-      
-      if (!client) {
-        const clientDoc = await getClient(data.clientId);
-        if (clientDoc) {
-          client = clientDoc;
-          clientsMap.set(data.clientId, client);
-        }
+  return onSnapshot(q, async (snapshot) => {
+    const invoicesData = snapshot.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Invoice, 'id'>),
+    }));
+
+    const clientPromises = invoicesData.map((invoice) => {
+      if (invoice.clientId) {
+        return getDoc(doc(db, 'clients', invoice.clientId));
       }
-      
-      return { id: doc.id, ...data, client } as Invoice;
+      return Promise.resolve(null);
     });
-    const invoices = await Promise.all(invoicesPromises);
-    callback(invoices);
+
+    const clientSnapshots = await Promise.all(clientPromises);
+    const clientsMap = new Map(
+      clientSnapshots
+        .filter((snap) => snap?.exists())
+        .map((snap) => [snap!.id, { id: snap!.id, ...snap!.data() } as Client])
+    );
+
+    const enrichedInvoices = invoicesData.map((invoice) => ({
+      ...invoice,
+      client: clientsMap.get(invoice.clientId),
+    }));
+
+    // Update invoice status if overdue
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    enrichedInvoices.forEach(inv => {
+      if (inv.status === 'Unpaid' && new Date(inv.dueDate) < today) {
+        inv.status = 'Overdue';
+        // Optionally, you could write this change back to Firestore here
+        // updateDoc(doc(db, 'invoices', inv.id), { status: 'Overdue' });
+      }
+    });
+
+    callback(enrichedInvoices);
   });
-
-  return () => {
-    unsubInvoices();
-  };
-};
-
-export const getInvoice = async (id: string): Promise<Invoice | null> => {
-    const docRef = doc(db, 'invoices', id);
-    const docSnap = await getDoc(docRef);
-    if (!docSnap.exists()) return null;
-
-    const data = docSnap.data();
-    const client = await getClient(data.clientId);
-
-    return { id: docSnap.id, ...data, client } as Invoice;
 }
 
-export const saveInvoice = async (id: string | undefined, data: Omit<Invoice, 'id' | 'client'>) => {
+/**
+ * Subscribes to the tasks collection.
+ * @param callback Function to call with the updated list of tasks.
+ * @returns Unsubscribe function.
+ */
+export function subscribeToTasks(callback: (data: Task[]) => void) {
+  const q = query(collection(db, 'tasks'));
+  return onSnapshot(q, (snapshot) => {
+    const tasksData = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Task[];
+    callback(tasksData);
+  });
+}
+
+/**
+ * Subscribes to the inventory collection.
+ * @param callback Function to call with the updated list of inventory items.
+ * @returns Unsubscribe function.
+ */
+export function subscribeToInventory(callback: (data: InventoryItem[]) => void) {
+  const q = query(collection(db, 'inventory'));
+  return onSnapshot(q, (snapshot) => {
+    const inventoryData = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as InventoryItem[];
+    callback(inventoryData);
+  });
+}
+
+
+// ============================================================================
+// Save / Create / Update Operations
+// ============================================================================
+
+/**
+ * Creates or updates a client document.
+ * @param id Optional ID of the client to update. If null, a new client is created.
+ * @param data The client data to save.
+ */
+export async function saveClient(id: string | null, data: Omit<Client, 'id'>) {
   if (id) {
-    const invoiceDoc = doc(db, 'invoices', id);
-    return await updateDoc(invoiceDoc, data);
+    await setDoc(doc(db, 'clients', id), data, { merge: true });
   } else {
-    return await addDoc(collection(db, 'invoices'), data);
+    await addDoc(collection(db, 'clients'), data);
   }
 }
 
-export const deleteInvoice = async (id: string) => {
-    const invoiceDoc = doc(db, 'invoices', id);
-    return await deleteDoc(invoiceDoc);
-}
-
-
-// Task functions
-export const subscribeToTasks = (callback: (tasks: Task[]) => void) => subscribeToCollection<Task>('tasks', callback);
-export const saveTask = async (id: string | undefined, data: Omit<Task, 'id'>) => {
+/**
+ * Creates or updates an invoice document.
+ * @param id Optional ID of the invoice to update. If null, a new invoice is created.
+ * @param data The invoice data to save.
+ */
+export async function saveInvoice(id: string | null, data: Omit<Invoice, 'id' | 'client'>) {
   if (id) {
-    const taskDoc = doc(db, 'tasks', id);
-    return await updateDoc(taskDoc, data);
+    await setDoc(doc(db, 'invoices', id), data, { merge: true });
   } else {
-    return await addDoc(collection(db, 'tasks'), data);
+    await addDoc(collection(db, 'invoices'), data);
   }
 }
-export const deleteTask = async (id: string) => {
-    const taskDoc = doc(db, 'tasks', id);
-    return await deleteDoc(taskDoc);
-}
-export const updateTaskStatus = (id: string, status: TaskStatus) => {
-    const taskDoc = doc(db, 'tasks', id);
-    return updateDoc(taskDoc, { status });
-}
-export const updateTaskPriority = (id: string, priority: TaskPriority) => {
-    const taskDoc = doc(db, 'tasks', id);
-    return updateDoc(taskDoc, { priority });
-}
 
-
-// Inventory functions
-export const subscribeToInventory = (callback: (inventory: InventoryItem[]) => void) => subscribeToCollection<InventoryItem>('inventory', callback);
-export const saveInventoryItem = async (id: string | undefined, data: Omit<InventoryItem, 'id'>) => {
-    if (id) {
-        const itemDoc = doc(db, 'inventory', id);
-        return await updateDoc(itemDoc, data);
-    } else {
-        return await addDoc(collection(db, 'inventory'), data);
-    }
-};
-export const deleteInventoryItem = async (id: string) => {
-    const itemDoc = doc(db, 'inventory', id);
-    return await deleteDoc(itemDoc);
-};
-
-
-// Settings functions
-export const saveBusinessProfile = async (userId: string, data: BusinessProfile) => {
-    const profileDoc = doc(db, 'profiles', userId);
-    return await setDoc(profileDoc, data, { merge: true });
+/**
+ * Creates or updates a task document.
+ * @param id Optional ID of the task to update. If null, a new task is created.
+ * @param data The task data to save.
+ */
+export async function saveTask(id: string | null, data: Omit<Task, 'id'>) {
+  if (id) {
+    await setDoc(doc(db, 'tasks', id), data, { merge: true });
+  } else {
+    await addDoc(collection(db, 'tasks'), data);
+  }
 }
 
-export const getBusinessProfile = async (userId: string): Promise<BusinessProfile | null> => {
-    const docRef = doc(db, 'profiles', userId);
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? docSnap.data() as BusinessProfile : null;
+/**
+ * Creates or updates an inventory item document.
+ * @param id Optional ID of the item to update. If null, a new item is created.
+ * @param data The inventory item data to save.
+ */
+export async function saveInventoryItem(id: string | null, data: Omit<InventoryItem, 'id'>) {
+  if (id) {
+    await setDoc(doc(db, 'inventory', id), data, { merge: true });
+  } else {
+    await addDoc(collection(db, 'inventory'), data);
+  }
 }
 
-export const saveInvoiceSettings = async (userId: string, data: InvoiceSettings) => {
-    const settingsDoc = doc(db, 'profiles', userId, 'settings', 'invoice');
-    return await setDoc(settingsDoc, data, { merge: true });
+
+// ============================================================================
+// Delete Operations
+// ============================================================================
+
+export async function deleteClient(id: string) {
+  await deleteDoc(doc(db, 'clients', id));
 }
 
-export const getInvoiceSettings = async (userId: string): Promise<InvoiceSettings | null> => {
-    const docRef = doc(db, 'profiles', userId, 'settings', 'invoice');
-    const docSnap = await getDoc(docRef);
-    return docSnap.exists() ? docSnap.data() as InvoiceSettings : null;
+export async function deleteInvoice(id: string) {
+  await deleteDoc(doc(db, 'invoices', id));
+}
+
+export async function deleteTask(id: string) {
+  await deleteDoc(doc(db, 'tasks', id));
+}
+
+export async function deleteInventoryItem(id: string) {
+  await deleteDoc(doc(db, 'inventory', id));
+}
+
+
+// ============================================================================
+// Quick Updates
+// ============================================================================
+
+export async function updateTaskStatus(id: string, status: TaskStatus) {
+    await updateDoc(doc(db, 'tasks', id), { status });
+}
+
+export async function updateTaskPriority(id: string, priority: TaskPriority) {
+    await updateDoc(doc(db, 'tasks', id), { priority });
+}
+
+
+// ============================================================================
+// Settings and Profile Management
+// ============================================================================
+
+/**
+ * Saves the business profile for a given user.
+ * @param userId The UID of the user.
+ * @param data The business profile data.
+ */
+export async function saveBusinessProfile(userId: string, data: BusinessProfile) {
+  await setDoc(doc(db, 'profiles', userId), data, { merge: true });
+}
+
+/**
+ * Retrieves the business profile for a given user.
+ * @param userId The UID of the user.
+ * @returns The business profile data or null if not found.
+ */
+export async function getBusinessProfile(userId: string): Promise<BusinessProfile | null> {
+  const docRef = doc(db, 'profiles', userId);
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? (docSnap.data() as BusinessProfile) : null;
+}
+
+/**
+ * Saves the invoice settings for a given user.
+ * @param userId The UID of the user.
+ * @param data The invoice settings data.
+ */
+export async function saveInvoiceSettings(userId: string, data: InvoiceSettings) {
+  await setDoc(doc(db, 'profiles', userId, 'settings', 'invoice'), data, { merge: true });
+}
+
+/**
+ * Retrieves the invoice settings for a given user.
+ * @param userId The UID of the user.
+ * @returns The invoice settings data or null if not found.
+ */
+export async function getInvoiceSettings(userId: string): Promise<InvoiceSettings | null> {
+  const docRef = doc(db, 'profiles', userId, 'settings', 'invoice');
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? (docSnap.data() as InvoiceSettings) : null;
 }
