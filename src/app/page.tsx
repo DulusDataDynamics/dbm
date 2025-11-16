@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Zap, ClipboardCheck, FileText } from 'lucide-react';
+import { Zap, ClipboardCheck, FileText, Users, Shield, BookUser } from 'lucide-react';
 
 const features = [
     {
@@ -25,6 +25,30 @@ const features = [
         description: 'Create, send, and track invoices effortlessly. Get paid faster with automated reminders.',
     },
 ];
+
+const secondaryFeatures = [
+    {
+        icon: FileText,
+        title: 'Invoice Tracking',
+        description: 'Create and manage invoices with ease, and keep track of payments.',
+    },
+    {
+        icon: Users,
+        title: 'Client Management',
+        description: 'Maintain a complete directory of your clients and their information.',
+    },
+    {
+        icon: Shield,
+        title: 'Secure & Private',
+        description: 'Built with security in mind, with data protection and privacy at its core.',
+    },
+    {
+        icon: BookUser,
+        title: 'Legal Documents',
+        description: 'Includes templates for your Privacy Policy and Terms of Service.',
+    },
+];
+
 
 export default function LandingPage() {
   const { user, initializing } = useAuth();
@@ -93,6 +117,21 @@ export default function LandingPage() {
                 ))}
             </div>
         </section>
+
+        <section className="container mx-auto px-4 pb-16 md:px-6 md:pb-24">
+            <div className="mx-auto grid max-w-5xl gap-12 md:grid-cols-2 lg:grid-cols-4 text-center">
+                {secondaryFeatures.map((feature) => (
+                    <div key={feature.title} className="flex flex-col items-center">
+                        <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
+                           <feature.icon className="h-7 w-7" />
+                        </div>
+                        <h3 className="mb-2 text-xl font-bold">{feature.title}</h3>
+                        <p className="max-w-md text-gray-400 text-sm">{feature.description}</p>
+                    </div>
+                ))}
+            </div>
+        </section>
+
       </main>
 
       <footer className="w-full bg-[#0B122A]/80 py-6">
