@@ -27,7 +27,7 @@ import { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings,
  * @returns Unsubscribe function.
  */
 export function subscribeToClients(callback: (data: Client[]) => void) {
-  const q = query(collection(db, 'clients'));
+  const q = query(collection(db, 'clients'), orderBy('name', 'asc'));
   return onSnapshot(q, (snapshot) => {
     const clientsData = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -97,7 +97,7 @@ export function subscribeToInvoices(callback: (data: Invoice[]) => void) {
  * @returns Unsubscribe function.
  */
 export function subscribeToTasks(callback: (data: Task[]) => void) {
-  const q = query(collection(db, 'tasks'));
+  const q = query(collection(db, 'tasks'), orderBy('dueDate', 'asc'));
   return onSnapshot(q, (snapshot) => {
     const tasksData = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -113,7 +113,7 @@ export function subscribeToTasks(callback: (data: Task[]) => void) {
  * @returns Unsubscribe function.
  */
 export function subscribeToInventory(callback: (data: InventoryItem[]) => void) {
-  const q = query(collection(db, 'inventory'));
+  const q = query(collection(db, 'inventory'), orderBy('name', 'asc'));
   return onSnapshot(q, (snapshot) => {
     const inventoryData = snapshot.docs.map((doc) => ({
       id: doc.id,
