@@ -42,8 +42,11 @@ import {
 import { InventoryForm } from '@/components/app/inventory-form';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
+import type { Firestore } from 'firebase/firestore';
 
 export default function InventoryPage() {
+  const [db, setDb] = useState<Firestore | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -51,21 +54,33 @@ export default function InventoryPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
-  const { user } = useAuth();
+  const { user, auth } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    const unsubscribe = subscribeToInventory((inventoryData) => {
+    if (!auth) return;
+    async function load() {
+      await waitForFirebaseReady(auth);
+      const fb = getFirebase();
+      if (fb) setDb(fb.db);
+    }
+    load();
+  }, [auth]);
+
+  useEffect(() => {
+    if (!db) return;
+
+    const unsubscribe = subscribeToInventory(db, (inventoryData) => {
       setInventory(inventoryData);
       setLoading(false);
     });
     
     if (user?.uid) {
-        getBusinessProfile(user.uid).then(setBusinessProfile);
+        getBusinessProfile(db, user.uid).then(setBusinessProfile);
     }
 
     return () => unsubscribe();
-  }, [user]);
+  }, [db, user]);
 
   const handleAddItem = () => {
     setSelectedItem(null);
@@ -99,8 +114,8 @@ export default function InventoryPage() {
   };
 
   const confirmDelete = async () => {
-    if (itemToDelete) {
-      await deleteInventoryItem(itemToDelete.id);
+    if (itemToDelete && db) {
+      await deleteInventoryItem(db, itemToDelete.id);
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
     }
@@ -120,7 +135,7 @@ export default function InventoryPage() {
               <CardTitle>Inventory</CardTitle>
               <CardDescription>Manage your products, services, and stock levels.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddItem}>
+            <Button size="sm" onClick={handleAddItem} disabled={!db}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Item
             </Button>
@@ -194,11 +209,14 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
       
-      <InventoryForm 
-        isOpen={isFormOpen}
-        onClose={handleFormClose}
-        item={selectedItem}
-      />
+      {db && (
+        <InventoryForm 
+          db={db}
+          isOpen={isFormOpen}
+          onClose={handleFormClose}
+          item={selectedItem}
+        />
+      )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
