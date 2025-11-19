@@ -1,6 +1,7 @@
+
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase';
-import { collection, writeBatch, getDocs, query, addDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase'; // Using server-side instance
+import { collection, writeBatch, getDocs, query, doc } from 'firebase/firestore';
 import { clients, invoices, tasks, inventory } from '@/lib/data';
 
 async function seedCollection(collectionName: string, data: any[]) {
@@ -8,30 +9,24 @@ async function seedCollection(collectionName: string, data: any[]) {
     const q = query(collectionRef);
     const snapshot = await getDocs(q);
 
-    // If collection is not empty, don't seed
     if (!snapshot.empty) {
         console.log(`Collection ${collectionName} is not empty. Skipping seed.`);
-        return { message: `Collection ${collectionName} already contains data.`, skipped: true, clientIds: snapshot.docs.map(doc => doc.id) };
+        // Return existing doc IDs for invoice linking
+        const docIds = snapshot.docs.map(doc => doc.id);
+        return { message: `Collection ${collectionName} already contains data.`, skipped: true, docIds };
     }
 
     const batch = writeBatch(db);
-    let clientIds: string[] = [];
-    if (collectionName === 'clients') {
-        data.forEach((item) => {
-            const docRef = doc(collectionRef);
-            batch.set(docRef, item);
-            clientIds.push(docRef.id);
-        });
-    } else {
-         data.forEach((item) => {
-            const docRef = doc(collectionRef);
-            batch.set(docRef, item);
-        });
-    }
+    const docIds: string[] = [];
+    data.forEach((item) => {
+        const docRef = doc(collectionRef); // Let Firestore generate the ID
+        batch.set(docRef, item);
+        docIds.push(docRef.id);
+    });
     
     await batch.commit();
     console.log(`Seeded ${collectionName} collection.`);
-    return { message: `Successfully seeded ${collectionName}.`, skipped: false, clientIds };
+    return { message: `Successfully seeded ${collectionName}.`, skipped: false, docIds };
 }
 
 async function seedInvoices(clientIds: string[]) {
@@ -43,17 +38,22 @@ async function seedInvoices(clientIds: string[]) {
         console.log(`Collection invoices is not empty. Skipping seed.`);
         return { message: `Collection invoices already contains data.`, skipped: true };
     }
+    
+    if (clientIds.length === 0) {
+        console.log(`No client IDs provided for invoice seeding. Skipping.`);
+        return { message: `No client IDs to link.`, skipped: true };
+    }
 
     const batch = writeBatch(db);
     invoices.forEach((invoice) => {
-        // Use the generated client IDs
-        const clientId = clientIds[parseInt(invoice.clientId) - 1];
-        if (clientId) {
-            const docRef = doc(collectionRef);
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const { clientId: _, ...rest } = invoice;
-            batch.set(docRef, {...rest, clientId});
-        }
+        // Randomly assign a client ID from the list
+        const randomClientId = clientIds[Math.floor(Math.random() * clientIds.length)];
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { clientId: _, ...rest } = invoice; // remove placeholder clientId
+        const newInvoice = { ...rest, clientId: randomClientId };
+        
+        const docRef = doc(collectionRef);
+        batch.set(docRef, newInvoice);
     });
     await batch.commit();
     console.log(`Seeded invoices collection.`);
@@ -68,20 +68,10 @@ export async function GET() {
         const clientResult = await seedCollection('clients', clients);
         results.push(clientResult);
 
-        if (clientResult.clientIds && clientResult.clientIds.length > 0) {
-            const invoiceResult = await seedInvoices(clientResult.clientIds);
+        if (clientResult.docIds && clientResult.docIds.length > 0) {
+            const invoiceResult = await seedInvoices(clientResult.docIds);
             results.push(invoiceResult);
-        } else if (!clientResult.skipped) {
-            // This case handles when seeding clients for the first time
-            // and we need to get the newly created IDs. This part might be complex
-            // and depends on the seedCollection implementation details.
-            // A simple approach is to refetch clients if IDs are not returned.
-             const clientsSnapshot = await getDocs(collection(db, 'clients'));
-             const clientIds = clientsSnapshot.docs.map(doc => doc.id);
-             const invoiceResult = await seedInvoices(clientIds);
-             results.push(invoiceResult);
         }
-
 
         results.push(await seedCollection('tasks', tasks));
         results.push(await seedCollection('inventory', inventory));

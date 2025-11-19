@@ -1,12 +1,12 @@
+
 'use client';
 
-import React, { useState } from 'react';
-import { collection, getDocs, query, orderBy, doc, getDoc } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase';
+import React, { useState, useEffect } from 'react';
+import { collection, getDocs, query, orderBy, doc, getDoc, Firestore, Auth } from 'firebase/firestore';
+import { getFirebase } from '@/lib/firebaseClient';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Download } from 'lucide-react';
 import { Invoice, Client, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -18,9 +18,20 @@ type AppInvoice = Invoice & {
 
 export default function DownloadInvoices() {
   const [loading, setLoading] = useState(false);
+  const [firebase, setFirebase] = useState<{db: Firestore, auth: Auth} | null>(null);
   const { toast } = useToast();
 
+  useEffect(() => {
+    const fb = getFirebase();
+    if (fb) {
+      setFirebase({ db: fb.db, auth: fb.auth });
+    }
+  }, []);
+
   async function fetchInvoices(): Promise<AppInvoice[]> {
+    if (!firebase) throw new Error("Firebase not initialized");
+    const { db } = firebase;
+
     const invoicesRef = collection(db, 'invoices');
     const q = query(invoicesRef, orderBy('dueDate', 'desc'));
     const invoiceSnap = await getDocs(q);
@@ -57,8 +68,17 @@ export default function DownloadInvoices() {
   }
 
   async function handleDownload() {
+    if (!firebase) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Firebase is not available.",
+      });
+      return;
+    }
+
     setLoading(true);
-    const currentUser = auth.currentUser;
+    const currentUser = firebase.auth.currentUser;
     if (!currentUser) {
         toast({
             variant: "destructive",
@@ -117,7 +137,6 @@ export default function DownloadInvoices() {
     const companyEmail = profile.businessEmail || '';
     const generatedDate = new Date().toLocaleString();
 
-    // Summary Page
     doc.setFontSize(18);
     doc.text(companyName, 40, 50);
     doc.setFontSize(10);
@@ -160,11 +179,9 @@ export default function DownloadInvoices() {
       margin: { left: 40, right: 40 },
     });
     
-    // Detailed Pages
     invoices.forEach((inv) => {
       doc.addPage();
       
-      // HEADER
       doc.setFontSize(18);
       doc.setTextColor(settings?.brandColor || '#000000');
       doc.text(profile.companyName || "Your Company", 40, 40);
@@ -177,7 +194,6 @@ export default function DownloadInvoices() {
       if (profile.taxNumber) doc.text(`Tax/VAT No: ${profile.taxNumber}`, 40, 95);
 
 
-      // INVOICE TITLE
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
       doc.text("INVOICE", doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
@@ -187,7 +203,6 @@ export default function DownloadInvoices() {
       doc.text(`Date: ${new Date().toLocaleDateString()}`, doc.internal.pageSize.getWidth() - 40, 65, { align: 'right' });
       doc.text(`Due Date: ${formatDate(inv.dueDate)}`, doc.internal.pageSize.getWidth() - 40, 75, { align: 'right' });
 
-      // BILL TO
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
       doc.text('BILL TO', 40, 130);
@@ -196,7 +211,6 @@ export default function DownloadInvoices() {
       doc.text(inv.client?.name || 'N/A', 40, 145);
       if (inv.client?.email) doc.text(inv.client.email, 40, 155);
 
-      // ITEMS TABLE
       // @ts-ignore
       doc.autoTable({
           startY: 180,
@@ -209,7 +223,6 @@ export default function DownloadInvoices() {
       // @ts-ignore
       let finalY = doc.lastAutoTable.finalY;
 
-      // TOTAL
       doc.setFontSize(14);
       doc.text(
         `Total: R ${inv.amount.toFixed(2)}`,
@@ -218,7 +231,6 @@ export default function DownloadInvoices() {
         { align: 'right' }
       );
       
-      // BANK DETAILS
       const bottomY = doc.internal.pageSize.getHeight() - 140;
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
@@ -230,7 +242,6 @@ export default function DownloadInvoices() {
       doc.text(`Account Number: ${profile.accountNumber || ''}`, 40, bottomY + 32);
       doc.text(`Branch Code: ${profile.branchCode || ''}`, 40, bottomY + 42);
 
-      // FOOTER
       const footerY = doc.internal.pageSize.getHeight() - 40;
       doc.setFontSize(9);
       doc.text(settings?.footerMessage || 'Thank you for your business!', doc.internal.pageSize.getWidth() / 2, footerY, { align: 'center' });
@@ -249,7 +260,7 @@ export default function DownloadInvoices() {
   }
 
   return (
-    <Button onClick={handleDownload} disabled={loading} variant="outline" size="sm">
+    <Button onClick={handleDownload} disabled={loading || !firebase} variant="outline" size="sm">
         <Download className="mr-2 h-4 w-4" />
         {loading ? 'Preparing PDF...' : 'Download All'}
     </Button>
