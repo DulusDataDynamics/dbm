@@ -104,10 +104,6 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="space-y-6">
-        <RevenueInsightsGenerator invoices={invoices} inventory={inventory} />
-      </div>
-
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader>
@@ -237,8 +233,12 @@ export default function DashboardPage() {
         </Card>
       </div>
       
-      <div>
+      <div className="space-y-6">
         <RevenueChart invoices={invoices} />
+      </div>
+
+      <div className="space-y-6">
+        <RevenueInsightsGenerator invoices={invoices} inventory={inventory} />
       </div>
     </div>
   );
