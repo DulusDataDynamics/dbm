@@ -1,7 +1,7 @@
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getFirestore, Firestore, enableNetwork } from "firebase/firestore";
 import { getAuth, Auth } from "firebase/auth";
 
 // Validate that required env vars exist
@@ -37,6 +37,8 @@ export function getFirebase(): FirebaseServices {
 
   return { app, db, auth };
 }
+
+
 export async function waitForFirebaseReady(auth: Auth) {
   // Wait for auth to initialize
   await new Promise<void>((resolve) => {
@@ -47,8 +49,6 @@ export async function waitForFirebaseReady(auth: Auth) {
   });
 
   // Ensure Firestore goes online
-  await auth.app
-    .firestore()
-    .enableNetwork()
-    .catch(() => {});
+  const db = getFirestore(auth.app);
+  await enableNetwork(db).catch(() => {});
 }
