@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -16,7 +15,7 @@ import {
   orderBy,
   Firestore,
 } from 'firebase/firestore';
-import { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority } from './types';
+import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority } from './types.client';
 
 // ============================================================================
 // Real-time Subscriptions
