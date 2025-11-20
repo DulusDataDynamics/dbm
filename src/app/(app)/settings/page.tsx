@@ -148,30 +148,27 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!auth) return;
-    async function load() {
+    async function loadFirebase() {
       await waitForFirebaseReady(auth);
       const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (user?.uid && db) {
-      getBusinessProfile(db, user.uid).then(profile => {
-        if (profile) {
-          profileForm.reset(profile);
+      if (fb) {
+        setDb(fb.db);
+        if (user?.uid) {
+          getBusinessProfile(fb.db, user.uid).then(profile => {
+            if (profile) {
+              profileForm.reset(profile);
+            }
+          });
+          getInvoiceSettings(fb.db, user.uid).then(settings => {
+            if(settings) {
+                invoiceForm.reset(settings);
+            }
+          });
         }
-      });
-      getInvoiceSettings(db, user.uid).then(settings => {
-        if(settings) {
-            invoiceForm.reset(settings);
-            // setCompanyLogoPreview(settings.companyLogoUrl || null);
-            // setSignaturePreview(settings.signatureImageUrl || null);
-        }
-      });
+      }
     }
-  }, [user, db, profileForm, invoiceForm]);
+    loadFirebase();
+  }, [auth, user, profileForm, invoiceForm]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, setPreview: (url: string | null) => void) => {
