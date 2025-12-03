@@ -44,7 +44,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     const firebase = getFirebase();
-    if (!firebase) return;
+    if (!firebase) {
+      setInitializing(false); // If firebase fails to initialize, stop loading
+      return;
+    };
 
     setAuthInstance(firebase.auth);
     setDbInstance(firebase.db);
@@ -54,12 +57,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (firebaseUser && firebase.db) {
         try {
+          // This check is crucial, we wait for auth to be fully ready
           await waitForFirebaseReady(firebase.auth);
           const ref = doc(firebase.db, "profiles", firebaseUser.uid);
           const snap = await getDoc(ref);
           setProfile(snap.exists() ? snap.data() : null);
         } catch (error) {
-          console.error("Profile error:", error);
+          console.error("Error fetching user profile:", error);
           setProfile(null);
         }
       } else {
