@@ -73,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, []);
 
   const login = async (email: string, password: string) => {
     if (!authInstance) throw new Error("Auth not initialized");
