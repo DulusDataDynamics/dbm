@@ -9,27 +9,29 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, CheckCircle, ChevronDown, DollarSign, BarChart, Users, FileText, Zap, Shield, GitBranch } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Badge } from '@/components/ui/badge';
 
 const featureHighlights = [
     {
         icon: Users,
         title: 'Client Management',
         description: 'Keep a complete directory of your clients, track communications, and manage relationships with ease.',
-        image: '/placeholders/feature-clients.png',
+        image: PlaceHolderImages.find(p => p.id === 'feature-clients')?.imageUrl || "https://picsum.photos/seed/feature-clients/600/400",
         imageHint: 'people business meeting'
     },
     {
         icon: FileText,
         title: 'Effortless Invoicing',
         description: 'Create, send, and track professional invoices in seconds. Get paid faster with automated reminders.',
-        image: '/placeholders/feature-invoicing.png',
+        image: PlaceHolderImages.find(p => p.id === 'feature-invoicing')?.imageUrl || "https://picsum.photos/seed/feature-invoicing/600/400",
         imageHint: 'invoice document payment'
     },
     {
         icon: Zap,
         title: 'AI-Powered Insights',
         description: 'Leverage our AI financial analyst to get daily summaries, revenue trends, and actionable business advice.',
-        image: '/placeholders/feature-ai.png',
+        image: PlaceHolderImages.find(p => p.id === 'feature-ai')?.imageUrl || "https://picsum.photos/seed/feature-ai/600/400",
         imageHint: 'abstract data chart'
     },
 ];
@@ -181,7 +183,7 @@ export default function LandingPage() {
                             </div>
                             <div className="relative">
                                 <Image
-                                    src="https://picsum.photos/seed/feature-2/600/400"
+                                    src={feature.image}
                                     alt={feature.title}
                                     width={600}
                                     height={400}
