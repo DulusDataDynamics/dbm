@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
 import { Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 
 const loadingMessages = [
@@ -28,11 +29,12 @@ const loadingMessages = [
 
 export default function SignupPage() {
   const router = useRouter();
-  const { user, signup } = useAuth();
+  const { user, signup, initializing } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(loadingMessages[0]);
+  const { toast } = useToast();
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -47,10 +49,10 @@ export default function SignupPage() {
   }, [loading]);
   
   useEffect(() => {
-      if (user) {
-        router.replace('/dashboard');
+    if (!initializing && user) {
+      router.replace('/dashboard');
     }
-  }, [user, router]);
+  }, [user, initializing, router]);
 
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -58,11 +60,21 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup(email, password);
-    } catch (error) {
+       // The redirect will be handled by the useEffect watching the user state.
+    } catch (error: any) {
       console.error(error);
+      toast({
+        variant: 'destructive',
+        title: 'Sign Up Failed',
+        description: error.message || 'Could not create your account. Please try again.',
+      });
       setLoading(false);
     }
   };
+
+  if (initializing || user) {
+    return null; // Render nothing while initializing or if user is already logged in
+  }
 
   return (
     <Card>

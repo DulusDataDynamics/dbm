@@ -2,7 +2,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, Auth } from "firebase/auth";
+import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, Auth, signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
 import { doc, getDoc, DocumentData, Firestore } from "firebase/firestore";
 import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
 import { useRouter } from "next/navigation";
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const firebase = getFirebase();
     if (!firebase) {
-      setInitializing(false); // If firebase fails to initialize, stop loading
+      setInitializing(false);
       return;
     };
 
@@ -53,11 +53,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setDbInstance(firebase.db);
     
     const unsubscribe = onAuthStateChanged(firebase.auth, async (firebaseUser) => {
+      setInitializing(true);
       setUser(firebaseUser);
 
       if (firebaseUser && firebase.db) {
         try {
-          // This check is crucial, we wait for auth to be fully ready
           await waitForFirebaseReady(firebase.auth);
           const ref = doc(firebase.db, "profiles", firebaseUser.uid);
           const snap = await getDoc(ref);
