@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, doc, getDoc, Firestore, Auth } from 'firebase/firestore';
-import { getFirebase } from '@/lib/firebaseClient';
+import { collection, getDocs, query, orderBy, doc, getDoc, Auth } from 'firebase/firestore';
+import { db, auth } from '@/lib/firebase-client';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Button } from '../ui/button';
@@ -18,20 +18,9 @@ type AppInvoice = Invoice & {
 
 export default function DownloadInvoices() {
   const [loading, setLoading] = useState(false);
-  const [firebase, setFirebase] = useState<{db: Firestore, auth: Auth} | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fb = getFirebase();
-    if (fb) {
-      setFirebase({ db: fb.db, auth: fb.auth });
-    }
-  }, []);
-
   async function fetchInvoices(): Promise<AppInvoice[]> {
-    if (!firebase) throw new Error("Firebase not initialized");
-    const { db } = firebase;
-
     const invoicesRef = collection(db, 'invoices');
     const q = query(invoicesRef, orderBy('dueDate', 'desc'));
     const invoiceSnap = await getDocs(q);
@@ -68,17 +57,8 @@ export default function DownloadInvoices() {
   }
 
   async function handleDownload() {
-    if (!firebase) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Firebase is not available.",
-      });
-      return;
-    }
-
     setLoading(true);
-    const currentUser = firebase.auth.currentUser;
+    const currentUser = auth.currentUser;
     if (!currentUser) {
         toast({
             variant: "destructive",
@@ -260,7 +240,7 @@ export default function DownloadInvoices() {
   }
 
   return (
-    <Button onClick={handleDownload} disabled={loading || !firebase} variant="outline" size="sm">
+    <Button onClick={handleDownload} disabled={loading || !auth} variant="outline" size="sm">
         <Download className="mr-2 h-4 w-4" />
         {loading ? 'Preparing PDF...' : 'Download All'}
     </Button>

@@ -15,16 +15,14 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useState } from 'react';
 import { InvoicePDFView } from './invoice-pdf-view';
-import type { Firestore } from 'firebase/firestore';
 
 interface ViewInvoiceDialogProps {
-  db: Firestore;
   isOpen: boolean;
   onClose: () => void;
   invoice: Invoice | null;
 }
 
-export function ViewInvoiceDialog({ db, isOpen, onClose, invoice }: ViewInvoiceDialogProps) {
+export function ViewInvoiceDialog({ isOpen, onClose, invoice }: ViewInvoiceDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadPdf = async () => {
@@ -74,7 +72,7 @@ export function ViewInvoiceDialog({ db, isOpen, onClose, invoice }: ViewInvoiceD
         </DialogHeader>
         <div className="py-4">
           {invoice ? (
-            <InvoicePDFView db={db} invoice={invoice} />
+            <InvoicePDFView invoice={invoice} />
           ) : (
             <div className="space-y-3">
               <Skeleton className="h-40 w-full" />

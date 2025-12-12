@@ -7,36 +7,19 @@ import { Invoice, InventoryItem } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RevenueInsightsGenerator } from "@/components/app/revenue-insights-generator";
-import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
-import type { Firestore } from "firebase/firestore";
-import { useAuth } from "@/hooks/use-auth";
 
 export default function ReportsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [db, setDb] = useState<Firestore | null>(null);
-  const { auth } = useAuth();
-
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
-    const unsubInvoices = subscribeToInvoices(db, (invoicesData) => {
+    const unsubInvoices = subscribeToInvoices((invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
     });
 
-    const unsubInventory = subscribeToInventory(db, (inventoryData) => {
+    const unsubInventory = subscribeToInventory((inventoryData) => {
         setInventory(inventoryData);
     });
 
@@ -44,7 +27,7 @@ export default function ReportsPage() {
         unsubInvoices();
         unsubInventory();
     };
-  }, [db]);
+  }, []);
 
   return (
     <div className="space-y-6">

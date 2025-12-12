@@ -1,25 +1,24 @@
 
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/firebase'; // Using server-side instance
-import { collection, writeBatch, getDocs, query, doc } from 'firebase/firestore';
+import { adminDb } from '@/lib/firebase-admin';
+import { collection, writeBatch, getDocs, query, doc } from 'firebase-admin/firestore';
 import { clients, invoices, tasks, inventory } from '@/lib/data';
 
 async function seedCollection(collectionName: string, data: any[]) {
-    const collectionRef = collection(db, collectionName);
+    const collectionRef = adminDb.collection(collectionName);
     const q = query(collectionRef);
     const snapshot = await getDocs(q);
 
     if (!snapshot.empty) {
         console.log(`Collection ${collectionName} is not empty. Skipping seed.`);
-        // Return existing doc IDs for invoice linking
         const docIds = snapshot.docs.map(doc => doc.id);
         return { message: `Collection ${collectionName} already contains data.`, skipped: true, docIds };
     }
 
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     const docIds: string[] = [];
     data.forEach((item) => {
-        const docRef = doc(collectionRef); // Let Firestore generate the ID
+        const docRef = collectionRef.doc(); // Let Firestore generate the ID
         batch.set(docRef, item);
         docIds.push(docRef.id);
     });
@@ -30,7 +29,7 @@ async function seedCollection(collectionName: string, data: any[]) {
 }
 
 async function seedInvoices(clientIds: string[]) {
-    const collectionRef = collection(db, 'invoices');
+    const collectionRef = adminDb.collection('invoices');
     const q = query(collectionRef);
     const snapshot = await getDocs(q);
 
@@ -44,15 +43,14 @@ async function seedInvoices(clientIds: string[]) {
         return { message: `No client IDs to link.`, skipped: true };
     }
 
-    const batch = writeBatch(db);
+    const batch = adminDb.batch();
     invoices.forEach((invoice) => {
         // Randomly assign a client ID from the list
         const randomClientId = clientIds[Math.floor(Math.random() * clientIds.length)];
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { clientId: _, ...rest } = invoice; // remove placeholder clientId
         const newInvoice = { ...rest, clientId: randomClientId };
         
-        const docRef = doc(collectionRef);
+        const docRef = collectionRef.doc();
         batch.set(docRef, newInvoice);
     });
     await batch.commit();
@@ -63,6 +61,14 @@ async function seedInvoices(clientIds: string[]) {
 
 export async function GET() {
     try {
+        // Check if FIREBASE_ADMIN_KEY is set. If not, we can't seed.
+        if (!process.env.FIREBASE_ADMIN_KEY || process.env.FIREBASE_ADMIN_KEY === '{}') {
+             return NextResponse.json({ 
+                error: 'Firebase Admin not configured', 
+                details: 'FIREBASE_ADMIN_KEY is not set in environment variables. Cannot seed database.' 
+            }, { status: 500 });
+        }
+
         const results = [];
         
         const clientResult = await seedCollection('clients', clients);

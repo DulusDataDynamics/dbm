@@ -51,8 +51,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import DownloadInvoices from '@/components/app/download-invoices';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
 
 
 const settingsSections = [
@@ -102,8 +100,7 @@ type InvoiceSettingsFormValues = z.infer<typeof invoiceSettingsSchema>;
 const comingSoonSections = ['team', 'billing', 'integrations', 'developer'];
 
 export default function SettingsPage() {
-  const { user, logout, auth } = useAuth();
-  const [db, setDb] = useState<Firestore | null>(null);
+  const { user, logout } = useAuth();
   const { toast } = useToast();
   const [companyLogoPreview, setCompanyLogoPreview] = useState<string | null>(null);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
@@ -147,28 +144,19 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (!auth) return;
-    async function loadFirebase() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) {
-        setDb(fb.db);
-        if (user?.uid) {
-          getBusinessProfile(fb.db, user.uid).then(profile => {
-            if (profile) {
-              profileForm.reset(profile);
-            }
-          });
-          getInvoiceSettings(fb.db, user.uid).then(settings => {
-            if(settings) {
-                invoiceForm.reset(settings);
-            }
-          });
+    if (user?.uid) {
+      getBusinessProfile(user.uid).then(profile => {
+        if (profile) {
+          profileForm.reset(profile);
         }
-      }
+      });
+      getInvoiceSettings(user.uid).then(settings => {
+        if(settings) {
+            invoiceForm.reset(settings);
+        }
+      });
     }
-    loadFirebase();
-  }, [auth, user, profileForm, invoiceForm]);
+  }, [user, profileForm, invoiceForm]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, setPreview: (url: string | null) => void) => {
@@ -179,18 +167,18 @@ export default function SettingsPage() {
   };
 
   const onProfileSubmit = async (data: ProfileFormValues) => {
-    if (!user?.uid || !db) return;
+    if (!user?.uid) return;
     setProfileSaveState('saving');
-    await saveBusinessProfile(db, user.uid, data);
+    await saveBusinessProfile(user.uid, data);
     toast({ title: 'Business profile saved successfully!' });
     setProfileSaveState('saved');
     setTimeout(() => setProfileSaveState('idle'), 2000);
   };
   
   const onInvoiceSubmit = async (data: InvoiceSettingsFormValues) => {
-    if (!user?.uid || !db) return;
+    if (!user?.uid) return;
     setInvoiceSaveState('saving');
-    await saveInvoiceSettings(db, user.uid, data);
+    await saveInvoiceSettings(user.uid, data);
     toast({ title: 'Invoice settings saved successfully!' });
     setInvoiceSaveState('saved');
     setTimeout(() => setInvoiceSaveState('idle'), 2000);
@@ -282,7 +270,7 @@ export default function SettingsPage() {
                         </div>
                       </CardContent>
                       <CardFooter className="justify-end">
-                          <Button type="submit" disabled={!db || profileSaveState === 'saving' || profileSaveState === 'saved'}>
+                          <Button type="submit" disabled={!user || profileSaveState === 'saving' || profileSaveState === 'saved'}>
                             {profileSaveState === 'saving' && 'Saving...'}
                             {profileSaveState === 'saved' && <><Check className="mr-2 h-4 w-4" /> Saved!</>}
                             {profileSaveState === 'idle' && 'Save Business Profile'}
@@ -394,7 +382,7 @@ export default function SettingsPage() {
                         </div>
                     </CardContent>
                     <CardFooter className="justify-end">
-                        <Button type="submit" disabled={!db || invoiceSaveState === 'saving' || invoiceSaveState === 'saved'}>
+                        <Button type="submit" disabled={!user || invoiceSaveState === 'saving' || invoiceSaveState === 'saved'}>
                           {invoiceSaveState === 'saving' && 'Saving...'}
                           {invoiceSaveState === 'saved' && <><Check className="mr-2 h-4 w-4" /> Saved!</>}
                           {invoiceSaveState === 'idle' && 'Save Invoice Settings'}

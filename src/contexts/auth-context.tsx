@@ -3,8 +3,8 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, Auth } from "firebase/auth";
-import { doc, getDoc, DocumentData, Firestore } from "firebase/firestore";
-import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
+import { doc, getDoc, DocumentData } from "firebase/firestore";
+import { auth as authInstance, db } from "@/lib/firebase-client";
 import { useRouter } from "next/navigation";
 
 export interface AuthContextType {
@@ -23,26 +23,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DocumentData | null>(null);
   const [initializing, setInitializing] = useState(true);
-  const [authInstance, setAuthInstance] = useState<Auth | null>(null);
   const router = useRouter();
   
   useEffect(() => {
-    const firebase = getFirebase();
-    if (!firebase) {
-      setInitializing(false);
-      return;
-    };
-
-    setAuthInstance(firebase.auth);
-    
-    const unsubscribe = onAuthStateChanged(firebase.auth, async (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(authInstance, async (firebaseUser) => {
       setInitializing(true);
       setUser(firebaseUser);
 
-      if (firebaseUser && firebase.db) {
+      if (firebaseUser) {
         try {
-          await waitForFirebaseReady(firebase.auth);
-          const ref = doc(firebase.db, "profiles", firebaseUser.uid);
+          const ref = doc(db, "profiles", firebaseUser.uid);
           const snap = await getDoc(ref);
           setProfile(snap.exists() ? snap.data() : null);
         } catch (error) {
@@ -59,17 +49,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    if (!authInstance) throw new Error("Auth not initialized");
     await signInWithEmailAndPassword(authInstance, email, password);
   };
 
   const signup = async (email: string, password: string) => {
-    if (!authInstance) throw new Error("Auth not initialized");
     await createUserWithEmailAndPassword(authInstance, email, password);
   };
 
   const logout = async () => {
-    if (!authInstance) throw new Error("Auth not initialized");
     await signOut(authInstance);
     router.push('/login');
   };
