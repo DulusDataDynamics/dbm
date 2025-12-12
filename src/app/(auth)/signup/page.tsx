@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
+import { Loader2 } from 'lucide-react';
 
 
 const loadingMessages = [
@@ -98,7 +99,14 @@ export default function SignupPage() {
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? loadingMessage : 'Create account'}
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {loadingMessage}
+              </>
+            ) : (
+              'Create account'
+            )}
           </Button>
         </CardContent>
       </form>
