@@ -2,11 +2,10 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, Auth, signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
+import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, Auth } from "firebase/auth";
 import { doc, getDoc, DocumentData, Firestore } from "firebase/firestore";
 import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
 import { useRouter } from "next/navigation";
-import { Logo } from "@/components/logo";
 
 export interface AuthContextType {
   user: User | null;
@@ -20,26 +19,11 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const GlobalLoader = () => (
-    <div className="flex min-h-screen w-full items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <Logo />
-        <div className="text-center">
-            <p className="text-lg font-medium text-foreground">
-                Getting things ready...
-            </p>
-            <p className="text-sm text-muted-foreground">Please wait a moment while we load the app.</p>
-        </div>
-      </div>
-    </div>
-);
-
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DocumentData | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [authInstance, setAuthInstance] = useState<Auth | null>(null);
-  const [dbInstance, setDbInstance] = useState<Firestore | null>(null);
   const router = useRouter();
   
   useEffect(() => {
@@ -50,7 +34,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
 
     setAuthInstance(firebase.auth);
-    setDbInstance(firebase.db);
     
     const unsubscribe = onAuthStateChanged(firebase.auth, async (firebaseUser) => {
       setInitializing(true);
@@ -95,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {initializing ? <GlobalLoader /> : children}
+      {children}
     </AuthContext.Provider>
   );
 };

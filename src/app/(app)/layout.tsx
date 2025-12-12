@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Protected } from '@/components/auth/protected';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { NAV_LINKS, SUPPORT_LINKS } from '@/lib/constants';
@@ -20,9 +19,23 @@ import {
   SidebarInset,
   SidebarSeparator,
 } from '@/components/ui/sidebar';
+import { useAuth } from '@/hooks/use-auth';
+import { Protected } from '@/components/auth/protected';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const { initializing } = useAuth();
+
+  if (initializing) {
+    return (
+        <div className="flex min-h-screen w-full items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-4">
+                <Logo />
+                <p className="text-sm text-muted-foreground">Loading your workspace...</p>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <Protected>
