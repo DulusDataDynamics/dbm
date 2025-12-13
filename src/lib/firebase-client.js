@@ -14,8 +14,7 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Explicitly disable persistence to prevent "client is offline" errors
-// in some development environments (especially with Next.js HMR).
+// Explicitly disable persistence to prevent "client is offline" errors.
 const db = initializeFirestore(app, {
   localCache: undefined,
 });

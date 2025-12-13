@@ -1,0 +1,188 @@
+/**
+ * This ruleset enforces a strict user-ownership model for a multi-tenant business management application.
+ *
+ * Core Philosophy:
+ * The security model is built on path-based ownership. All data for a specific business is stored
+ * within a dedicated document tree, ensuring that one business owner cannot access, view, or modify
+ * the data of another. The `businessId` in the path is always the authenticated user's UID.
+ *
+ * Data Structure:
+ * The data is organized hierarchically. A top-level `businesses` collection holds documents for each
+ * registered user. All business-specific data, such as clients, invoices, tasks, and inventory,
+ * is stored in subcollections under the corresponding `/businesses/{businessId}` document.
+ * This structure provides strong data isolation between users.
+ *
+ * Key Security Decisions:
+ * - User Isolation: A user can only interact with data under their own `/businesses/{userId}` path.
+ * - No User Enumeration: Listing documents in the top-level `/businesses` collection is explicitly
+ *   disallowed to prevent malicious actors from discovering all registered business/user IDs.
+ * - Self-Creation: A newly authenticated user is permitted to create their own root business document
+ *   (e.g., `/businesses/THEIR_OWN_UID`), but no one else's.
+ * - Relational Integrity: On creation, all subcollection documents (like an Invoice or Client) must
+ *   contain a `businessId` field that matches the `businessId` in the document path. This field is
+ *   enforced as immutable to prevent data from being reassigned to another business.
+ *
+ * Denormalization for Authorization:
+ * This ruleset relies on path-based security, which is a highly performant authorization strategy.
+ * The user's UID (`businessId`) is part of the document path, eliminating the need for slow and costly
+ * `get()` or `exists()` calls to other documents to verify ownership. Every rule can make an
+ * authorization decision based on the path and the user's `request.auth.uid` alone.
+ *
+ * Structural Segregation:
+ * Each entity (Client, Invoice, Task, etc.) is stored in its own dedicated subcollection. This ensures
+ * that all documents within a given collection share the same security posture, simplifying rules and
+ * enabling secure list operations within a user's own data tree.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if a user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the currently authenticated user's UID matches the provided userId.
+     * This is the core function for verifying ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks for ownership and ensures the document already exists.
+     * Used for safe update and delete operations.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates that the business document being created has an 'id' field
+     * that matches the user's auth UID and the document's path ID.
+     */
+    function hasValidBusinessIdOnCreate(businessId) {
+      return request.resource.data.id == businessId;
+    }
+
+    /**
+     * Validates that the business document's 'id' field is immutable on update.
+     */
+    function businessIdIsImmutable() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates that a subcollection document being created has a 'businessId' field
+     * that correctly links it to its parent business path.
+     */
+    function hasValidParentLinkOnCreate(businessId) {
+      return request.resource.data.businessId == businessId;
+    }
+
+    /**
+     * Validates that a subcollection document's 'businessId' field is immutable on update.
+     */
+    function parentLinkIsImmutable() {
+      return request.resource.data.businessId == resource.data.businessId;
+    }
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description A user's root business document. Users can create their own document,
+     *              and only the owner can read, update, or delete it. Listing is disallowed
+     *              to prevent user enumeration.
+     * @path        /businesses/{businessId}
+     * @allow       (get, update, delete) A signed-in user with uid 'user123' accessing '/businesses/user123'.
+     * @allow       (create) A new user with uid 'user456' creating '/businesses/user456'.
+     * @deny        (list) Any user attempting to list all documents in the 'businesses' collection.
+     * @deny        (get) A user with uid 'userABC' trying to access '/businesses/userXYZ'.
+     * @principle   Enforces self-creation for user profiles and strict ownership for all subsequent operations.
+     */
+    match /businesses/{businessId} {
+      allow get: if isOwner(businessId);
+      allow list: if false;
+      allow create: if isOwner(businessId) && hasValidBusinessIdOnCreate(businessId);
+      allow update: if isExistingOwner(businessId) && businessIdIsImmutable();
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    /**
+     * @description Stores clients associated with a specific business. Only the owner
+     *              of the business can manage their own clients.
+     * @path        /businesses/{businessId}/clients/{clientId}
+     * @allow       (create, get, list, update, delete) A user with uid 'user123' accessing documents under '/businesses/user123/clients/'.
+     * @deny        (get) A user with uid 'userABC' trying to access any document under '/businesses/userXYZ/clients/'.
+     * @deny        (create) A user creating a client under another user's business path.
+     * @principle   Restricts access to a user's own data tree and validates relational integrity on writes.
+     */
+    match /businesses/{businessId}/clients/{clientId} {
+      allow get: if isOwner(businessId);
+      allow list: if isOwner(businessId);
+      allow create: if isOwner(businessId) && hasValidParentLinkOnCreate(businessId);
+      allow update: if isExistingOwner(businessId) && parentLinkIsImmutable();
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    /**
+     * @description Stores invoices associated with a specific business. Only the owner
+     *              of the business can manage their own invoices.
+     * @path        /businesses/{businessId}/invoices/{invoiceId}
+     * @allow       (create, get, list, update, delete) A user with uid 'user123' accessing documents under '/businesses/user123/invoices/'.
+     * @deny        (get) A user with uid 'userABC' trying to access any document under '/businesses/userXYZ/invoices/'.
+     * @deny        (create) A user creating an invoice with a mismatched 'businessId' field.
+     * @principle   Restricts access to a user's own data tree and validates relational integrity on writes.
+     */
+    match /businesses/{businessId}/invoices/{invoiceId} {
+      allow get: if isOwner(businessId);
+      allow list: if isOwner(businessId);
+      allow create: if isOwner(businessId) && hasValidParentLinkOnCreate(businessId);
+      allow update: if isExistingOwner(businessId) && parentLinkIsImmutable();
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    /**
+     * @description Stores tasks associated with a specific business. Only the owner
+     *              of the business can manage their own tasks.
+     * @path        /businesses/{businessId}/tasks/{taskId}
+     * @allow       (create, get, list, update, delete) A user with uid 'user123' accessing documents under '/businesses/user123/tasks/'.
+     * @deny        (get) A user with uid 'userABC' trying to access any document under '/businesses/userXYZ/tasks/'.
+     * @deny        (update) A user attempting to change the 'businessId' of an existing task.
+     * @principle   Restricts access to a user's own data tree and validates relational integrity on writes.
+     */
+    match /businesses/{businessId}/tasks/{taskId} {
+      allow get: if isOwner(businessId);
+      allow list: if isOwner(businessId);
+      allow create: if isOwner(businessId) && hasValidParentLinkOnCreate(businessId);
+      allow update: if isExistingOwner(businessId) && parentLinkIsImmutable();
+      allow delete: if isExistingOwner(businessId);
+    }
+
+    /**
+     * @description Stores inventory items associated with a specific business. Only the owner
+     *              of the business can manage their own inventory.
+     * @path        /businesses/{businessId}/inventory/{inventoryItemId}
+     * @allow       (create, get, list, update, delete) A user with uid 'user123' accessing documents under '/businesses/user123/inventory/'.
+     * @deny        (get) A user with uid 'userABC' trying to access any document under '/businesses/userXYZ/inventory/'.
+     * @deny        (delete) A user attempting to delete an inventory item belonging to another business.
+     * @principle   Restricts access to a user's own data tree and validates relational integrity on writes.
+     */
+    match /businesses/{businessId}/inventory/{inventoryItemId} {
+      allow get: if isOwner(businessId);
+      allow list: if isOwner(businessId);
+      allow create: if isOwner(businessId) && hasValidParentLinkOnCreate(businessId);
+      allow update: if isExistingOwner(businessId) && parentLinkIsImmutable();
+      allow delete: if isExistingOwner(businessId);
+    }
+  }
+}
