@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const loadingMessages = [
@@ -58,7 +58,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      // The redirect will be handled by the useEffect watching the user state.
+      // On success, the useEffect hook will handle the redirect.
       // We don't need to setLoading(false) here because the component will unmount.
     } catch (error: any) {
       console.error(error);
@@ -71,7 +71,7 @@ export default function LoginPage() {
     }
   };
 
-  if (initializing || user) {
+  if (initializing || (!initializing && user)) {
     return null; // Render nothing while initializing or if user is already logged in to prevent flash of content
   }
 
@@ -119,6 +119,12 @@ export default function LoginPage() {
             ) : (
               'Login'
             )}
+          </Button>
+           <Button variant="outline" className="w-full" asChild>
+            <Link href="/">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </Link>
           </Button>
           <p className="text-sm text-center text-muted-foreground">
             Don&apos;t have an account?{' '}

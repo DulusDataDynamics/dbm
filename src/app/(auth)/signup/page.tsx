@@ -11,11 +11,12 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/use-auth';
-import { Loader2 } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -60,7 +61,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup(email, password);
-       // The redirect will be handled by the useEffect watching the user state.
+       // On success, the useEffect hook will handle the redirect.
     } catch (error: any) {
       console.error(error);
       toast({
@@ -72,7 +73,7 @@ export default function SignupPage() {
     }
   };
 
-  if (initializing || user) {
+  if (initializing || (!initializing && user)) {
     return null; // Render nothing while initializing or if user is already logged in
   }
 
@@ -110,6 +111,8 @@ export default function SignupPage() {
               disabled={loading}
             />
           </div>
+        </CardContent>
+         <CardFooter className="flex flex-col gap-4">
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? (
               <>
@@ -120,14 +123,20 @@ export default function SignupPage() {
               'Create account'
             )}
           </Button>
-        </CardContent>
+           <Button variant="outline" className="w-full" asChild>
+            <Link href="/">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </Link>
+          </Button>
+           <p className="text-sm text-center text-muted-foreground">
+            Already have an account?{' '}
+            <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
+              Login
+            </Link>
+          </p>
+        </CardFooter>
       </form>
-      <CardTitle className="text-sm text-center text-muted-foreground pb-6">
-        Already have an account?{' '}
-        <Link href="/login" className="font-semibold text-primary underline-offset-4 hover:underline">
-          Login
-        </Link>
-      </CardTitle>
     </Card>
   );
 }
