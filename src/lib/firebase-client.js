@@ -1,6 +1,6 @@
 // CLIENT ONLY FIREBASE
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, initializeFirestore } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
@@ -14,10 +14,9 @@ const firebaseConfig = {
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-// Explicitly disable persistence to prevent "client is offline" errors.
-const db = initializeFirestore(app, {
-  localCache: undefined,
-});
+// Use getFirestore() directly to ensure an online-only connection
+// This resolves the "client is offline" error by disabling persistence.
+const db = getFirestore(app);
 
 const auth = getAuth(app);
 
