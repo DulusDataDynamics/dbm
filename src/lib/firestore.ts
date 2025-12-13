@@ -69,7 +69,7 @@ export function subscribeToInvoices(callback: (data: Invoice[]) => void) {
     const clientsQuery = query(collection(db, 'clients'), where('__name__', 'in', clientIds));
     const clientSnaps = await getDocs(clientsQuery);
     const clientsMap = new Map(
-      clientSnapshots.docs.map((snap) => [snap.id, { id: snap.id, ...snap.data() } as Client])
+      clientSnaps.docs.map((snap) => [snap.id, { id: snap.id, ...snap.data() } as Client])
     );
 
     const enrichedInvoices = invoicesData.map((invoice) => ({
