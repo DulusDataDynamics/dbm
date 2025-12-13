@@ -27,27 +27,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setInitializing(true);
       setUser(firebaseUser);
-
-      if (firebaseUser) {
-        try {
-          const ref = doc(db, "profiles", firebaseUser.uid);
-          const snap = await getDoc(ref);
-          setProfile(snap.exists() ? snap.data() : null);
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-          setProfile(null);
-        }
-      } else {
+      setInitializing(true);
+  
+      if (!firebaseUser) {
         setProfile(null);
+        setInitializing(false);
+        return;
       }
-      setInitializing(false);
+  
+      // 🚑 Offline guard — prevents app death
+      if (!navigator.onLine) {
+        console.warn("Offline mode detected – skipping profile fetch");
+        setProfile(null);
+        setInitializing(false);
+        return;
+      }
+  
+      try {
+        const ref = doc(db, "profiles", firebaseUser.uid);
+        const snap = await getDoc(ref);
+        setProfile(snap.exists() ? snap.data() : null);
+      } catch (error) {
+        console.error("Profile fetch failed (non-fatal):", error);
+        setProfile(null);
+      } finally {
+        setInitializing(false);
+      }
     });
-
+  
     return () => unsubscribe();
   }, []);
-
+  
   const login = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
   };
