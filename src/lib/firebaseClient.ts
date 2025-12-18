@@ -12,11 +12,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Validate environment variables
 if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
   console.error("Firebase config environment variables are not set. Please check your .env file.");
 }
-
 
 type FirebaseServices = {
   app: FirebaseApp;
@@ -44,7 +42,6 @@ export function getFirebase(): FirebaseServices {
 
 
 export async function waitForFirebaseReady(auth: Auth) {
-  // Wait for auth to initialize
   await new Promise<void>((resolve) => {
     const unsub = auth.onAuthStateChanged(() => {
       unsub();

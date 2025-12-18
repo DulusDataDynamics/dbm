@@ -4,22 +4,24 @@ import { useAuth } from '@/hooks/use-auth';
 import { useEffect, useState } from 'react';
 import { getBusinessProfile, getInvoiceSettings } from '@/lib/firestore';
 import { Building } from 'lucide-react';
+import type { Firestore } from 'firebase/firestore';
 
 interface InvoicePDFViewProps {
+  db: Firestore;
   invoice: Invoice;
 }
 
-export function InvoicePDFView({ invoice }: InvoicePDFViewProps) {
+export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
     const { user } = useAuth();
     const [profile, setProfile] = useState<BusinessProfile | null>(null);
     const [settings, setSettings] = useState<InvoiceSettings | null>(null);
     
     useEffect(() => {
         if(user?.uid) {
-            getBusinessProfile(user.uid).then(setProfile);
-            getInvoiceSettings(user.uid).then(setSettings);
+            getBusinessProfile(db, user.uid).then(setProfile);
+            getInvoiceSettings(db, user.uid).then(setSettings);
         }
-    }, [user, invoice]);
+    }, [user, invoice, db]);
 
   return (
     <div id={`invoice-pdf-view-${invoice.id}`} className="p-6 bg-white text-gray-800 font-sans text-sm" style={{width: '800px', margin: 'auto'}}>

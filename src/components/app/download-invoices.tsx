@@ -2,8 +2,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, doc, getDoc, Auth } from 'firebase/firestore';
-import { db, auth } from '@/lib/firebase-client';
+import { collection, getDocs, query, orderBy, doc, getDoc, Firestore, Auth } from 'firebase/firestore';
+import { getFirebase } from '@/lib/firebaseClient';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Button } from '../ui/button';
@@ -11,6 +11,7 @@ import { Download } from 'lucide-react';
 import { Invoice, Client, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getBusinessProfile, getInvoiceSettings } from '@/lib/firestore';
+import { useAuth } from '@/hooks/use-auth';
 
 type AppInvoice = Invoice & {
     client?: Client;
@@ -18,9 +19,20 @@ type AppInvoice = Invoice & {
 
 export default function DownloadInvoices() {
   const [loading, setLoading] = useState(false);
+  const { auth, user } = useAuth();
+  const [db, setDb] = useState<Firestore | null>(null);
   const { toast } = useToast();
 
+   useEffect(() => {
+    const fb = getFirebase();
+    if (fb) {
+      setDb(fb.db);
+    }
+  }, []);
+
   async function fetchInvoices(): Promise<AppInvoice[]> {
+    if (!db) throw new Error("Firebase not initialized");
+    
     const invoicesRef = collection(db, 'invoices');
     const q = query(invoicesRef, orderBy('dueDate', 'desc'));
     const invoiceSnap = await getDocs(q);
@@ -57,17 +69,16 @@ export default function DownloadInvoices() {
   }
 
   async function handleDownload() {
-    setLoading(true);
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-        toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: "You must be logged in to download invoices.",
-        });
-        setLoading(false);
-        return;
+    if (!db || !user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not connect to the database. Please try again.",
+      });
+      return;
     }
+
+    setLoading(true);
 
     try {
       const invoices = await fetchInvoices();
@@ -80,8 +91,8 @@ export default function DownloadInvoices() {
         return;
       }
       
-      const profile = await getBusinessProfile(currentUser.uid);
-      const settings = await getInvoiceSettings(currentUser.uid);
+      const profile = await getBusinessProfile(db, user.uid);
+      const settings = await getInvoiceSettings(db, user.uid);
 
       if (!profile) {
          toast({
@@ -240,7 +251,7 @@ export default function DownloadInvoices() {
   }
 
   return (
-    <Button onClick={handleDownload} disabled={loading || !auth} variant="outline" size="sm">
+    <Button onClick={handleDownload} disabled={loading || !db} variant="outline" size="sm">
         <Download className="mr-2 h-4 w-4" />
         {loading ? 'Preparing PDF...' : 'Download All'}
     </Button>

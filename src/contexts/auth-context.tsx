@@ -3,9 +3,10 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, Auth } from "firebase/auth";
-import { doc, getDoc, DocumentData } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase-client";
+import { doc, getDoc, DocumentData, Firestore } from "firebase/firestore";
+import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/logo";
 
 export interface AuthContextType {
   user: User | null;
@@ -19,64 +20,78 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const GlobalLoader = () => (
+    <div className="flex min-h-screen w-full items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-4">
+        <Logo />
+        <div className="text-center">
+            <p className="text-lg font-medium text-foreground">
+                Getting things ready...
+            </p>
+            <p className="text-sm text-muted-foreground">Please wait a moment while we load the app.</p>
+        </div>
+      </div>
+    </div>
+);
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DocumentData | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [authInstance, setAuthInstance] = useState<Auth | null>(null);
+  const [dbInstance, setDbInstance] = useState<Firestore | null>(null);
   const router = useRouter();
   
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const firebase = getFirebase();
+    if (!firebase) return;
+
+    setAuthInstance(firebase.auth);
+    setDbInstance(firebase.db);
+    
+    const unsubscribe = onAuthStateChanged(firebase.auth, async (firebaseUser) => {
       setUser(firebaseUser);
-      setInitializing(true);
-  
-      if (!firebaseUser) {
+
+      if (firebaseUser && firebase.db) {
+        try {
+          await waitForFirebaseReady(firebase.auth);
+          const ref = doc(firebase.db, "profiles", firebaseUser.uid);
+          const snap = await getDoc(ref);
+          setProfile(snap.exists() ? snap.data() : null);
+        } catch (error) {
+          console.error("Profile error:", error);
+          setProfile(null);
+        }
+      } else {
         setProfile(null);
-        setInitializing(false);
-        return;
       }
-  
-      // 🚑 Offline guard — prevents app death
-      if (!navigator.onLine) {
-        console.warn("Offline mode detected – skipping profile fetch");
-        setProfile(null);
-        setInitializing(false);
-        return;
-      }
-  
-      try {
-        const ref = doc(db, "profiles", firebaseUser.uid);
-        const snap = await getDoc(ref);
-        setProfile(snap.exists() ? snap.data() : null);
-      } catch (error) {
-        console.error("Profile fetch failed (non-fatal):", error);
-        setProfile(null);
-      } finally {
-        setInitializing(false);
-      }
+      setInitializing(false);
     });
-  
+
     return () => unsubscribe();
   }, []);
-  
+
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    if (!authInstance) throw new Error("Auth not initialized");
+    await signInWithEmailAndPassword(authInstance, email, password);
   };
 
   const signup = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    if (!authInstance) throw new Error("Auth not initialized");
+    await createUserWithEmailAndPassword(authInstance, email, password);
   };
 
   const logout = async () => {
-    await signOut(auth);
+    if (!authInstance) throw new Error("Auth not initialized");
+    await signOut(authInstance);
     router.push('/login');
   };
 
-  const value = { user, auth, profile, initializing, login, signup, logout };
+  const value = { user, auth: authInstance, profile, initializing, login, signup, logout };
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {initializing ? <GlobalLoader /> : children}
     </AuthContext.Provider>
   );
 };

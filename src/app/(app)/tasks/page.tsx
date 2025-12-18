@@ -39,8 +39,12 @@ import { TaskForm } from '@/components/app/task-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
+import type { Firestore } from 'firebase/firestore';
 
 export default function TasksPage() {
+  const [db, setDb] = useState<Firestore | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -48,9 +52,21 @@ export default function TasksPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isPending, startTransition] = useTransition();
+  const { auth } = useAuth();
 
   useEffect(() => {
-    const unsubscribe = subscribeToTasks((tasksData) => {
+    if (!auth) return;
+    async function load() {
+      await waitForFirebaseReady(auth);
+      const fb = getFirebase();
+      if (fb) setDb(fb.db);
+    }
+    load();
+  }, [auth]);
+
+  useEffect(() => {
+    if (!db) return;
+    const unsubscribe = subscribeToTasks(db, (tasksData) => {
       // Sort by due date, then by status
       const sortedTasks = tasksData.sort((a, b) => {
         if (a.dueDate < b.dueDate) return -1;
@@ -64,17 +80,19 @@ export default function TasksPage() {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [db]);
 
   const handleStatusChange = (task: Task, status: TaskStatus) => {
+    if (!db) return;
     startTransition(async () => {
-      await updateTaskStatus(task.id, status);
+      await updateTaskStatus(db, task.id, status);
     });
   };
 
   const handlePriorityChange = (task: Task, priority: TaskPriority) => {
+    if (!db) return;
     startTransition(async () => {
-      await updateTaskPriority(task.id, priority);
+      await updateTaskPriority(db, task.id, priority);
     });
   };
 
@@ -94,8 +112,8 @@ export default function TasksPage() {
   };
 
   const confirmDelete = async () => {
-    if (taskToDelete) {
-      await deleteTask(taskToDelete.id);
+    if (taskToDelete && db) {
+      await deleteTask(db, taskToDelete.id);
       setIsDeleteDialogOpen(false);
       setTaskToDelete(null);
     }
@@ -132,7 +150,7 @@ export default function TasksPage() {
             <CardTitle>Tasks</CardTitle>
             <CardDescription>Manage your tasks and track your workload.</CardDescription>
           </div>
-          <Button size="sm" onClick={handleAddTask}>
+          <Button size="sm" onClick={handleAddTask} disabled={!db}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Task
           </Button>
@@ -220,11 +238,14 @@ export default function TasksPage() {
       </CardContent>
     </Card>
 
-    <TaskForm
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        task={selectedTask}
-    />
+    {db && (
+      <TaskForm
+          db={db}
+          isOpen={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          task={selectedTask}
+      />
+    )}
 
     <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
       <AlertDialogContent>
