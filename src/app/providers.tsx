@@ -3,6 +3,7 @@
 import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/components/app/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
+import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -13,6 +14,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <AuthProvider>
+        <FirebaseErrorListener />
         {children}
         <Toaster />
       </AuthProvider>
