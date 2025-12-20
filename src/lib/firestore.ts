@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -15,7 +16,7 @@ import {
   orderBy,
   Firestore,
 } from "firebase/firestore";
-import { auth } from "@/firebase/client-provider";
+import { auth, db } from "@/firebase/firebase";
 import type {
   Client,
   Invoice,

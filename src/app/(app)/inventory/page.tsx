@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -42,7 +43,7 @@ import {
 import { InventoryForm } from '@/components/app/inventory-form';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { db } from '@/firebase/client-provider';
+import { db } from '@/firebase/firebase';
 
 export default function InventoryPage() {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);

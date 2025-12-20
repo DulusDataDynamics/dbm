@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -35,7 +36,7 @@ import { TaskForm } from '@/components/app/task-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/client-provider';
+import { db } from '@/firebase/firebase';
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);

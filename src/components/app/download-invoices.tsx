@@ -8,7 +8,7 @@ import { Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getBusinessProfile, getInvoiceSettings, subscribeToInvoices } from '@/lib/firestore';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/client-provider';
+import { db } from '@/firebase/firebase';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 

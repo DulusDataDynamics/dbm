@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -45,7 +46,7 @@ import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
 import { useToast } from '@/hooks/use-toast';
 import DownloadInvoices from '@/components/app/download-invoices';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/client-provider';
+import { db } from '@/firebase/firebase';
 
 export default function InvoicesPage() {
   const { user } = useAuth();
@@ -248,7 +249,6 @@ export default function InvoicesPage() {
       </AlertDialog>
       
        <ViewInvoiceDialog
-        db={db}
         isOpen={isViewDialogOpen}
         onClose={() => setIsViewDialogOpen(false)}
         invoice={invoiceToView}

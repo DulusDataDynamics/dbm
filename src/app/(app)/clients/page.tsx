@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Table,
@@ -42,7 +43,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/client-provider';
+import { db } from '@/firebase/firebase';
 
 
 export default function ClientsPage() {

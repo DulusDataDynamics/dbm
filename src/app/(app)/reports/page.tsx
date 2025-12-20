@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RevenueInsightsGenerator } from "@/components/app/revenue-insights-generator";
 import { useAuth } from "@/hooks/use-auth";
-import { db } from "@/firebase/client-provider";
+import { db } from "@/firebase/firebase";
 
 export default function ReportsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);

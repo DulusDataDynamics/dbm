@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -51,7 +52,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import DownloadInvoices from '@/components/app/download-invoices';
-import { db } from '@/firebase/client-provider';
+import { db } from '@/firebase/firebase';
 
 
 const settingsSections = [

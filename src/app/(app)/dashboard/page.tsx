@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -33,7 +34,7 @@ import { Button } from '@/components/ui/button';
 import { RevenueChart } from '@/components/app/revenue-chart';
 import { RevenueInsightsGenerator } from '@/components/app/revenue-insights-generator';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/client-provider';
+import { db } from '@/firebase/firebase';
 
 export default function DashboardPage() {
   const { user } = useAuth();
