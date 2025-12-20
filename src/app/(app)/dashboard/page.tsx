@@ -32,13 +32,11 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { RevenueChart } from '@/components/app/revenue-chart';
 import { RevenueInsightsGenerator } from '@/components/app/revenue-insights-generator';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
 import { useAuth } from '@/hooks/use-auth';
-import type { Firestore } from 'firebase/firestore';
+import { db } from '@/firebase/client-provider';
 
 export default function DashboardPage() {
-  const { auth } = useAuth();
-  const [db, setDb] = useState<Firestore | null>(null);
+  const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -46,20 +44,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!user) return;
+    
     const unsubClients = subscribeToClients(db, (data) => {
       setClients(data);
-      if (loading) setLoading(false);
+      setLoading(false);
     });
     const unsubInvoices = subscribeToInvoices(db, setInvoices);
     const unsubTasks = subscribeToTasks(db, setTasks);
@@ -71,7 +60,7 @@ export default function DashboardPage() {
       unsubTasks();
       unsubInventory();
     };
-  }, [db, loading]);
+  }, [user]);
 
   const activeInvoices = invoices.filter(
     (inv) => inv.status === 'Unpaid' || inv.status === 'Overdue'
@@ -86,7 +75,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {loading ? (
           <>
             <Skeleton className="h-28" />
@@ -120,10 +109,10 @@ export default function DashboardPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>Recent Invoices</CardTitle>
                 <CardDescription>
@@ -188,7 +177,7 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <CardTitle>Pending Tasks</CardTitle>
                 <CardDescription>Your most urgent upcoming tasks.</CardDescription>

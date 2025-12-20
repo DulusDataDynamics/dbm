@@ -1,31 +1,31 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /businesses/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
 
-    function isSignedIn() {
-      return request.auth != null;
+      match /clients/{clientId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /invoices/{invoiceId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /tasks/{taskId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      match /inventory/{itemId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      
+      match /settings/{settingId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
     }
-
-    match /clients/{clientId} {
-      allow get, write: if isSignedIn();
-      allow list: if isSignedIn();
-    }
-
-    match /invoices/{invoiceId} {
-       allow get, write: if isSignedIn();
-       allow list: if isSignedIn();
-    }
-
-    match /tasks/{taskId} {
-       allow get, write: if isSignedIn();
-       allow list: if isSignedIn();
-    }
-
-    match /inventory/{itemId} {
-      allow get, write: if isSignedIn();
-      allow list: if isSignedIn();
-    }
-
+    
     match /profiles/{userId}/{**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }

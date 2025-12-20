@@ -22,16 +22,12 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { deleteTask, subscribeToTasks, updateTaskStatus, updateTaskPriority } from '@/lib/firestore';
-import { Task, TaskPriority, TaskStatus } from '@/lib/types';
+import { deleteTask, subscribeToTasks, updateTaskStatus } from '@/lib/firestore';
+import { Task, TaskStatus } from '@/lib/types';
 import { useEffect, useState, useTransition } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -39,12 +35,9 @@ import { TaskForm } from '@/components/app/task-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
+import { db } from '@/firebase/client-provider';
 
 export default function TasksPage() {
-  const [db, setDb] = useState<Firestore | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -52,22 +45,11 @@ export default function TasksPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isPending, startTransition] = useTransition();
-  const { auth } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!user) return;
     const unsubscribe = subscribeToTasks(db, (tasksData) => {
-      // Sort by due date, then by status
       const sortedTasks = tasksData.sort((a, b) => {
         if (a.dueDate < b.dueDate) return -1;
         if (a.dueDate > b.dueDate) return 1;
@@ -80,19 +62,11 @@ export default function TasksPage() {
     });
 
     return () => unsubscribe();
-  }, [db]);
+  }, [user]);
 
   const handleStatusChange = (task: Task, status: TaskStatus) => {
-    if (!db) return;
     startTransition(async () => {
       await updateTaskStatus(db, task.id, status);
-    });
-  };
-
-  const handlePriorityChange = (task: Task, priority: TaskPriority) => {
-    if (!db) return;
-    startTransition(async () => {
-      await updateTaskPriority(db, task.id, priority);
     });
   };
 
@@ -112,7 +86,7 @@ export default function TasksPage() {
   };
 
   const confirmDelete = async () => {
-    if (taskToDelete && db) {
+    if (taskToDelete) {
       await deleteTask(db, taskToDelete.id);
       setIsDeleteDialogOpen(false);
       setTaskToDelete(null);
@@ -132,7 +106,7 @@ export default function TasksPage() {
     }
   };
   
-  const getPriorityBadgeVariant = (priority: TaskPriority) => {
+  const getPriorityBadgeVariant = (priority: Task['priority']) => {
     switch (priority) {
       case 'High': return 'destructive';
       case 'Medium': return 'secondary';
@@ -145,12 +119,12 @@ export default function TasksPage() {
     <>
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Tasks</CardTitle>
             <CardDescription>Manage your tasks and track your workload.</CardDescription>
           </div>
-          <Button size="sm" onClick={handleAddTask} disabled={!db}>
+          <Button size="sm" onClick={handleAddTask}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Task
           </Button>
@@ -163,14 +137,14 @@ export default function TasksPage() {
               {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : (
-        <ScrollArea className="h-[450px]">
+        <ScrollArea className="h-[calc(100vh-22rem)]">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Task</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Assigned To</TableHead>
+                <TableHead className="hidden sm:table-cell">Priority</TableHead>
+                <TableHead className="hidden md:table-cell">Assigned To</TableHead>
                 <TableHead>Due Date</TableHead>
                 <TableHead>
                   <span className="sr-only">Actions</span>
@@ -201,14 +175,14 @@ export default function TasksPage() {
                         </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="hidden sm:table-cell">
                     <Badge
                       variant={getPriorityBadgeVariant(task.priority)}
                     >
                       {task.priority}
                     </Badge>
                   </TableCell>
-                  <TableCell>{task.assignedTo || 'Unassigned'}</TableCell>
+                  <TableCell className="hidden md:table-cell">{task.assignedTo || 'Unassigned'}</TableCell>
                   <TableCell>
                     <span className={cn(isOverdue(task) && 'text-destructive font-semibold')}>
                       {new Date(task.dueDate).toLocaleDateString()}
@@ -238,14 +212,12 @@ export default function TasksPage() {
       </CardContent>
     </Card>
 
-    {db && (
-      <TaskForm
-          db={db}
-          isOpen={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
-          task={selectedTask}
-      />
-    )}
+    <TaskForm
+        db={db}
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        task={selectedTask}
+    />
 
     <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
       <AlertDialogContent>

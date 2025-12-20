@@ -41,11 +41,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/firebase/client-provider';
+
 
 export default function ClientsPage() {
-  const [db, setDb] = useState<Firestore | null>(null);
+  const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -53,28 +54,16 @@ export default function ClientsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const { toast } = useToast();
-  const { auth } = getFirebase() || {};
 
   useEffect(() => {
-    const fb = getFirebase();
-    if (!fb || !auth) return;
-
-    async function load() {
-      await waitForFirebaseReady(auth);
-      setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!user) return;
     const unsubscribe = subscribeToClients(db, (clientsData) => {
       setClients(clientsData);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [db]);
+  }, [user]);
 
   const handleAddClient = () => {
     setSelectedClient(null);
@@ -106,8 +95,8 @@ export default function ClientsPage() {
   };
 
   const confirmDelete = async () => {
-    if (clientToDelete && db) {
-      await deleteClient(db, clientToDelete.id);
+    if (clientToDelete) {
+      deleteClient(db, clientToDelete.id);
       setIsDeleteDialogOpen(false);
       setClientToDelete(null);
     }
@@ -123,12 +112,12 @@ export default function ClientsPage() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Clients</CardTitle>
               <CardDescription>Manage your clients and view their details.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddClient} disabled={!db}>
+            <Button size="sm" onClick={handleAddClient}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Client
             </Button>
@@ -145,8 +134,8 @@ export default function ClientsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
+                  <TableHead className="hidden sm:table-cell">Phone</TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -156,8 +145,8 @@ export default function ClientsPage() {
                 {clients.map((client) => (
                   <TableRow key={client.id}>
                     <TableCell className="font-medium">{client.name}</TableCell>
-                    <TableCell>{client.email}</TableCell>
-                    <TableCell>{client.phone}</TableCell>
+                    <TableCell className="hidden md:table-cell">{client.email}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{client.phone}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -187,14 +176,12 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
       
-      {db && (
-        <ClientForm 
-          db={db}
-          isOpen={isFormOpen}
-          onClose={handleFormClose}
-          client={selectedClient}
-        />
-      )}
+      <ClientForm 
+        db={db}
+        isOpen={isFormOpen}
+        onClose={handleFormClose}
+        client={selectedClient}
+      />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

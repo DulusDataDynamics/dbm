@@ -42,11 +42,9 @@ import {
 import { InventoryForm } from '@/components/app/inventory-form';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
+import { db } from '@/firebase/client-provider';
 
 export default function InventoryPage() {
-  const [db, setDb] = useState<Firestore | null>(null);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -54,33 +52,21 @@ export default function InventoryPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
-  const { user, auth } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!user) return;
 
     const unsubscribe = subscribeToInventory(db, (inventoryData) => {
       setInventory(inventoryData);
       setLoading(false);
     });
     
-    if (user?.uid) {
-        getBusinessProfile(db, user.uid).then(setBusinessProfile);
-    }
+    getBusinessProfile(db).then(setBusinessProfile);
 
     return () => unsubscribe();
-  }, [db, user]);
+  }, [user]);
 
   const handleAddItem = () => {
     setSelectedItem(null);
@@ -114,8 +100,8 @@ export default function InventoryPage() {
   };
 
   const confirmDelete = async () => {
-    if (itemToDelete && db) {
-      await deleteInventoryItem(db, itemToDelete.id);
+    if (itemToDelete) {
+      deleteInventoryItem(db, itemToDelete.id);
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
     }
@@ -130,12 +116,12 @@ export default function InventoryPage() {
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Inventory</CardTitle>
               <CardDescription>Manage your products, services, and stock levels.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddItem} disabled={!db}>
+            <Button size="sm" onClick={handleAddItem}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Item
             </Button>
@@ -151,11 +137,11 @@ export default function InventoryPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>SKU</TableHead>
+                  <TableHead className="hidden sm:table-cell">SKU</TableHead>
                   <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
+                  <TableHead className="hidden md:table-cell">Category</TableHead>
                   <TableHead>Quantity</TableHead>
-                  <TableHead>Reorder Level</TableHead>
+                  <TableHead className="hidden lg:table-cell">Reorder Level</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
@@ -167,9 +153,9 @@ export default function InventoryPage() {
                   const isLowStock = item.reorderLevel > 0 && item.quantity <= item.reorderLevel;
                   return(
                   <TableRow key={item.id} className={isLowStock ? 'bg-destructive/10' : ''}>
-                    <TableCell className="font-mono text-xs">{item.sku}</TableCell>
+                    <TableCell className="hidden sm:table-cell font-mono text-xs">{item.sku}</TableCell>
                     <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell><Badge variant="outline">{item.category}</Badge></TableCell>
+                    <TableCell className="hidden md:table-cell"><Badge variant="outline">{item.category}</Badge></TableCell>
                     <TableCell>
                       {isLowStock ? (
                         <Badge variant="destructive">Low Stock ({item.quantity})</Badge>
@@ -177,7 +163,7 @@ export default function InventoryPage() {
                         item.quantity
                       )}
                     </TableCell>
-                     <TableCell>{item.reorderLevel}</TableCell>
+                     <TableCell className="hidden lg:table-cell">{item.reorderLevel}</TableCell>
                     <TableCell className="text-right">R{item.price.toLocaleString()}</TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -209,14 +195,12 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
       
-      {db && (
-        <InventoryForm 
-          db={db}
-          isOpen={isFormOpen}
-          onClose={handleFormClose}
-          item={selectedItem}
-        />
-      )}
+      <InventoryForm 
+        db={db}
+        isOpen={isFormOpen}
+        onClose={handleFormClose}
+        item={selectedItem}
+      />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

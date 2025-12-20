@@ -7,30 +7,17 @@ import { Invoice, InventoryItem } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RevenueInsightsGenerator } from "@/components/app/revenue-insights-generator";
-import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
-import type { Firestore } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
+import { db } from "@/firebase/client-provider";
 
 export default function ReportsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [db, setDb] = useState<Firestore | null>(null);
-  const { auth } = useAuth();
-
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!user) return;
     const unsubInvoices = subscribeToInvoices(db, (invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
@@ -44,7 +31,7 @@ export default function ReportsPage() {
         unsubInvoices();
         unsubInventory();
     };
-  }, [db]);
+  }, [user]);
 
   return (
     <div className="space-y-6">
@@ -63,11 +50,11 @@ export default function ReportsPage() {
         </div>
       ) : (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-                <div className="lg:col-span-3">
+            <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+                <div className="xl:col-span-3">
                     <RevenueChart invoices={invoices} />
                 </div>
-                <div className="lg:col-span-2">
+                <div className="xl:col-span-2">
                     <InvoiceStatusChart invoices={invoices} />
                 </div>
             </div>

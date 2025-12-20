@@ -1,62 +1,31 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { collection, getDocs, query, orderBy, doc, getDoc, Firestore, Auth } from 'firebase/firestore';
-import { getFirebase } from '@/lib/firebaseClient';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Download } from 'lucide-react';
-import { Invoice, Client, BusinessProfile, InvoiceSettings } from '@/lib/types';
+import { Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getBusinessProfile, getInvoiceSettings } from '@/lib/firestore';
+import { getBusinessProfile, getInvoiceSettings, subscribeToInvoices } from '@/lib/firestore';
 import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/firebase/client-provider';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-type AppInvoice = Invoice & {
-    client?: Client;
-};
+type AppInvoice = Invoice;
 
 export default function DownloadInvoices() {
   const [loading, setLoading] = useState(false);
-  const { auth, user } = useAuth();
-  const [db, setDb] = useState<Firestore | null>(null);
+  const { user } = useAuth();
   const { toast } = useToast();
 
-   useEffect(() => {
-    const fb = getFirebase();
-    if (fb) {
-      setDb(fb.db);
-    }
-  }, []);
-
-  async function fetchInvoices(): Promise<AppInvoice[]> {
-    if (!db) throw new Error("Firebase not initialized");
-    
-    const invoicesRef = collection(db, 'invoices');
-    const q = query(invoicesRef, orderBy('dueDate', 'desc'));
-    const invoiceSnap = await getDocs(q);
-
-    const invoicesData = invoiceSnap.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as Omit<Invoice, 'id'>),
-    }));
-
-    const clientPromises = invoicesData.map(inv => {
-        if (inv.clientId) {
-            const clientRef = doc(db, "clients", inv.clientId);
-            return getDoc(clientRef);
-        }
-        return Promise.resolve(null);
+  async function fetchAllInvoices(): Promise<AppInvoice[]> {
+    return new Promise((resolve) => {
+        const unsubscribe = subscribeToInvoices(db, (invoices) => {
+            unsubscribe();
+            resolve(invoices);
+        });
     });
-
-    const clientSnaps = await Promise.all(clientPromises);
-    const clientsMap = new Map(clientSnaps.filter(c => c?.exists()).map(c => [c!.id, {id: c!.id, ...c!.data()} as Client]));
-    
-    return invoicesData.map(inv => ({
-        ...inv,
-        client: clientsMap.get(inv.clientId),
-    }));
   }
 
   function formatDate(dateString?: string) {
@@ -69,11 +38,11 @@ export default function DownloadInvoices() {
   }
 
   async function handleDownload() {
-    if (!db || !user) {
+    if (!user) {
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "Could not connect to the database. Please try again.",
+        title: "Authentication Error",
+        description: "You must be logged in to download invoices.",
       });
       return;
     }
@@ -81,7 +50,7 @@ export default function DownloadInvoices() {
     setLoading(true);
 
     try {
-      const invoices = await fetchInvoices();
+      const invoices = await fetchAllInvoices();
       if (!invoices || invoices.length === 0) {
         toast({
             title: "No Invoices Found",
@@ -91,8 +60,8 @@ export default function DownloadInvoices() {
         return;
       }
       
-      const profile = await getBusinessProfile(db, user.uid);
-      const settings = await getInvoiceSettings(db, user.uid);
+      const profile = await getBusinessProfile(db);
+      const settings = await getInvoiceSettings(db);
 
       if (!profile) {
          toast({
@@ -251,7 +220,7 @@ export default function DownloadInvoices() {
   }
 
   return (
-    <Button onClick={handleDownload} disabled={loading || !db} variant="outline" size="sm">
+    <Button onClick={handleDownload} disabled={loading} variant="outline" size="sm">
         <Download className="mr-2 h-4 w-4" />
         {loading ? 'Preparing PDF...' : 'Download All'}
     </Button>

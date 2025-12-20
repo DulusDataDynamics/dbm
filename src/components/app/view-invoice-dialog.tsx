@@ -65,16 +65,16 @@ export function ViewInvoiceDialog({ db, isOpen, onClose, invoice }: ViewInvoiceD
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Invoice Details</DialogTitle>
           <DialogDescription>
             A preview of invoice {invoice?.id.substring(0, 8)}. You can download it as a PDF.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
+        <div className="py-4 overflow-y-auto max-h-[70vh]">
           {invoice ? (
-            <InvoicePDFView db={db} invoice={invoice} />
+            <InvoicePDFView invoice={invoice} />
           ) : (
             <div className="space-y-3">
               <Skeleton className="h-40 w-full" />
