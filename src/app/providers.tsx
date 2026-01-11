@@ -1,9 +1,11 @@
 'use client';
 
-import { AuthProvider } from '@/contexts/auth-context';
+import React from 'react';
 import { ThemeProvider } from '@/components/app/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
+import { FirebaseProvider, initializeFirebase } from '@/firebase';
+
+const firebaseServices = initializeFirebase();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -13,11 +15,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <AuthProvider>
-        <FirebaseErrorListener />
+      <FirebaseProvider
+        firebaseApp={firebaseServices.firebaseApp}
+        firestore={firebaseServices.firestore}
+        auth={firebaseServices.auth}
+      >
         {children}
         <Toaster />
-      </AuthProvider>
+      </FirebaseProvider>
     </ThemeProvider>
   );
 }
