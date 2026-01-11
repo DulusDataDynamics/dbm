@@ -13,18 +13,14 @@ import {
   orderBy,
   Firestore,
 } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority } from './types';
 
 // ============================================================================
 // Real-time Subscriptions
 // ============================================================================
 
-/**
- * Subscribes to the clients collection and provides real-time updates.
- * @param db The Firestore instance.
- * @param callback Function to call with the updated list of clients.
- * @returns Unsubscribe function.
- */
 export function subscribeToClients(db: Firestore, callback: (data: Client[]) => void) {
   const q = query(collection(db, 'clients'), orderBy('name', 'asc'));
   return onSnapshot(q, (snapshot) => {
@@ -33,15 +29,15 @@ export function subscribeToClients(db: Firestore, callback: (data: Client[]) => 
       ...doc.data(),
     })) as Client[];
     callback(clientsData);
+  }, (error) => {
+    console.error("Error subscribing to clients:", error);
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: 'clients',
+      operation: 'list',
+    }));
   });
 }
 
-/**
- * Subscribes to the invoices collection and enriches them with client data.
- * @param db The Firestore instance.
- * @param callback Function to call with the updated list of invoices.
- * @returns Unsubscribe function.
- */
 export function subscribeToInvoices(db: Firestore, callback: (data: Invoice[]) => void) {
   const invoicesRef = collection(db, 'invoices');
   const q = query(invoicesRef, orderBy('dueDate', 'desc'));
@@ -85,15 +81,15 @@ export function subscribeToInvoices(db: Firestore, callback: (data: Invoice[]) =
     });
 
     callback(enrichedInvoices);
+  }, (error) => {
+    console.error("Error subscribing to invoices:", error);
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: 'invoices',
+      operation: 'list',
+    }));
   });
 }
 
-/**
- * Subscribes to the tasks collection.
- * @param db The Firestore instance.
- * @param callback Function to call with the updated list of tasks.
- * @returns Unsubscribe function.
- */
 export function subscribeToTasks(db: Firestore, callback: (data: Task[]) => void) {
   const q = query(collection(db, 'tasks'), orderBy('dueDate', 'asc'));
   return onSnapshot(q, (snapshot) => {
@@ -102,15 +98,15 @@ export function subscribeToTasks(db: Firestore, callback: (data: Task[]) => void
       ...doc.data(),
     })) as Task[];
     callback(tasksData);
+  }, (error) => {
+    console.error("Error subscribing to tasks:", error);
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: 'tasks',
+      operation: 'list',
+    }));
   });
 }
 
-/**
- * Subscribes to the inventory collection.
- * @param db The Firestore instance.
- * @param callback Function to call with the updated list of inventory items.
- * @returns Unsubscribe function.
- */
 export function subscribeToInventory(db: Firestore, callback: (data: InventoryItem[]) => void) {
   const q = query(collection(db, 'inventory'), orderBy('name', 'asc'));
   return onSnapshot(q, (snapshot) => {
@@ -119,44 +115,73 @@ export function subscribeToInventory(db: Firestore, callback: (data: InventoryIt
       ...doc.data(),
     })) as InventoryItem[];
     callback(inventoryData);
+  }, (error) => {
+    console.error("Error subscribing to inventory:", error);
+    errorEmitter.emit('permission-error', new FirestorePermissionError({
+      path: 'inventory',
+      operation: 'list',
+    }));
   });
 }
-
 
 // ============================================================================
 // Save / Create / Update Operations
 // ============================================================================
 
-export async function saveClient(db: Firestore, id: string | null, data: Omit<Client, 'id'>) {
-  if (id) {
-    await setDoc(doc(db, 'clients', id), data, { merge: true });
-  } else {
-    await addDoc(collection(db, 'clients'), data);
-  }
+export function saveClient(db: Firestore, id: string | null, data: Omit<Client, 'id'>) {
+  const operation = id ? 'update' : 'create';
+  const docRef = id ? doc(db, 'clients', id) : doc(collection(db, 'clients'));
+  
+  setDoc(docRef, data, { merge: !!id })
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: operation,
+        requestResourceData: data,
+      }));
+    });
 }
 
-export async function saveInvoice(db: Firestore, id: string | null, data: Omit<Invoice, 'id' | 'client'>) {
-  if (id) {
-    await setDoc(doc(db, 'invoices', id), data, { merge: true });
-  } else {
-    await addDoc(collection(db, 'invoices'), data);
-  }
+export function saveInvoice(db: Firestore, id: string | null, data: Omit<Invoice, 'id' | 'client'>) {
+  const operation = id ? 'update' : 'create';
+  const docRef = id ? doc(db, 'invoices', id) : doc(collection(db, 'invoices'));
+
+  setDoc(docRef, data, { merge: !!id })
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: operation,
+        requestResourceData: data,
+      }));
+    });
 }
 
-export async function saveTask(db: Firestore, id: string | null, data: Omit<Task, 'id'>) {
-  if (id) {
-    await setDoc(doc(db, 'tasks', id), data, { merge: true });
-  } else {
-    await addDoc(collection(db, 'tasks'), data);
-  }
+export function saveTask(db: Firestore, id: string | null, data: Omit<Task, 'id'>) {
+  const operation = id ? 'update' : 'create';
+  const docRef = id ? doc(db, 'tasks', id) : doc(collection(db, 'tasks'));
+
+  setDoc(docRef, data, { merge: !!id })
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: operation,
+        requestResourceData: data,
+      }));
+    });
 }
 
-export async function saveInventoryItem(db: Firestore, id: string | null, data: Omit<InventoryItem, 'id'>) {
-  if (id) {
-    await setDoc(doc(db, 'inventory', id), data, { merge: true });
-  } else {
-    await addDoc(collection(db, 'inventory'), data);
-  }
+export function saveInventoryItem(db: Firestore, id: string | null, data: Omit<InventoryItem, 'id'>) {
+  const operation = id ? 'update' : 'create';
+  const docRef = id ? doc(db, 'inventory', id) : doc(collection(db, 'inventory'));
+
+  setDoc(docRef, data, { merge: !!id })
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: operation,
+        requestResourceData: data,
+      }));
+    });
 }
 
 
@@ -164,56 +189,130 @@ export async function saveInventoryItem(db: Firestore, id: string | null, data: 
 // Delete Operations
 // ============================================================================
 
-export async function deleteClient(db: Firestore, id: string) {
-  await deleteDoc(doc(db, 'clients', id));
+export function deleteClient(db: Firestore, id: string) {
+  const docRef = doc(db, 'clients', id);
+  deleteDoc(docRef)
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete',
+      }));
+    });
 }
 
-export async function deleteInvoice(db: Firestore, id: string) {
-  await deleteDoc(doc(db, 'invoices', id));
+export function deleteInvoice(db: Firestore, id: string) {
+  const docRef = doc(db, 'invoices', id);
+  deleteDoc(docRef)
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete',
+      }));
+    });
 }
 
-export async function deleteTask(db: Firestore, id: string) {
-  await deleteDoc(doc(db, 'tasks', id));
+export function deleteTask(db: Firestore, id: string) {
+  const docRef = doc(db, 'tasks', id);
+  deleteDoc(docRef)
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete',
+      }));
+    });
 }
 
-export async function deleteInventoryItem(db: Firestore, id: string) {
-  await deleteDoc(doc(db, 'inventory', id));
+export function deleteInventoryItem(db: Firestore, id: string) {
+  const docRef = doc(db, 'inventory', id);
+  deleteDoc(docRef)
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'delete',
+      }));
+    });
 }
-
 
 // ============================================================================
 // Quick Updates
 // ============================================================================
 
-export async function updateTaskStatus(db: Firestore, id: string, status: TaskStatus) {
-    await updateDoc(doc(db, 'tasks', id), { status });
+export function updateTaskStatus(db: Firestore, id: string, status: TaskStatus) {
+    const docRef = doc(db, 'tasks', id);
+    updateDoc(docRef, { status })
+      .catch((serverError) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { status },
+        }));
+      });
 }
 
-export async function updateTaskPriority(db: Firestore, id: string, priority: TaskPriority) {
-    await updateDoc(doc(db, 'tasks', id), { priority });
+export function updateTaskPriority(db: Firestore, id: string, priority: TaskPriority) {
+    const docRef = doc(db, 'tasks', id);
+    updateDoc(docRef, { priority })
+     .catch((serverError) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { priority },
+        }));
+      });
 }
-
 
 // ============================================================================
 // Settings and Profile Management
 // ============================================================================
 
-export async function saveBusinessProfile(db: Firestore, userId: string, data: BusinessProfile) {
-  await setDoc(doc(db, 'profiles', userId), data, { merge: true });
+export function saveBusinessProfile(db: Firestore, userId: string, data: BusinessProfile) {
+  const docRef = doc(db, 'profiles', userId);
+  setDoc(docRef, data, { merge: true })
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      }));
+    });
 }
 
 export async function getBusinessProfile(db: Firestore, userId: string): Promise<BusinessProfile | null> {
   const docRef = doc(db, 'profiles', userId);
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? (docSnap.data() as BusinessProfile) : null;
+  try {
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as BusinessProfile) : null;
+  } catch(error) {
+     errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'get',
+      }));
+      return null;
+  }
 }
 
-export async function saveInvoiceSettings(db: Firestore, userId: string, data: InvoiceSettings) {
-  await setDoc(doc(db, 'profiles', userId, 'settings', 'invoice'), data, { merge: true });
+export function saveInvoiceSettings(db: Firestore, userId: string, data: InvoiceSettings) {
+  const docRef = doc(db, 'profiles', userId, 'settings', 'invoice');
+  setDoc(docRef, data, { merge: true })
+    .catch((serverError) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'update',
+        requestResourceData: data,
+      }));
+    });
 }
 
 export async function getInvoiceSettings(db: Firestore, userId: string): Promise<InvoiceSettings | null> {
   const docRef = doc(db, 'profiles', userId, 'settings', 'invoice');
-  const docSnap = await getDoc(docRef);
-  return docSnap.exists() ? (docSnap.data() as InvoiceSettings) : null;
+   try {
+    const docSnap = await getDoc(docRef);
+    return docSnap.exists() ? (docSnap.data() as InvoiceSettings) : null;
+  } catch(error) {
+     errorEmitter.emit('permission-error', new FirestorePermissionError({
+        path: docRef.path,
+        operation: 'get',
+      }));
+      return null;
+  }
 }
