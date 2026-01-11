@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Table,
@@ -45,11 +44,12 @@ import {
 import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
 import { useToast } from '@/hooks/use-toast';
 import DownloadInvoices from '@/components/app/download-invoices';
+import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
+import type { Firestore } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/firebase';
 
 export default function InvoicesPage() {
-  const { user } = useAuth();
+  const [db, setDb] = useState<Firestore | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -59,16 +59,27 @@ export default function InvoicesPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [invoiceToView, setInvoiceToView] = useState<Invoice | null>(null);
   const { toast } = useToast();
+  const { auth } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
+    if (!auth) return;
+    async function load() {
+      await waitForFirebaseReady(auth);
+      const fb = getFirebase();
+      if(fb) setDb(fb.db);
+    }
+    load();
+  }, [auth]);
+
+  useEffect(() => {
+    if (!db) return;
     const unsubscribe = subscribeToInvoices(db, (invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [db]);
 
   const handleAddInvoice = () => {
     setSelectedInvoice(null);
@@ -114,8 +125,8 @@ export default function InvoicesPage() {
   };
 
   const confirmDelete = async () => {
-    if (invoiceToDelete) {
-      deleteInvoice(db, invoiceToDelete.id);
+    if (invoiceToDelete && db) {
+      await deleteInvoice(db, invoiceToDelete.id);
       setIsDeleteDialogOpen(false);
       setInvoiceToDelete(null);
     }
@@ -136,7 +147,7 @@ export default function InvoicesPage() {
             </div>
             <div className="flex items-center gap-2">
                 <DownloadInvoices />
-                <Button size="sm" onClick={handleAddInvoice}>
+                <Button size="sm" onClick={handleAddInvoice} disabled={!db}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Add Invoice
                 </Button>
@@ -224,14 +235,14 @@ export default function InvoicesPage() {
             </CardContent>
           </Card>
       </div>
-      
-      <InvoiceForm 
-        db={db}
-        isOpen={isFormOpen}
-        onClose={handleFormClose}
-        invoice={selectedInvoice}
-      />
-
+      {db && (
+        <InvoiceForm 
+          db={db}
+          isOpen={isFormOpen}
+          onClose={handleFormClose}
+          invoice={selectedInvoice}
+        />
+      )}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -247,12 +258,14 @@ export default function InvoicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+      {db && (
        <ViewInvoiceDialog
+        db={db}
         isOpen={isViewDialogOpen}
         onClose={() => setIsViewDialogOpen(false)}
         invoice={invoiceToView}
       />
+      )}
     </>
   );
 }

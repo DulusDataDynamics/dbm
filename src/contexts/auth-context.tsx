@@ -2,14 +2,15 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc, DocumentData } from "firebase/firestore";
-import { auth, db } from "@/firebase/firebase";
+import { onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, Auth } from "firebase/auth";
+import { doc, getDoc, DocumentData, Firestore } from "firebase/firestore";
+import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/logo";
 
 export interface AuthContextType {
   user: User | null;
+  auth: Auth | null;
   profile: any | null;
   initializing: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -37,15 +38,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<DocumentData | null>(null);
   const [initializing, setInitializing] = useState(true);
+  const [authInstance, setAuthInstance] = useState<Auth | null>(null);
+  const [dbInstance, setDbInstance] = useState<Firestore | null>(null);
   const router = useRouter();
   
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const firebase = getFirebase();
+    if (!firebase) return;
+
+    setAuthInstance(firebase.auth);
+    setDbInstance(firebase.db);
+    
+    const unsubscribe = onAuthStateChanged(firebase.auth, async (firebaseUser) => {
       setUser(firebaseUser);
 
-      if (firebaseUser) {
+      if (firebaseUser && firebase.db) {
         try {
-          const ref = doc(db, "businesses", firebaseUser.uid);
+          await waitForFirebaseReady(firebase.auth);
+          const ref = doc(firebase.db, "profiles", firebaseUser.uid);
           const snap = await getDoc(ref);
           setProfile(snap.exists() ? snap.data() : null);
         } catch (error) {
@@ -62,19 +72,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    if (!authInstance) throw new Error("Auth not initialized");
+    await signInWithEmailAndPassword(authInstance, email, password);
   };
 
   const signup = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    if (!authInstance) throw new Error("Auth not initialized");
+    await createUserWithEmailAndPassword(authInstance, email, password);
   };
 
   const logout = async () => {
-    await signOut(auth);
+    if (!authInstance) throw new Error("Auth not initialized");
+    await signOut(authInstance);
     router.push('/login');
   };
 
-  const value = { user, profile, initializing, login, signup, logout };
+  const value = { user, auth: authInstance, profile, initializing, login, signup, logout };
 
   return (
     <AuthContext.Provider value={value}>

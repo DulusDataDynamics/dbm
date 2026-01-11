@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Table,
@@ -42,12 +41,12 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
+import type { Firestore } from 'firebase/firestore';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/firebase';
-
 
 export default function ClientsPage() {
-  const { user } = useAuth();
+  const [db, setDb] = useState<Firestore | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -55,16 +54,28 @@ export default function ClientsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const { toast } = useToast();
+  const { auth } = useAuth();
 
   useEffect(() => {
-    if (!user) return;
+    if (!auth) return;
+
+    async function load() {
+      await waitForFirebaseReady(auth!);
+      const fb = getFirebase();
+      if(fb) setDb(fb.db);
+    }
+    load();
+  }, [auth]);
+
+  useEffect(() => {
+    if (!db) return;
     const unsubscribe = subscribeToClients(db, (clientsData) => {
       setClients(clientsData);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [user]);
+  }, [db]);
 
   const handleAddClient = () => {
     setSelectedClient(null);
@@ -96,8 +107,8 @@ export default function ClientsPage() {
   };
 
   const confirmDelete = async () => {
-    if (clientToDelete) {
-      deleteClient(db, clientToDelete.id);
+    if (clientToDelete && db) {
+      await deleteClient(db, clientToDelete.id);
       setIsDeleteDialogOpen(false);
       setClientToDelete(null);
     }
@@ -118,7 +129,7 @@ export default function ClientsPage() {
               <CardTitle>Clients</CardTitle>
               <CardDescription>Manage your clients and view their details.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddClient}>
+            <Button size="sm" onClick={handleAddClient} disabled={!db}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Client
             </Button>
@@ -177,12 +188,14 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
       
-      <ClientForm 
-        db={db}
-        isOpen={isFormOpen}
-        onClose={handleFormClose}
-        client={selectedClient}
-      />
+      {db && (
+        <ClientForm 
+          db={db}
+          isOpen={isFormOpen}
+          onClose={handleFormClose}
+          client={selectedClient}
+        />
+      )}
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>

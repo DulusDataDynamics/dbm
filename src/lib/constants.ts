@@ -7,7 +7,6 @@ import {
   BarChart3,
   Settings,
   LifeBuoy,
-  ClipboardSignature,
 } from 'lucide-react';
 
 export const NAV_LINKS = [
@@ -25,11 +24,6 @@ export const NAV_LINKS = [
     href: '/invoices',
     icon: FileText,
     label: 'Invoices',
-  },
-  {
-    href: '/manual-invoices',
-    icon: ClipboardSignature,
-    label: 'Manual Invoices',
   },
   {
     href: '/tasks',

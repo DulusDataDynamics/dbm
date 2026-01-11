@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -33,11 +32,13 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { RevenueChart } from '@/components/app/revenue-chart';
 import { RevenueInsightsGenerator } from '@/components/app/revenue-insights-generator';
+import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/firebase';
+import type { Firestore } from 'firebase/firestore';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { auth } = useAuth();
+  const [db, setDb] = useState<Firestore | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -45,11 +46,20 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
-    
+    if (!auth) return;
+    async function load() {
+      await waitForFirebaseReady(auth);
+      const fb = getFirebase();
+      if (fb) setDb(fb.db);
+    }
+    load();
+  }, [auth]);
+
+  useEffect(() => {
+    if (!db) return;
     const unsubClients = subscribeToClients(db, (data) => {
       setClients(data);
-      setLoading(false);
+      if (loading) setLoading(false);
     });
     const unsubInvoices = subscribeToInvoices(db, setInvoices);
     const unsubTasks = subscribeToTasks(db, setTasks);
@@ -61,7 +71,7 @@ export default function DashboardPage() {
       unsubTasks();
       unsubInventory();
     };
-  }, [user]);
+  }, [db, loading]);
 
   const activeInvoices = invoices.filter(
     (inv) => inv.status === 'Unpaid' || inv.status === 'Overdue'

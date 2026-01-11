@@ -7,17 +7,30 @@ import { Invoice, InventoryItem } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RevenueInsightsGenerator } from "@/components/app/revenue-insights-generator";
+import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
+import type { Firestore } from "firebase/firestore";
 import { useAuth } from "@/hooks/use-auth";
-import { db } from "@/firebase/firebase";
 
 export default function ReportsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const [db, setDb] = useState<Firestore | null>(null);
+  const { auth } = useAuth();
+
 
   useEffect(() => {
-    if (!user) return;
+    if (!auth) return;
+    async function load() {
+      await waitForFirebaseReady(auth);
+      const fb = getFirebase();
+      if (fb) setDb(fb.db);
+    }
+    load();
+  }, [auth]);
+
+  useEffect(() => {
+    if (!db) return;
     const unsubInvoices = subscribeToInvoices(db, (invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
@@ -31,7 +44,7 @@ export default function ReportsPage() {
         unsubInvoices();
         unsubInventory();
     };
-  }, [user]);
+  }, [db]);
 
   return (
     <div className="space-y-6">

@@ -4,13 +4,15 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useAuth } from '@/hooks/use-auth';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { ArrowRight, CheckCircle, ChevronDown, DollarSign, BarChart, Users, FileText, Zap, Shield, GitBranch } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
+import { redirect } from 'next/navigation';
+import { getFirebase } from '@/lib/firebaseClient';
+import { useAuth } from '@/hooks/use-auth';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 const featureHighlights = [
     {
@@ -84,16 +86,8 @@ export default function LandingPage() {
     }
   }, [user, initializing, router]);
 
-  // Prevent flash of content while redirecting
   if (initializing || user) {
-    return (
-        <div className="flex min-h-screen w-full items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-4">
-                <Logo />
-                <p className="text-sm text-muted-foreground">Loading your workspace...</p>
-            </div>
-        </div>
-    );
+    return null; // or a loading spinner
   }
 
   return (
@@ -128,7 +122,7 @@ export default function LandingPage() {
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground md:text-xl">
                     Stop juggling spreadsheets and apps. Dulus Business Manager (DBM) brings your clients, invoices, tasks, and financial insights into one powerful, AI-driven platform.
                 </p>
-                <div className="mt-8 flex justify-center gap-4">
+                <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                     <Button size="lg" asChild>
                         <Link href="/signup">Start Your Free Trial</Link>
                     </Button>
@@ -173,15 +167,15 @@ export default function LandingPage() {
                 </div>
                 <div className="mt-16 space-y-24">
                     {featureHighlights.map((feature, index) => (
-                        <div key={feature.title} className={`grid gap-8 md:grid-cols-2 md:gap-16 items-center ${index % 2 !== 0 ? 'md:grid-flow-col-dense' : ''}`}>
-                            <div className={index % 2 !== 0 ? 'md:col-start-2' : ''}>
+                        <div key={feature.title} className={`grid gap-8 md:grid-cols-2 md:gap-16 items-center`}>
+                            <div className={index % 2 !== 0 ? 'md:order-2' : ''}>
                                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mb-4">
                                     <feature.icon className="w-6 h-6" />
                                 </div>
                                 <h3 className="text-2xl font-bold">{feature.title}</h3>
                                 <p className="mt-2 text-muted-foreground">{feature.description}</p>
                             </div>
-                            <div className="relative">
+                            <div className={`relative ${index % 2 !== 0 ? 'md:order-1' : ''}`}>
                                 <Image
                                     src={feature.image}
                                     alt={feature.title}
@@ -206,7 +200,7 @@ export default function LandingPage() {
                         From signup to sending your first invoice in under 5 minutes.
                     </p>
                 </div>
-                 <div className="relative mt-16 grid gap-8 md:grid-cols-3">
+                 <div className="relative mt-16 grid gap-16 md:gap-8 md:grid-cols-3">
                     <div className="absolute top-1/2 left-0 w-full h-px bg-border/50 hidden md:block" />
                     {howItWorksSteps.map((step) => (
                         <div key={step.number} className="relative text-center p-6 bg-background rounded-lg border shadow-sm">
@@ -265,7 +259,7 @@ export default function LandingPage() {
                 <Accordion type="single" collapsible className="w-full mt-12">
                    {faqItems.map((item, index) => (
                       <AccordionItem value={`item-${index}`} key={index}>
-                        <AccordionTrigger className="text-lg">{item.question}</AccordionTrigger>
+                        <AccordionTrigger className="text-lg text-left">{item.question}</AccordionTrigger>
                         <AccordionContent className="text-muted-foreground text-base">
                           {item.answer}
                         </AccordionContent>

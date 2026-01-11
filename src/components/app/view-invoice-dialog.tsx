@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Dialog,
@@ -16,14 +15,16 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useState } from 'react';
 import { InvoicePDFView } from './invoice-pdf-view';
+import type { Firestore } from 'firebase/firestore';
 
 interface ViewInvoiceDialogProps {
+  db: Firestore;
   isOpen: boolean;
   onClose: () => void;
   invoice: Invoice | null;
 }
 
-export function ViewInvoiceDialog({ isOpen, onClose, invoice }: ViewInvoiceDialogProps) {
+export function ViewInvoiceDialog({ db, isOpen, onClose, invoice }: ViewInvoiceDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadPdf = async () => {
@@ -64,16 +65,16 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice }: ViewInvoiceDialo
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Invoice Details</DialogTitle>
           <DialogDescription>
             A preview of invoice {invoice?.id.substring(0, 8)}. You can download it as a PDF.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4 overflow-y-auto max-h-[70vh]">
+        <div className="py-4">
           {invoice ? (
-            <InvoicePDFView invoice={invoice} />
+            <InvoicePDFView db={db} invoice={invoice} />
           ) : (
             <div className="space-y-3">
               <Skeleton className="h-40 w-full" />

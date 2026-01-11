@@ -1,6 +1,3 @@
-
-"use client";
-
 import {
   collection,
   onSnapshot,
@@ -15,360 +12,208 @@ import {
   getDocs,
   orderBy,
   Firestore,
-} from "firebase/firestore";
-import { auth, db } from "@/firebase/firebase";
-import type {
-  Client,
-  Invoice,
-  Task,
-  InventoryItem,
-  BusinessProfile,
-  InvoiceSettings,
-  TaskStatus,
-  TaskPriority,
-} from "./types.client";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
+} from 'firebase/firestore';
+import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority } from './types';
 
-/* -------------------------------------------------------------------------- */
-/* Helpers                                                                    */
-/* -------------------------------------------------------------------------- */
+// ============================================================================
+// Real-time Subscriptions
+// ============================================================================
 
-function requireBusinessId(): string {
-  const uid = auth.currentUser?.uid;
-  if (!uid) throw new Error("User not authenticated");
-  return uid;
+/**
+ * Subscribes to the clients collection and provides real-time updates.
+ * @param db The Firestore instance.
+ * @param callback Function to call with the updated list of clients.
+ * @returns Unsubscribe function.
+ */
+export function subscribeToClients(db: Firestore, callback: (data: Client[]) => void) {
+  const q = query(collection(db, 'clients'), orderBy('name', 'asc'));
+  return onSnapshot(q, (snapshot) => {
+    const clientsData = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Client[];
+    callback(clientsData);
+  });
 }
 
-function pathError(path: string, operation: 'get' | 'list' | 'create' | 'update' | 'delete', data?: any) {
-  errorEmitter.emit(
-    "permission-error",
-    new FirestorePermissionError({
-      path,
-      operation,
-      requestResourceData: data,
-    })
-  );
-}
+/**
+ * Subscribes to the invoices collection and enriches them with client data.
+ * @param db The Firestore instance.
+ * @param callback Function to call with the updated list of invoices.
+ * @returns Unsubscribe function.
+ */
+export function subscribeToInvoices(db: Firestore, callback: (data: Invoice[]) => void) {
+  const invoicesRef = collection(db, 'invoices');
+  const q = query(invoicesRef, orderBy('dueDate', 'desc'));
 
-/* -------------------------------------------------------------------------- */
-/* Real-time Subscriptions                                                     */
-/* -------------------------------------------------------------------------- */
+  return onSnapshot(q, async (snapshot) => {
+    const invoicesData = snapshot.docs.map((d) => ({
+      id: d.id,
+      ...(d.data() as Omit<Invoice, 'id'>),
+    }));
 
-export function subscribeToClients(
-  db: Firestore,
-  callback: (data: Client[]) => void
-) {
-  const businessId = requireBusinessId();
-  const q = query(
-    collection(db, "businesses", businessId, "clients"),
-    orderBy("name", "asc")
-  );
+    if (invoicesData.length === 0) {
+      callback([]);
+      return;
+    }
 
-  return onSnapshot(
-    q,
-    (snap) =>
-      callback(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Client[]
-      ),
-    () => pathError(`businesses/${businessId}/clients`, "list")
-  );
-}
-
-export function subscribeToInvoices(
-  db: Firestore,
-  callback: (data: Invoice[]) => void
-) {
-  const businessId = requireBusinessId();
-
-  const invoicesRef = collection(
-    db,
-    "businesses",
-    businessId,
-    "invoices"
-  );
-
-  const q = query(invoicesRef, orderBy("dueDate", "desc"));
-
-  return onSnapshot(
-    q,
-    async (snapshot) => {
-      const invoices = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Invoice, "id">),
-      }));
-
-      if (!invoices.length) {
-        callback([]);
+    const clientIds = [...new Set(invoicesData.map(inv => inv.clientId).filter(Boolean))];
+    
+    if (clientIds.length === 0) {
+        const enrichedInvoices = invoicesData.map(invoice => ({ ...invoice, client: undefined }));
+        callback(enrichedInvoices);
         return;
+    }
+
+    const clientsQuery = query(collection(db, 'clients'), where('__name__', 'in', clientIds));
+    const clientSnaps = await getDocs(clientsQuery);
+    const clientsMap = new Map(
+      clientSnaps.docs.map((snap) => [snap.id, { id: snap.id, ...snap.data() } as Client])
+    );
+
+    const enrichedInvoices = invoicesData.map((invoice) => ({
+      ...invoice,
+      client: clientsMap.get(invoice.clientId),
+    }));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); 
+    enrichedInvoices.forEach(inv => {
+      if (inv.status === 'Unpaid' && new Date(inv.dueDate) < today) {
+        inv.status = 'Overdue';
       }
+    });
 
-      const clientIds = [
-        ...new Set(invoices.map((i) => i.clientId).filter(Boolean)),
-      ];
-
-      let clientsMap = new Map<string, Client>();
-
-      if (clientIds.length) {
-        const clientsQuery = query(
-          collection(db, "businesses", businessId, "clients"),
-          where("__name__", "in", clientIds)
-        );
-
-        const clientSnaps = await getDocs(clientsQuery);
-        clientsMap = new Map(
-          clientSnaps.docs.map((d) => [
-            d.id,
-            { id: d.id, ...d.data() } as Client,
-          ])
-        );
-      }
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      callback(
-        invoices.map((inv) => ({
-          ...inv,
-          client: clientsMap.get(inv.clientId),
-          status:
-            inv.status === "Unpaid" && new Date(inv.dueDate) < today
-              ? "Overdue"
-              : inv.status,
-        }))
-      );
-    },
-    () => pathError(`businesses/${businessId}/invoices`, "list")
-  );
+    callback(enrichedInvoices);
+  });
 }
 
-export function subscribeToTasks(
-  db: Firestore,
-  callback: (data: Task[]) => void
-) {
-  const businessId = requireBusinessId();
-  const q = query(
-    collection(db, "businesses", businessId, "tasks"),
-    orderBy("dueDate", "asc")
-  );
-
-  return onSnapshot(
-    q,
-    (snap) =>
-      callback(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Task[]
-      ),
-    () => pathError(`businesses/${businessId}/tasks`, "list")
-  );
+/**
+ * Subscribes to the tasks collection.
+ * @param db The Firestore instance.
+ * @param callback Function to call with the updated list of tasks.
+ * @returns Unsubscribe function.
+ */
+export function subscribeToTasks(db: Firestore, callback: (data: Task[]) => void) {
+  const q = query(collection(db, 'tasks'), orderBy('dueDate', 'asc'));
+  return onSnapshot(q, (snapshot) => {
+    const tasksData = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Task[];
+    callback(tasksData);
+  });
 }
 
-export function subscribeToInventory(
-  db: Firestore,
-  callback: (data: InventoryItem[]) => void
-) {
-  const businessId = requireBusinessId();
-  const q = query(
-    collection(db, "businesses", businessId, "inventory"),
-    orderBy("name", "asc")
-  );
-
-  return onSnapshot(
-    q,
-    (snap) =>
-      callback(
-        snap.docs.map((d) => ({ id: d.id, ...d.data() })) as InventoryItem[]
-      ),
-    () => pathError(`businesses/${businessId}/inventory`, "list")
-  );
+/**
+ * Subscribes to the inventory collection.
+ * @param db The Firestore instance.
+ * @param callback Function to call with the updated list of inventory items.
+ * @returns Unsubscribe function.
+ */
+export function subscribeToInventory(db: Firestore, callback: (data: InventoryItem[]) => void) {
+  const q = query(collection(db, 'inventory'), orderBy('name', 'asc'));
+  return onSnapshot(q, (snapshot) => {
+    const inventoryData = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as InventoryItem[];
+    callback(inventoryData);
+  });
 }
 
-/* -------------------------------------------------------------------------- */
-/* Save / Create / Update                                                      */
-/* -------------------------------------------------------------------------- */
 
-export function saveClient(
-  db: Firestore,
-  id: string | null,
-  data: Omit<Client, "id">
-) {
-  const businessId = requireBusinessId();
-  const payload = { ...data, businessId };
+// ============================================================================
+// Save / Create / Update Operations
+// ============================================================================
 
+export async function saveClient(db: Firestore, id: string | null, data: Omit<Client, 'id'>) {
   if (id) {
-    setDoc(
-      doc(db, "businesses", businessId, "clients", id),
-      payload,
-      { merge: true }
-    ).catch(() => pathError(`businesses/${businessId}/clients/${id}`, "update", payload));
+    await setDoc(doc(db, 'clients', id), data, { merge: true });
   } else {
-    addDoc(
-      collection(db, "businesses", businessId, "clients"),
-      payload
-    ).catch(() => pathError(`businesses/${businessId}/clients`, "create", payload));
+    await addDoc(collection(db, 'clients'), data);
   }
 }
 
-export function saveInvoice(
-  db: Firestore,
-  id: string | null,
-  data: Omit<Invoice, "id" | "client">
-) {
-  const businessId = requireBusinessId();
-  const payload = { ...data, businessId };
-
+export async function saveInvoice(db: Firestore, id: string | null, data: Omit<Invoice, 'id' | 'client'>) {
   if (id) {
-    const ref = doc(db, "businesses", businessId, "invoices", id);
-    setDoc(ref, payload, { merge: true }).catch(() =>
-      pathError(ref.path, "update", payload)
-    );
+    await setDoc(doc(db, 'invoices', id), data, { merge: true });
   } else {
-    const ref = collection(db, "businesses", businessId, "invoices");
-    addDoc(ref, payload).catch(() =>
-      pathError(ref.path, "create", payload)
-    );
+    await addDoc(collection(db, 'invoices'), data);
   }
 }
 
-export function saveTask(
-  db: Firestore,
-  id: string | null,
-  data: Omit<Task, "id">
-) {
-  const businessId = requireBusinessId();
-  const payload = { ...data, businessId };
-
+export async function saveTask(db: Firestore, id: string | null, data: Omit<Task, 'id'>) {
   if (id) {
-    const ref = doc(db, "businesses", businessId, "tasks", id);
-    setDoc(ref, payload, { merge: true }).catch(() =>
-      pathError(ref.path, "update", payload)
-    );
+    await setDoc(doc(db, 'tasks', id), data, { merge: true });
   } else {
-    const ref = collection(db, "businesses", businessId, "tasks");
-    addDoc(ref, payload).catch(() =>
-      pathError(ref.path, "create", payload)
-    );
+    await addDoc(collection(db, 'tasks'), data);
   }
 }
 
-export function saveInventoryItem(
-  db: Firestore,
-  id: string | null,
-  data: Omit<InventoryItem, "id">
-) {
-  const businessId = requireBusinessId();
-  const payload = { ...data, businessId };
-
+export async function saveInventoryItem(db: Firestore, id: string | null, data: Omit<InventoryItem, 'id'>) {
   if (id) {
-    const ref = doc(db, "businesses", businessId, "inventory", id);
-    setDoc(ref, payload, { merge: true }).catch(() =>
-      pathError(ref.path, "update", payload)
-    );
+    await setDoc(doc(db, 'inventory', id), data, { merge: true });
   } else {
-    const ref = collection(db, "businesses", businessId, "inventory");
-    addDoc(ref, payload).catch(() =>
-      pathError(ref.path, "create", payload)
-    );
+    await addDoc(collection(db, 'inventory'), data);
   }
 }
 
-/* -------------------------------------------------------------------------- */
-/* Delete                                                                      */
-/* -------------------------------------------------------------------------- */
 
-function deleteByPath(
-  db: Firestore,
-  collectionName: string,
-  id: string
-) {
-  const businessId = requireBusinessId();
-  const docRef = doc(db, "businesses", businessId, collectionName, id);
-  deleteDoc(docRef).catch(() => pathError(docRef.path, "delete"));
+// ============================================================================
+// Delete Operations
+// ============================================================================
+
+export async function deleteClient(db: Firestore, id: string) {
+  await deleteDoc(doc(db, 'clients', id));
 }
 
-export const deleteClient = (db: Firestore, id: string) => deleteByPath(db, "clients", id);
-export const deleteInvoice = (db: Firestore, id: string) => deleteByPath(db, "invoices", id);
-export const deleteTask = (db: Firestore, id: string) => deleteByPath(db, "tasks", id);
-export const deleteInventoryItem = (db: Firestore, id: string) => deleteByPath(db, "inventory", id);
-
-
-/* -------------------------------------------------------------------------- */
-/* Quick Updates                                                               */
-/* -------------------------------------------------------------------------- */
-
-export function updateTaskStatus(
-  db: Firestore,
-  id: string,
-  status: TaskStatus
-) {
-  const businessId = requireBusinessId();
-  const docRef = doc(db, "businesses", businessId, "tasks", id);
-  updateDoc(docRef, { status }).catch(() =>
-    pathError(docRef.path, "update", { status })
-  );
+export async function deleteInvoice(db: Firestore, id: string) {
+  await deleteDoc(doc(db, 'invoices', id));
 }
 
-export function updateTaskPriority(
-  db: Firestore,
-  id: string,
-  priority: TaskPriority
-) {
-  const businessId = requireBusinessId();
-  const docRef = doc(db, "businesses", businessId, "tasks", id);
-  updateDoc(docRef, { priority }).catch(() =>
-    pathError(docRef.path, "update", { priority })
-  );
+export async function deleteTask(db: Firestore, id: string) {
+  await deleteDoc(doc(db, 'tasks', id));
 }
 
-/* -------------------------------------------------------------------------- */
-/* Business Profile & Settings                                                 */
-/* -------------------------------------------------------------------------- */
-
-export function saveBusinessProfile(
-  db: Firestore,
-  data: BusinessProfile
-) {
-  const businessId = requireBusinessId();
-  const docRef = doc(db, "businesses", businessId);
-  setDoc(docRef, data, { merge: true }).catch(() =>
-    pathError(docRef.path, "update", data)
-  );
+export async function deleteInventoryItem(db: Firestore, id: string) {
+  await deleteDoc(doc(db, 'inventory', id));
 }
 
-export async function getBusinessProfile(
-  db: Firestore
-): Promise<BusinessProfile | null> {
-  const businessId = requireBusinessId();
-  const docRef = doc(db, "businesses", businessId);
-  try {
-    const snap = await getDoc(docRef);
-    return snap.exists() ? (snap.data() as BusinessProfile) : null;
-  } catch {
-    pathError(docRef.path, "get");
-    return null;
-  }
+
+// ============================================================================
+// Quick Updates
+// ============================================================================
+
+export async function updateTaskStatus(db: Firestore, id: string, status: TaskStatus) {
+    await updateDoc(doc(db, 'tasks', id), { status });
 }
 
-export function saveInvoiceSettings(
-  db: Firestore,
-  data: InvoiceSettings
-) {
-  const businessId = requireBusinessId();
-  const docRef = doc(db, "businesses", businessId, "settings", "invoice");
-  setDoc(docRef, data, { merge: true }).catch(() =>
-    pathError(docRef.path, "update", data)
-  );
+export async function updateTaskPriority(db: Firestore, id: string, priority: TaskPriority) {
+    await updateDoc(doc(db, 'tasks', id), { priority });
 }
 
-export async function getInvoiceSettings(
-  db: Firestore
-): Promise<InvoiceSettings | null> {
-  const businessId = requireBusinessId();
-  const docRef = doc(db, "businesses", businessId, "settings", "invoice");
-  try {
-    const snap = await getDoc(docRef);
-    return snap.exists() ? (snap.data() as InvoiceSettings) : null;
-  } catch {
-    pathError(docRef.path, "get");
-    return null;
-  }
+
+// ============================================================================
+// Settings and Profile Management
+// ============================================================================
+
+export async function saveBusinessProfile(db: Firestore, userId: string, data: BusinessProfile) {
+  await setDoc(doc(db, 'profiles', userId), data, { merge: true });
+}
+
+export async function getBusinessProfile(db: Firestore, userId: string): Promise<BusinessProfile | null> {
+  const docRef = doc(db, 'profiles', userId);
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? (docSnap.data() as BusinessProfile) : null;
+}
+
+export async function saveInvoiceSettings(db: Firestore, userId: string, data: InvoiceSettings) {
+  await setDoc(doc(db, 'profiles', userId, 'settings', 'invoice'), data, { merge: true });
+}
+
+export async function getInvoiceSettings(db: Firestore, userId: string): Promise<InvoiceSettings | null> {
+  const docRef = doc(db, 'profiles', userId, 'settings', 'invoice');
+  const docSnap = await getDoc(docRef);
+  return docSnap.exists() ? (docSnap.data() as InvoiceSettings) : null;
 }
