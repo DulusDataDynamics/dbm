@@ -38,7 +38,7 @@ import { format } from 'date-fns';
 import { Task } from '@/lib/types';
 import { saveTask } from '@/lib/firestore';
 import { ScrollArea } from '../ui/scroll-area';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
 
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Title must be at least 2 characters.' }),
@@ -61,6 +61,7 @@ interface TaskFormProps {
 
 export function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   const db = useFirestore();
+  const { user } = useAuth();
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -93,11 +94,12 @@ export function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
   }, [task, form, isOpen]);
 
   const onSubmit = (data: TaskFormValues) => {
+    if (!db || !user?.uid) return;
     const taskData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
     };
-    saveTask(db, task?.id || null, taskData);
+    saveTask(db, user.uid, task?.id || null, taskData);
     onClose();
   };
 

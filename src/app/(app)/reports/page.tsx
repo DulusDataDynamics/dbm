@@ -17,13 +17,13 @@ export default function ReportsPage() {
 
 
   useEffect(() => {
-    if (!db || !user) return;
-    const unsubInvoices = subscribeToInvoices(db, (invoicesData) => {
+    if (!db || !user?.uid) return;
+    const unsubInvoices = subscribeToInvoices(db, user.uid, (invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
     });
 
-    const unsubInventory = subscribeToInventory(db, (inventoryData) => {
+    const unsubInventory = subscribeToInventory(db, user.uid, (inventoryData) => {
         setInventory(inventoryData);
     });
 

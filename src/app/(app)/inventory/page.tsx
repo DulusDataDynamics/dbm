@@ -56,16 +56,14 @@ export default function InventoryPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!db || !user) return;
+    if (!db || !user?.uid) return;
 
-    const unsubscribe = subscribeToInventory(db, (inventoryData) => {
+    const unsubscribe = subscribeToInventory(db, user.uid, (inventoryData) => {
       setInventory(inventoryData);
       setLoading(false);
     });
     
-    if (user?.uid) {
-        getBusinessProfile(db, user.uid).then(setBusinessProfile);
-    }
+    getBusinessProfile(db, user.uid).then(setBusinessProfile);
 
     return () => {
       if (unsubscribe) unsubscribe();
@@ -104,8 +102,8 @@ export default function InventoryPage() {
   };
 
   const confirmDelete = () => {
-    if (itemToDelete && db) {
-      deleteInventoryItem(db, itemToDelete.id);
+    if (itemToDelete && db && user?.uid) {
+      deleteInventoryItem(db, user.uid, itemToDelete.id);
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
     }
@@ -125,7 +123,7 @@ export default function InventoryPage() {
               <CardTitle>Inventory</CardTitle>
               <CardDescription>Manage your products, services, and stock levels.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddItem} disabled={!db}>
+            <Button size="sm" onClick={handleAddItem} disabled={!db || !user}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Item
             </Button>
@@ -199,7 +197,7 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
       
-      {db && (
+      {db && user && (
         <InventoryForm 
           isOpen={isFormOpen}
           onClose={handleFormClose}

@@ -60,8 +60,8 @@ export default function InvoicesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!db || !user) return;
-    const unsubscribe = subscribeToInvoices(db, (invoicesData) => {
+    if (!db || !user?.uid) return;
+    const unsubscribe = subscribeToInvoices(db, user.uid, (invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
     });
@@ -115,8 +115,8 @@ export default function InvoicesPage() {
   };
 
   const confirmDelete = () => {
-    if (invoiceToDelete && db) {
-      deleteInvoice(db, invoiceToDelete.id);
+    if (invoiceToDelete && db && user?.uid) {
+      deleteInvoice(db, user.uid, invoiceToDelete.id);
       setIsDeleteDialogOpen(false);
       setInvoiceToDelete(null);
     }
@@ -137,7 +137,7 @@ export default function InvoicesPage() {
             </div>
             <div className="flex items-center gap-2">
                 <DownloadInvoices />
-                <Button size="sm" onClick={handleAddInvoice} disabled={!db}>
+                <Button size="sm" onClick={handleAddInvoice} disabled={!db || !user}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Add Invoice
                 </Button>
@@ -225,7 +225,7 @@ export default function InvoicesPage() {
             </CardContent>
           </Card>
       </div>
-      {db && (
+      {db && user && (
         <InvoiceForm 
           isOpen={isFormOpen}
           onClose={handleFormClose}
@@ -247,7 +247,7 @@ export default function InvoicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {db && (
+      {db && user && (
        <ViewInvoiceDialog
         isOpen={isViewDialogOpen}
         onClose={() => setIsViewDialogOpen(false)}

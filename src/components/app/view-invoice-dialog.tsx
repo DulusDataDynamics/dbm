@@ -15,7 +15,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useState } from 'react';
 import { InvoicePDFView } from './invoice-pdf-view';
-import { useFirestore } from '@/firebase';
+import { useFirestore, useAuth } from '@/firebase';
 
 interface ViewInvoiceDialogProps {
   isOpen: boolean;
@@ -25,6 +25,7 @@ interface ViewInvoiceDialogProps {
 
 export function ViewInvoiceDialog({ isOpen, onClose, invoice }: ViewInvoiceDialogProps) {
   const db = useFirestore();
+  const { user } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadPdf = async () => {
@@ -73,7 +74,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice }: ViewInvoiceDialo
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          {invoice && db ? (
+          {invoice && db && user ? (
             <InvoicePDFView db={db} invoice={invoice} />
           ) : (
             <div className="space-y-3">
@@ -87,7 +88,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice }: ViewInvoiceDialo
           <Button type="button" variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button type="button" onClick={downloadPdf} disabled={isDownloading}>
+          <Button type="button" onClick={downloadPdf} disabled={isDownloading || !invoice || !db || !user}>
             <Download className="mr-2 h-4 w-4" />
             {isDownloading ? 'Downloading...' : 'Download as PDF'}
           </Button>

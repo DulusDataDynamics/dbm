@@ -22,11 +22,11 @@ export default function DownloadInvoices() {
 
   async function fetchAllInvoices(): Promise<AppInvoice[]> {
     return new Promise((resolve) => {
-        if (!db) {
+        if (!db || !user?.uid) {
           resolve([]);
           return;
         }
-        const unsubscribe = subscribeToInvoices(db, (invoices) => {
+        const unsubscribe = subscribeToInvoices(db, user.uid, (invoices) => {
             if (unsubscribe) unsubscribe();
             resolve(invoices);
         });

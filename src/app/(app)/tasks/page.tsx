@@ -48,8 +48,8 @@ export default function TasksPage() {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (!db || !user) return;
-    const unsubscribe = subscribeToTasks(db, (tasksData) => {
+    if (!db || !user?.uid) return;
+    const unsubscribe = subscribeToTasks(db, user.uid, (tasksData) => {
       // Sort by due date, then by status
       const sortedTasks = tasksData.sort((a, b) => {
         if (a.dueDate < b.dueDate) return -1;
@@ -68,9 +68,9 @@ export default function TasksPage() {
   }, [db, user]);
 
   const handleStatusChange = (task: Task, status: TaskStatus) => {
-    if (!db) return;
+    if (!db || !user?.uid) return;
     startTransition(() => {
-      updateTaskStatus(db, task.id, status);
+      updateTaskStatus(db, user.uid, task.id, status);
     });
   };
 
@@ -90,8 +90,8 @@ export default function TasksPage() {
   };
 
   const confirmDelete = () => {
-    if (taskToDelete && db) {
-      deleteTask(db, taskToDelete.id);
+    if (taskToDelete && db && user?.uid) {
+      deleteTask(db, user.uid, taskToDelete.id);
       setIsDeleteDialogOpen(false);
       setTaskToDelete(null);
     }
@@ -128,7 +128,7 @@ export default function TasksPage() {
             <CardTitle>Tasks</CardTitle>
             <CardDescription>Manage your tasks and track your workload.</CardDescription>
           </div>
-          <Button size="sm" onClick={handleAddTask} disabled={!db}>
+          <Button size="sm" onClick={handleAddTask} disabled={!db || !user}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Task
           </Button>
@@ -216,7 +216,7 @@ export default function TasksPage() {
       </CardContent>
     </Card>
 
-    {db && (
+    {db && user && (
       <TaskForm
           isOpen={isFormOpen}
           onClose={() => setIsFormOpen(false)}
