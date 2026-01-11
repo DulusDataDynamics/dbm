@@ -1,4 +1,3 @@
-
 'use client';
 import { RevenueChart } from "@/components/app/revenue-chart";
 import { InvoiceStatusChart } from "@/components/app/invoice-status-chart";
@@ -7,30 +6,18 @@ import { Invoice, InventoryItem } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RevenueInsightsGenerator } from "@/components/app/revenue-insights-generator";
-import { getFirebase, waitForFirebaseReady } from "@/lib/firebaseClient";
-import type { Firestore } from "firebase/firestore";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, useFirestore } from "@/firebase";
 
 export default function ReportsPage() {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [db, setDb] = useState<Firestore | null>(null);
-  const { auth } = useAuth();
+  const db = useFirestore();
+  const { user } = useAuth();
 
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!db || !user) return;
     const unsubInvoices = subscribeToInvoices(db, (invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
@@ -41,10 +28,10 @@ export default function ReportsPage() {
     });
 
     return () => {
-        unsubInvoices();
-        unsubInventory();
+        if (unsubInvoices) unsubInvoices();
+        if (unsubInventory) unsubInventory();
     };
-  }, [db]);
+  }, [db, user]);
 
   return (
     <div className="space-y-6">

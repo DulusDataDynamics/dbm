@@ -22,15 +22,11 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { deleteTask, subscribeToTasks, updateTaskStatus, updateTaskPriority } from '@/lib/firestore';
+import { deleteTask, subscribeToTasks, updateTaskStatus } from '@/lib/firestore';
 import { Task, TaskPriority, TaskStatus } from '@/lib/types';
 import { useEffect, useState, useTransition } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -38,13 +34,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TaskForm } from '@/components/app/task-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
+import { useAuth, useFirestore } from '@/firebase';
 
 export default function TasksPage() {
-  const [db, setDb] = useState<Firestore | null>(null);
+  const db = useFirestore();
+  const { user } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -52,20 +46,9 @@ export default function TasksPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
   const [isPending, startTransition] = useTransition();
-  const { auth } = useAuth();
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!db || !user) return;
     const unsubscribe = subscribeToTasks(db, (tasksData) => {
       // Sort by due date, then by status
       const sortedTasks = tasksData.sort((a, b) => {
@@ -79,20 +62,15 @@ export default function TasksPage() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [db]);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [db, user]);
 
   const handleStatusChange = (task: Task, status: TaskStatus) => {
     if (!db) return;
-    startTransition(async () => {
-      await updateTaskStatus(db, task.id, status);
-    });
-  };
-
-  const handlePriorityChange = (task: Task, priority: TaskPriority) => {
-    if (!db) return;
-    startTransition(async () => {
-      await updateTaskPriority(db, task.id, priority);
+    startTransition(() => {
+      updateTaskStatus(db, task.id, status);
     });
   };
 
@@ -111,9 +89,9 @@ export default function TasksPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (taskToDelete && db) {
-      await deleteTask(db, taskToDelete.id);
+      deleteTask(db, taskToDelete.id);
       setIsDeleteDialogOpen(false);
       setTaskToDelete(null);
     }
@@ -240,7 +218,6 @@ export default function TasksPage() {
 
     {db && (
       <TaskForm
-          db={db}
           isOpen={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           task={selectedTask}

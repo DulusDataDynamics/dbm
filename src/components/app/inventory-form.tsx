@@ -24,8 +24,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { InventoryItem } from '@/lib/types';
 import { saveInventoryItem } from '@/lib/firestore';
-import type { Firestore } from 'firebase/firestore';
 import { ScrollArea } from '../ui/scroll-area';
+import { useFirestore } from '@/firebase';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -39,13 +39,13 @@ const formSchema = z.object({
 type InventoryFormValues = z.infer<typeof formSchema>;
 
 interface InventoryFormProps {
-  db: Firestore;
   isOpen: boolean;
   onClose: () => void;
   item: InventoryItem | null;
 }
 
-export function InventoryForm({ db, isOpen, onClose, item }: InventoryFormProps) {
+export function InventoryForm({ isOpen, onClose, item }: InventoryFormProps) {
+  const db = useFirestore();
   const form = useForm<InventoryFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,8 +73,8 @@ export function InventoryForm({ db, isOpen, onClose, item }: InventoryFormProps)
     }
   }, [item, form, isOpen]);
 
-  const onSubmit = async (data: InventoryFormValues) => {
-    await saveInventoryItem(db, item?.id || null, data);
+  const onSubmit = (data: InventoryFormValues) => {
+    saveInventoryItem(db, item?.id || null, data);
     onClose();
   };
 

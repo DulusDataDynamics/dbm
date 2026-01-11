@@ -1,4 +1,3 @@
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
@@ -8,9 +7,7 @@ import { ArrowRight, CheckCircle, ChevronDown, DollarSign, BarChart, Users, File
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
-import { redirect } from 'next/navigation';
-import { getFirebase } from '@/lib/firebaseClient';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/firebase';
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -77,16 +74,16 @@ const faqItems = [
 
 
 export default function LandingPage() {
-  const { user, initializing } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!initializing && user) {
+    if (!isUserLoading && user) {
       router.replace('/dashboard');
     }
-  }, [user, initializing, router]);
+  }, [user, isUserLoading, router]);
 
-  if (initializing || user) {
+  if (isUserLoading || user) {
     return null; // or a loading spinner
   }
 

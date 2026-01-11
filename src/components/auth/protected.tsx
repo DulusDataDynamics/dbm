@@ -1,18 +1,18 @@
 'use client';
 
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export function Protected({ children }: { children: React.ReactNode }) {
-  const { user, initializing } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!initializing && !user) router.replace('/login');
-  }, [user, initializing, router]);
+    if (!isUserLoading && !user) router.replace('/login');
+  }, [user, isUserLoading, router]);
 
-  if (initializing || !user) return null;
+  if (isUserLoading || !user) return null;
 
   return <>{children}</>;
 }

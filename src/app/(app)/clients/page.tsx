@@ -41,12 +41,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, useFirestore } from '@/firebase';
 
 export default function ClientsPage() {
-  const [db, setDb] = useState<Firestore | null>(null);
+  const db = useFirestore();
+  const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -54,28 +53,18 @@ export default function ClientsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const { toast } = useToast();
-  const { auth } = useAuth();
 
   useEffect(() => {
-    if (!auth) return;
-
-    async function load() {
-      await waitForFirebaseReady(auth!);
-      const fb = getFirebase();
-      if(fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!db || !user) return;
     const unsubscribe = subscribeToClients(db, (clientsData) => {
       setClients(clientsData);
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [db]);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [db, user]);
 
   const handleAddClient = () => {
     setSelectedClient(null);
@@ -106,9 +95,9 @@ export default function ClientsPage() {
     window.open(url, '_blank');
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (clientToDelete && db) {
-      await deleteClient(db, clientToDelete.id);
+      deleteClient(db, clientToDelete.id);
       setIsDeleteDialogOpen(false);
       setClientToDelete(null);
     }
@@ -190,7 +179,6 @@ export default function ClientsPage() {
       
       {db && (
         <ClientForm 
-          db={db}
           isOpen={isFormOpen}
           onClose={handleFormClose}
           client={selectedClient}

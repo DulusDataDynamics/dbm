@@ -44,12 +44,11 @@ import {
 import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
 import { useToast } from '@/hooks/use-toast';
 import DownloadInvoices from '@/components/app/download-invoices';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, useFirestore } from '@/firebase';
 
 export default function InvoicesPage() {
-  const [db, setDb] = useState<Firestore | null>(null);
+  const db = useFirestore();
+  const { user } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -59,27 +58,18 @@ export default function InvoicesPage() {
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [invoiceToView, setInvoiceToView] = useState<Invoice | null>(null);
   const { toast } = useToast();
-  const { auth } = useAuth();
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if(fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!db || !user) return;
     const unsubscribe = subscribeToInvoices(db, (invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [db]);
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, [db, user]);
 
   const handleAddInvoice = () => {
     setSelectedInvoice(null);
@@ -124,9 +114,9 @@ export default function InvoicesPage() {
     window.open(url, '_blank');
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (invoiceToDelete && db) {
-      await deleteInvoice(db, invoiceToDelete.id);
+      deleteInvoice(db, invoiceToDelete.id);
       setIsDeleteDialogOpen(false);
       setInvoiceToDelete(null);
     }
@@ -237,7 +227,6 @@ export default function InvoicesPage() {
       </div>
       {db && (
         <InvoiceForm 
-          db={db}
           isOpen={isFormOpen}
           onClose={handleFormClose}
           invoice={selectedInvoice}
@@ -260,7 +249,6 @@ export default function InvoicesPage() {
       </AlertDialog>
       {db && (
        <ViewInvoiceDialog
-        db={db}
         isOpen={isViewDialogOpen}
         onClose={() => setIsViewDialogOpen(false)}
         invoice={invoiceToView}

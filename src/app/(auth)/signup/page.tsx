@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/firebase';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,7 +30,7 @@ const loadingMessages = [
 
 export default function SignupPage() {
   const router = useRouter();
-  const { user, signup, initializing } = useAuth();
+  const { user, signup, isUserLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,10 +50,10 @@ export default function SignupPage() {
   }, [loading]);
   
   useEffect(() => {
-    if (!initializing && user) {
+    if (!isUserLoading && user) {
       router.replace('/dashboard');
     }
-  }, [user, initializing, router]);
+  }, [user, isUserLoading, router]);
 
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -73,7 +73,7 @@ export default function SignupPage() {
     }
   };
 
-  if (initializing || (!initializing && user)) {
+  if (isUserLoading || (!isUserLoading && user)) {
     return null; // Render nothing while initializing or if user is already logged in
   }
 

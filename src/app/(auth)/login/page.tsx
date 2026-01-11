@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/firebase';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -28,7 +28,7 @@ const loadingMessages = [
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, login, initializing } = useAuth();
+  const { user, login, isUserLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -48,10 +48,10 @@ export default function LoginPage() {
   }, [loading]);
   
   useEffect(() => {
-      if (!initializing && user) {
+      if (!isUserLoading && user) {
         router.replace('/dashboard');
     }
-  }, [user, initializing, router]);
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +59,6 @@ export default function LoginPage() {
     try {
       await login(email, password);
       // On success, the useEffect hook will handle the redirect.
-      // We don't need to setLoading(false) here because the component will unmount.
     } catch (error: any) {
       console.error(error);
       toast({
@@ -71,7 +70,7 @@ export default function LoginPage() {
     }
   };
 
-  if (initializing || (!initializing && user)) {
+  if (isUserLoading || (!isUserLoading && user)) {
     return null; // Render nothing while initializing or if user is already logged in to prevent flash of content
   }
 

@@ -36,7 +36,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Client, Invoice } from '@/lib/types';
 import { saveInvoice, subscribeToClients } from '@/lib/firestore';
-import type { Firestore } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 const formSchema = z.object({
   clientId: z.string().min(1, 'Please select a client.'),
@@ -50,13 +50,13 @@ const formSchema = z.object({
 type InvoiceFormValues = z.infer<typeof formSchema>;
 
 interface InvoiceFormProps {
-  db: Firestore;
   isOpen: boolean;
   onClose: () => void;
   invoice: Invoice | null;
 }
 
-export function InvoiceForm({ db, isOpen, onClose, invoice }: InvoiceFormProps) {
+export function InvoiceForm({ isOpen, onClose, invoice }: InvoiceFormProps) {
+  const db = useFirestore();
   const [clients, setClients] = useState<Client[]>([]);
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(formSchema),
@@ -70,7 +70,9 @@ export function InvoiceForm({ db, isOpen, onClose, invoice }: InvoiceFormProps) 
   useEffect(() => {
     if (!db) return;
     const unsubscribe = subscribeToClients(db, setClients);
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [db]);
 
   useEffect(() => {
@@ -92,13 +94,13 @@ export function InvoiceForm({ db, isOpen, onClose, invoice }: InvoiceFormProps) 
     }
   }, [invoice, form, isOpen]);
 
-  const onSubmit = async (data: InvoiceFormValues) => {
+  const onSubmit = (data: InvoiceFormValues) => {
     if (!db) return;
     const invoiceData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
     };
-    await saveInvoice(db, invoice?.id || null, invoiceData);
+    saveInvoice(db, invoice?.id || null, invoiceData);
     onClose();
   };
 

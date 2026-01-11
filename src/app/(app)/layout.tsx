@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { Protected } from '@/components/auth/protected';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { NAV_LINKS, SUPPORT_LINKS } from '@/lib/constants';
@@ -21,7 +20,7 @@ import {
   SidebarSeparator,
 } from '@/components/ui/sidebar';
 
-function AppClientLayout({ children }: { children: React.ReactNode }) {
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
   return (
@@ -83,17 +82,5 @@ function AppClientLayout({ children }: { children: React.ReactNode }) {
           </main>
         </SidebarInset>
       </SidebarProvider>
-  );
-}
-
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  
-  return (
-    <Protected>
-        <AppClientLayout>
-            {children}
-        </AppClientLayout>
-    </Protected>
   );
 }

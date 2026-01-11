@@ -45,14 +45,12 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { getBusinessProfile, saveBusinessProfile, saveInvoiceSettings, getInvoiceSettings } from '@/lib/firestore';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import DownloadInvoices from '@/components/app/download-invoices';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
+import { useAuth, useFirestore } from '@/firebase';
 
 
 const settingsSections = [
@@ -102,8 +100,8 @@ type InvoiceSettingsFormValues = z.infer<typeof invoiceSettingsSchema>;
 const comingSoonSections = ['team', 'billing', 'integrations', 'developer'];
 
 export default function SettingsPage() {
-  const { user, logout, auth } = useAuth();
-  const [db, setDb] = useState<Firestore | null>(null);
+  const { user, logout } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
   const [companyLogoPreview, setCompanyLogoPreview] = useState<string | null>(null);
   const [signaturePreview, setSignaturePreview] = useState<string | null>(null);
@@ -147,28 +145,19 @@ export default function SettingsPage() {
   });
 
   useEffect(() => {
-    if (!auth) return;
-    async function loadFirebase() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) {
-        setDb(fb.db);
-        if (user?.uid) {
-          getBusinessProfile(fb.db, user.uid).then(profile => {
-            if (profile) {
-              profileForm.reset(profile);
-            }
-          });
-          getInvoiceSettings(fb.db, user.uid).then(settings => {
-            if(settings) {
-                invoiceForm.reset(settings);
-            }
-          });
+    if (db && user?.uid) {
+      getBusinessProfile(db, user.uid).then(profile => {
+        if (profile) {
+          profileForm.reset(profile);
         }
-      }
+      });
+      getInvoiceSettings(db, user.uid).then(settings => {
+        if(settings) {
+            invoiceForm.reset(settings);
+        }
+      });
     }
-    loadFirebase();
-  }, [auth, user, profileForm, invoiceForm]);
+  }, [db, user, profileForm, invoiceForm]);
 
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, setPreview: (url: string | null) => void) => {
@@ -181,7 +170,7 @@ export default function SettingsPage() {
   const onProfileSubmit = async (data: ProfileFormValues) => {
     if (!user?.uid || !db) return;
     setProfileSaveState('saving');
-    await saveBusinessProfile(db, user.uid, data);
+    saveBusinessProfile(db, user.uid, data);
     toast({ title: 'Business profile saved successfully!' });
     setProfileSaveState('saved');
     setTimeout(() => setProfileSaveState('idle'), 2000);
@@ -190,7 +179,7 @@ export default function SettingsPage() {
   const onInvoiceSubmit = async (data: InvoiceSettingsFormValues) => {
     if (!user?.uid || !db) return;
     setInvoiceSaveState('saving');
-    await saveInvoiceSettings(db, user.uid, data);
+    saveInvoiceSettings(db, user.uid, data);
     toast({ title: 'Invoice settings saved successfully!' });
     setInvoiceSaveState('saved');
     setTimeout(() => setInvoiceSaveState('idle'), 2000);

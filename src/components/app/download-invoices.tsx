@@ -1,28 +1,33 @@
-
 'use client';
 
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Download } from 'lucide-react';
-import { Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
+import { Invoice, Client, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { getBusinessProfile, getInvoiceSettings, subscribeToInvoices } from '@/lib/firestore';
-import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/firebase/firebase';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { useAuth, useFirestore } from '@/firebase';
 
-type AppInvoice = Invoice;
+type AppInvoice = Invoice & {
+    client?: Client;
+};
 
 export default function DownloadInvoices() {
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
+  const db = useFirestore();
   const { toast } = useToast();
 
   async function fetchAllInvoices(): Promise<AppInvoice[]> {
     return new Promise((resolve) => {
+        if (!db) {
+          resolve([]);
+          return;
+        }
         const unsubscribe = subscribeToInvoices(db, (invoices) => {
-            unsubscribe();
+            if (unsubscribe) unsubscribe();
             resolve(invoices);
         });
     });
@@ -38,11 +43,11 @@ export default function DownloadInvoices() {
   }
 
   async function handleDownload() {
-    if (!user) {
+    if (!user || !db) {
       toast({
         variant: "destructive",
-        title: "Authentication Error",
-        description: "You must be logged in to download invoices.",
+        title: "Error",
+        description: "You must be logged in and connected to download invoices.",
       });
       return;
     }
@@ -60,8 +65,8 @@ export default function DownloadInvoices() {
         return;
       }
       
-      const profile = await getBusinessProfile(db);
-      const settings = await getInvoiceSettings(db);
+      const profile = await getBusinessProfile(db, user.uid);
+      const settings = await getInvoiceSettings(db, user.uid);
 
       if (!profile) {
          toast({
@@ -220,7 +225,7 @@ export default function DownloadInvoices() {
   }
 
   return (
-    <Button onClick={handleDownload} disabled={loading} variant="outline" size="sm">
+    <Button onClick={handleDownload} disabled={loading || !db} variant="outline" size="sm">
         <Download className="mr-2 h-4 w-4" />
         {loading ? 'Preparing PDF...' : 'Download All'}
     </Button>

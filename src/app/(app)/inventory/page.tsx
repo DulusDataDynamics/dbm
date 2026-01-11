@@ -40,13 +40,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { InventoryForm } from '@/components/app/inventory-form';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth, useFirestore } from '@/firebase';
 import { useToast } from '@/hooks/use-toast';
-import { getFirebase, waitForFirebaseReady } from '@/lib/firebaseClient';
-import type { Firestore } from 'firebase/firestore';
 
 export default function InventoryPage() {
-  const [db, setDb] = useState<Firestore | null>(null);
+  const db = useFirestore();
+  const { user } = useAuth();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -54,21 +53,10 @@ export default function InventoryPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
-  const { user, auth } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!auth) return;
-    async function load() {
-      await waitForFirebaseReady(auth);
-      const fb = getFirebase();
-      if (fb) setDb(fb.db);
-    }
-    load();
-  }, [auth]);
-
-  useEffect(() => {
-    if (!db) return;
+    if (!db || !user) return;
 
     const unsubscribe = subscribeToInventory(db, (inventoryData) => {
       setInventory(inventoryData);
@@ -79,7 +67,9 @@ export default function InventoryPage() {
         getBusinessProfile(db, user.uid).then(setBusinessProfile);
     }
 
-    return () => unsubscribe();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, [db, user]);
 
   const handleAddItem = () => {
@@ -113,9 +103,9 @@ export default function InventoryPage() {
     window.open(url, '_blank');
   };
 
-  const confirmDelete = async () => {
+  const confirmDelete = () => {
     if (itemToDelete && db) {
-      await deleteInventoryItem(db, itemToDelete.id);
+      deleteInventoryItem(db, itemToDelete.id);
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
     }
@@ -211,7 +201,6 @@ export default function InventoryPage() {
       
       {db && (
         <InventoryForm 
-          db={db}
           isOpen={isFormOpen}
           onClose={handleFormClose}
           item={selectedItem}
