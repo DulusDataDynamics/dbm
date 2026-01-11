@@ -55,8 +55,8 @@ export default function ClientsPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!db || !user) return;
-    const unsubscribe = subscribeToClients(db, (clientsData) => {
+    if (!db || !user?.uid) return;
+    const unsubscribe = subscribeToClients(db, user.uid, (clientsData) => {
       setClients(clientsData);
       setLoading(false);
     });
@@ -96,8 +96,8 @@ export default function ClientsPage() {
   };
 
   const confirmDelete = () => {
-    if (clientToDelete && db) {
-      deleteClient(db, clientToDelete.id);
+    if (clientToDelete && db && user?.uid) {
+      deleteClient(db, user.uid, clientToDelete.id);
       setIsDeleteDialogOpen(false);
       setClientToDelete(null);
     }
@@ -118,7 +118,7 @@ export default function ClientsPage() {
               <CardTitle>Clients</CardTitle>
               <CardDescription>Manage your clients and view their details.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddClient} disabled={!db}>
+            <Button size="sm" onClick={handleAddClient} disabled={!db || !user}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Client
             </Button>
@@ -177,7 +177,7 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
       
-      {db && (
+      {db && user && (
         <ClientForm 
           isOpen={isFormOpen}
           onClose={handleFormClose}

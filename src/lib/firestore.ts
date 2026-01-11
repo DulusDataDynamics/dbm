@@ -17,12 +17,21 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority } from './types';
 
+function getCollectionRef(db: Firestore, userId: string, collectionName: string) {
+    return collection(db, 'users', userId, collectionName);
+}
+
+function getDocRef(db: Firestore, userId: string, collectionName: string, docId: string) {
+    return doc(db, 'users', userId, collectionName, docId);
+}
+
+
 // ============================================================================
 // Real-time Subscriptions
 // ============================================================================
 
-export function subscribeToClients(db: Firestore, callback: (data: Client[]) => void) {
-  const q = query(collection(db, 'clients'), orderBy('name', 'asc'));
+export function subscribeToClients(db: Firestore, userId: string, callback: (data: Client[]) => void) {
+  const q = query(getCollectionRef(db, userId, 'clients'), orderBy('name', 'asc'));
   return onSnapshot(q, (snapshot) => {
     const clientsData = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -32,14 +41,14 @@ export function subscribeToClients(db: Firestore, callback: (data: Client[]) => 
   }, (error) => {
     console.error("Error subscribing to clients:", error);
     errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: 'clients',
+      path: `users/${userId}/clients`,
       operation: 'list',
     }));
   });
 }
 
-export function subscribeToInvoices(db: Firestore, callback: (data: Invoice[]) => void) {
-  const invoicesRef = collection(db, 'invoices');
+export function subscribeToInvoices(db: Firestore, userId: string, callback: (data: Invoice[]) => void) {
+  const invoicesRef = getCollectionRef(db, userId, 'invoices');
   const q = query(invoicesRef, orderBy('dueDate', 'desc'));
 
   return onSnapshot(q, async (snapshot) => {
@@ -61,7 +70,7 @@ export function subscribeToInvoices(db: Firestore, callback: (data: Invoice[]) =
         return;
     }
 
-    const clientsQuery = query(collection(db, 'clients'), where('__name__', 'in', clientIds));
+    const clientsQuery = query(getCollectionRef(db, userId, 'clients'), where('__name__', 'in', clientIds));
     const clientSnaps = await getDocs(clientsQuery);
     const clientsMap = new Map(
       clientSnaps.docs.map((snap) => [snap.id, { id: snap.id, ...snap.data() } as Client])
@@ -84,14 +93,14 @@ export function subscribeToInvoices(db: Firestore, callback: (data: Invoice[]) =
   }, (error) => {
     console.error("Error subscribing to invoices:", error);
     errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: 'invoices',
+      path: `users/${userId}/invoices`,
       operation: 'list',
     }));
   });
 }
 
-export function subscribeToTasks(db: Firestore, callback: (data: Task[]) => void) {
-  const q = query(collection(db, 'tasks'), orderBy('dueDate', 'asc'));
+export function subscribeToTasks(db: Firestore, userId: string, callback: (data: Task[]) => void) {
+  const q = query(getCollectionRef(db, userId, 'tasks'), orderBy('dueDate', 'asc'));
   return onSnapshot(q, (snapshot) => {
     const tasksData = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -101,14 +110,14 @@ export function subscribeToTasks(db: Firestore, callback: (data: Task[]) => void
   }, (error) => {
     console.error("Error subscribing to tasks:", error);
     errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: 'tasks',
+      path: `users/${userId}/tasks`,
       operation: 'list',
     }));
   });
 }
 
-export function subscribeToInventory(db: Firestore, callback: (data: InventoryItem[]) => void) {
-  const q = query(collection(db, 'inventory'), orderBy('name', 'asc'));
+export function subscribeToInventory(db: Firestore, userId: string, callback: (data: InventoryItem[]) => void) {
+  const q = query(getCollectionRef(db, userId, 'inventory'), orderBy('name', 'asc'));
   return onSnapshot(q, (snapshot) => {
     const inventoryData = snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -118,7 +127,7 @@ export function subscribeToInventory(db: Firestore, callback: (data: InventoryIt
   }, (error) => {
     console.error("Error subscribing to inventory:", error);
     errorEmitter.emit('permission-error', new FirestorePermissionError({
-      path: 'inventory',
+      path: `users/${userId}/inventory`,
       operation: 'list',
     }));
   });
@@ -128,9 +137,9 @@ export function subscribeToInventory(db: Firestore, callback: (data: InventoryIt
 // Save / Create / Update Operations
 // ============================================================================
 
-export function saveClient(db: Firestore, id: string | null, data: Omit<Client, 'id'>) {
+export function saveClient(db: Firestore, userId: string, id: string | null, data: Omit<Client, 'id'>) {
   const operation = id ? 'update' : 'create';
-  const docRef = id ? doc(db, 'clients', id) : doc(collection(db, 'clients'));
+  const docRef = id ? getDocRef(db, userId, 'clients', id) : doc(getCollectionRef(db, userId, 'clients'));
   
   setDoc(docRef, data, { merge: !!id })
     .catch((serverError) => {
@@ -142,9 +151,9 @@ export function saveClient(db: Firestore, id: string | null, data: Omit<Client, 
     });
 }
 
-export function saveInvoice(db: Firestore, id: string | null, data: Omit<Invoice, 'id' | 'client'>) {
+export function saveInvoice(db: Firestore, userId: string, id: string | null, data: Omit<Invoice, 'id' | 'client'>) {
   const operation = id ? 'update' : 'create';
-  const docRef = id ? doc(db, 'invoices', id) : doc(collection(db, 'invoices'));
+  const docRef = id ? getDocRef(db, userId, 'invoices', id) : doc(getCollectionRef(db, userId, 'invoices'));
 
   setDoc(docRef, data, { merge: !!id })
     .catch((serverError) => {
@@ -156,9 +165,9 @@ export function saveInvoice(db: Firestore, id: string | null, data: Omit<Invoice
     });
 }
 
-export function saveTask(db: Firestore, id: string | null, data: Omit<Task, 'id'>) {
+export function saveTask(db: Firestore, userId: string, id: string | null, data: Omit<Task, 'id'>) {
   const operation = id ? 'update' : 'create';
-  const docRef = id ? doc(db, 'tasks', id) : doc(collection(db, 'tasks'));
+  const docRef = id ? getDocRef(db, userId, 'tasks', id) : doc(getCollectionRef(db, userId, 'tasks'));
 
   setDoc(docRef, data, { merge: !!id })
     .catch((serverError) => {
@@ -170,9 +179,9 @@ export function saveTask(db: Firestore, id: string | null, data: Omit<Task, 'id'
     });
 }
 
-export function saveInventoryItem(db: Firestore, id: string | null, data: Omit<InventoryItem, 'id'>) {
+export function saveInventoryItem(db: Firestore, userId: string, id: string | null, data: Omit<InventoryItem, 'id'>) {
   const operation = id ? 'update' : 'create';
-  const docRef = id ? doc(db, 'inventory', id) : doc(collection(db, 'inventory'));
+  const docRef = id ? getDocRef(db, userId, 'inventory', id) : doc(getCollectionRef(db, userId, 'inventory'));
 
   setDoc(docRef, data, { merge: !!id })
     .catch((serverError) => {
@@ -189,8 +198,8 @@ export function saveInventoryItem(db: Firestore, id: string | null, data: Omit<I
 // Delete Operations
 // ============================================================================
 
-export function deleteClient(db: Firestore, id: string) {
-  const docRef = doc(db, 'clients', id);
+export function deleteClient(db: Firestore, userId: string, id: string) {
+  const docRef = getDocRef(db, userId, 'clients', id);
   deleteDoc(docRef)
     .catch((serverError) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -200,8 +209,8 @@ export function deleteClient(db: Firestore, id: string) {
     });
 }
 
-export function deleteInvoice(db: Firestore, id: string) {
-  const docRef = doc(db, 'invoices', id);
+export function deleteInvoice(db: Firestore, userId: string, id: string) {
+  const docRef = getDocRef(db, userId, 'invoices', id);
   deleteDoc(docRef)
     .catch((serverError) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -211,8 +220,8 @@ export function deleteInvoice(db: Firestore, id: string) {
     });
 }
 
-export function deleteTask(db: Firestore, id: string) {
-  const docRef = doc(db, 'tasks', id);
+export function deleteTask(db: Firestore, userId: string, id: string) {
+  const docRef = getDocRef(db, userId, 'tasks', id);
   deleteDoc(docRef)
     .catch((serverError) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -222,8 +231,8 @@ export function deleteTask(db: Firestore, id: string) {
     });
 }
 
-export function deleteInventoryItem(db: Firestore, id: string) {
-  const docRef = doc(db, 'inventory', id);
+export function deleteInventoryItem(db: Firestore, userId: string, id: string) {
+  const docRef = getDocRef(db, userId, 'inventory', id);
   deleteDoc(docRef)
     .catch((serverError) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -237,8 +246,8 @@ export function deleteInventoryItem(db: Firestore, id: string) {
 // Quick Updates
 // ============================================================================
 
-export function updateTaskStatus(db: Firestore, id: string, status: TaskStatus) {
-    const docRef = doc(db, 'tasks', id);
+export function updateTaskStatus(db: Firestore, userId: string, id: string, status: TaskStatus) {
+    const docRef = getDocRef(db, userId, 'tasks', id);
     updateDoc(docRef, { status })
       .catch((serverError) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -249,8 +258,8 @@ export function updateTaskStatus(db: Firestore, id: string, status: TaskStatus) 
       });
 }
 
-export function updateTaskPriority(db: Firestore, id: string, priority: TaskPriority) {
-    const docRef = doc(db, 'tasks', id);
+export function updateTaskPriority(db: Firestore, userId: string, id: string, priority: TaskPriority) {
+    const docRef = getDocRef(db, userId, 'tasks', id);
     updateDoc(docRef, { priority })
      .catch((serverError) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({
@@ -279,7 +288,7 @@ export function saveBusinessProfile(db: Firestore, userId: string, data: Busines
 
 export async function getBusinessProfile(db: Firestore, userId: string): Promise<BusinessProfile | null> {
   const docRef = doc(db, 'profiles', userId);
-  try {
+   try {
     const docSnap = await getDoc(docRef);
     return docSnap.exists() ? (docSnap.data() as BusinessProfile) : null;
   } catch(error) {

@@ -8,32 +8,15 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == userId;
     }
 
-    match /businesses/{businessId} {
-      allow read, write: if isOwner(businessId);
-
-      match /clients/{clientId} {
-        allow list, get: if isOwner(businessId);
-        allow create, update, delete: if isOwner(businessId);
-      }
-
-      match /invoices/{invoiceId} {
-        allow list, get: if isOwner(businessId);
-        allow create, update, delete: if isOwner(businessId);
-      }
-
-      match /tasks/{taskId} {
-        allow list, get: if isOwner(businessId);
-        allow create, update, delete: if isOwner(businessId);
-      }
-
-      match /inventory/{itemId} {
-        allow list, get: if isOwner(businessId);
-        allow create, update, delete: if isOwner(businessId);
-      }
+    match /users/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /profiles/{userId} {
+      allow read, write: if isOwner(userId);
       
       match /settings/{settingId} {
-         allow get, list: if isOwner(businessId);
-         allow create, update, delete: if isOwner(businessId);
+         allow read, write: if isOwner(userId);
       }
     }
   }
