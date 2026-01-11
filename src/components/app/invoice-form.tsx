@@ -36,7 +36,7 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Client, Invoice } from '@/lib/types';
 import { saveInvoice, subscribeToClients } from '@/lib/firestore';
-import { useFirestore, useAuth } from '@/firebase';
+import type { Firestore } from 'firebase/firestore';
 
 const formSchema = z.object({
   clientId: z.string().min(1, 'Please select a client.'),
@@ -50,14 +50,14 @@ const formSchema = z.object({
 type InvoiceFormValues = z.infer<typeof formSchema>;
 
 interface InvoiceFormProps {
+  db: Firestore;
+  userId: string;
   isOpen: boolean;
   onClose: () => void;
   invoice: Invoice | null;
 }
 
-export function InvoiceForm({ isOpen, onClose, invoice }: InvoiceFormProps) {
-  const db = useFirestore();
-  const { user } = useAuth();
+export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(formSchema),
@@ -69,12 +69,10 @@ export function InvoiceForm({ isOpen, onClose, invoice }: InvoiceFormProps) {
   });
 
   useEffect(() => {
-    if (!db || !user?.uid) return;
-    const unsubscribe = subscribeToClients(db, user.uid, setClients);
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, user]);
+    if (!db || !userId) return;
+    const unsubscribe = subscribeToClients(db, userId, setClients);
+    return () => unsubscribe();
+  }, [db, userId]);
 
   useEffect(() => {
     if (isOpen) {
@@ -95,13 +93,13 @@ export function InvoiceForm({ isOpen, onClose, invoice }: InvoiceFormProps) {
     }
   }, [invoice, form, isOpen]);
 
-  const onSubmit = (data: InvoiceFormValues) => {
-    if (!db || !user?.uid) return;
+  const onSubmit = async (data: InvoiceFormValues) => {
+    if (!db || !userId) return;
     const invoiceData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
     };
-    saveInvoice(db, user.uid, invoice?.id || null, invoiceData);
+    await saveInvoice(db, userId, invoice?.id || null, invoiceData);
     onClose();
   };
 

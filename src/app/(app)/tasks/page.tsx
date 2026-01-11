@@ -22,11 +22,15 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { deleteTask, subscribeToTasks, updateTaskStatus } from '@/lib/firestore';
+import { deleteTask, subscribeToTasks, updateTaskStatus, updateTaskPriority } from '@/lib/firestore';
 import { Task, TaskPriority, TaskStatus } from '@/lib/types';
 import { useEffect, useState, useTransition } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -62,15 +66,20 @@ export default function TasksPage() {
       setLoading(false);
     });
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, user]);
+    return () => unsubscribe();
+  }, [db, user?.uid]);
 
   const handleStatusChange = (task: Task, status: TaskStatus) => {
     if (!db || !user?.uid) return;
-    startTransition(() => {
-      updateTaskStatus(db, user.uid, task.id, status);
+    startTransition(async () => {
+      await updateTaskStatus(db, user.uid, task.id, status);
+    });
+  };
+
+  const handlePriorityChange = (task: Task, priority: TaskPriority) => {
+    if (!db || !user?.uid) return;
+    startTransition(async () => {
+      await updateTaskPriority(db, user.uid, task.id, priority);
     });
   };
 
@@ -89,9 +98,9 @@ export default function TasksPage() {
     setIsDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (taskToDelete && db && user?.uid) {
-      deleteTask(db, user.uid, taskToDelete.id);
+      await deleteTask(db, user.uid, taskToDelete.id);
       setIsDeleteDialogOpen(false);
       setTaskToDelete(null);
     }
@@ -216,8 +225,10 @@ export default function TasksPage() {
       </CardContent>
     </Card>
 
-    {db && user && (
+    {db && user?.uid && (
       <TaskForm
+          db={db}
+          userId={user.uid}
           isOpen={isFormOpen}
           onClose={() => setIsFormOpen(false)}
           task={selectedTask}

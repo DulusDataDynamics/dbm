@@ -24,7 +24,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Client } from '@/lib/types';
 import { saveClient } from '@/lib/firestore';
-import { useAuth, useFirestore } from '@/firebase';
+import type { Firestore } from 'firebase/firestore';
 
 const formSchema = z.object({
   name: z.string().min(2, {
@@ -39,14 +39,14 @@ const formSchema = z.object({
 type ClientFormValues = z.infer<typeof formSchema>;
 
 interface ClientFormProps {
+  db: Firestore;
+  userId: string;
   isOpen: boolean;
   onClose: () => void;
   client: Client | null;
 }
 
-export function ClientForm({ isOpen, onClose, client }: ClientFormProps) {
-  const db = useFirestore();
-  const { user } = useAuth();
+export function ClientForm({ db, userId, isOpen, onClose, client }: ClientFormProps) {
   const form = useForm<ClientFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -68,9 +68,8 @@ export function ClientForm({ isOpen, onClose, client }: ClientFormProps) {
     }
   }, [client, form, isOpen]);
 
-  const onSubmit = (data: ClientFormValues) => {
-    if (!user?.uid) return;
-    saveClient(db, user.uid, client?.id || null, data);
+  const onSubmit = async (data: ClientFormValues) => {
+    await saveClient(db, userId, client?.id || null, data);
     onClose();
   };
 

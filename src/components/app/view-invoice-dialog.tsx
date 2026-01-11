@@ -21,10 +21,10 @@ interface ViewInvoiceDialogProps {
   isOpen: boolean;
   onClose: () => void;
   invoice: Invoice | null;
+  db: any;
 }
 
-export function ViewInvoiceDialog({ isOpen, onClose, invoice }: ViewInvoiceDialogProps) {
-  const db = useFirestore();
+export function ViewInvoiceDialog({ isOpen, onClose, invoice, db }: ViewInvoiceDialogProps) {
   const { user } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
 

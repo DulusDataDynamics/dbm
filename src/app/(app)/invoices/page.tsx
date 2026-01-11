@@ -66,10 +66,8 @@ export default function InvoicesPage() {
       setLoading(false);
     });
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, user]);
+    return () => unsubscribe();
+  }, [db, user?.uid]);
 
   const handleAddInvoice = () => {
     setSelectedInvoice(null);
@@ -114,9 +112,9 @@ export default function InvoicesPage() {
     window.open(url, '_blank');
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (invoiceToDelete && db && user?.uid) {
-      deleteInvoice(db, user.uid, invoiceToDelete.id);
+      await deleteInvoice(db, user.uid, invoiceToDelete.id);
       setIsDeleteDialogOpen(false);
       setInvoiceToDelete(null);
     }
@@ -225,8 +223,10 @@ export default function InvoicesPage() {
             </CardContent>
           </Card>
       </div>
-      {db && user && (
+      {db && user?.uid && (
         <InvoiceForm 
+          db={db}
+          userId={user.uid}
           isOpen={isFormOpen}
           onClose={handleFormClose}
           invoice={selectedInvoice}
@@ -249,6 +249,7 @@ export default function InvoicesPage() {
       </AlertDialog>
       {db && user && (
        <ViewInvoiceDialog
+        db={db}
         isOpen={isViewDialogOpen}
         onClose={() => setIsViewDialogOpen(false)}
         invoice={invoiceToView}

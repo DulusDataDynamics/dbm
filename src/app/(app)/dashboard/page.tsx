@@ -44,30 +44,23 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!db || !user?.uid) {
-      if (!user?.uid) setLoading(false);
-      return;
-    };
+    if (!db || !user?.uid) return;
 
-    setLoading(true);
-
-    const unsubClients = subscribeToClients(db, user.uid, (data) => {
-      setClients(data);
-    });
+    const unsubClients = subscribeToClients(db, user.uid, setClients);
     const unsubInvoices = subscribeToInvoices(db, user.uid, setInvoices);
     const unsubTasks = subscribeToTasks(db, user.uid, setTasks);
     const unsubInventory = subscribeToInventory(db, user.uid, (data) => {
-        setInventory(data);
-        setLoading(false); // Set loading to false after the last subscription is established
+      setInventory(data);
+      setLoading(false);
     });
 
     return () => {
-      if (unsubClients) unsubClients();
-      if (unsubInvoices) unsubInvoices();
-      if (unsubTasks) unsubTasks();
-      if (unsubInventory) unsubInventory();
+      unsubClients();
+      unsubInvoices();
+      unsubTasks();
+      unsubInventory();
     };
-  }, [db, user]);
+  }, [db, user?.uid]);
 
   const activeInvoices = invoices.filter(
     (inv) => inv.status === 'Unpaid' || inv.status === 'Overdue'

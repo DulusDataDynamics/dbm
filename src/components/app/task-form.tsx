@@ -37,8 +37,8 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Task } from '@/lib/types';
 import { saveTask } from '@/lib/firestore';
+import type { Firestore } from 'firebase/firestore';
 import { ScrollArea } from '../ui/scroll-area';
-import { useFirestore, useAuth } from '@/firebase';
 
 const formSchema = z.object({
   title: z.string().min(2, { message: 'Title must be at least 2 characters.' }),
@@ -54,14 +54,14 @@ const formSchema = z.object({
 type TaskFormValues = z.infer<typeof formSchema>;
 
 interface TaskFormProps {
+  db: Firestore;
+  userId: string;
   isOpen: boolean;
   onClose: () => void;
   task: Task | null;
 }
 
-export function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
-  const db = useFirestore();
-  const { user } = useAuth();
+export function TaskForm({ db, userId, isOpen, onClose, task }: TaskFormProps) {
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -93,13 +93,12 @@ export function TaskForm({ isOpen, onClose, task }: TaskFormProps) {
     }
   }, [task, form, isOpen]);
 
-  const onSubmit = (data: TaskFormValues) => {
-    if (!db || !user?.uid) return;
+  const onSubmit = async (data: TaskFormValues) => {
     const taskData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
     };
-    saveTask(db, user.uid, task?.id || null, taskData);
+    await saveTask(db, userId, task?.id || null, taskData);
     onClose();
   };
 

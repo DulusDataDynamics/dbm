@@ -54,7 +54,7 @@ export default function InventoryPage() {
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
   const { toast } = useToast();
-
+  
   useEffect(() => {
     if (!db || !user?.uid) return;
 
@@ -65,10 +65,8 @@ export default function InventoryPage() {
     
     getBusinessProfile(db, user.uid).then(setBusinessProfile);
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, user]);
+    return () => unsubscribe();
+  }, [db, user?.uid]);
 
   const handleAddItem = () => {
     setSelectedItem(null);
@@ -101,9 +99,9 @@ export default function InventoryPage() {
     window.open(url, '_blank');
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (itemToDelete && db && user?.uid) {
-      deleteInventoryItem(db, user.uid, itemToDelete.id);
+      await deleteInventoryItem(db, user.uid, itemToDelete.id);
       setIsDeleteDialogOpen(false);
       setItemToDelete(null);
     }
@@ -197,8 +195,10 @@ export default function InventoryPage() {
         </CardContent>
       </Card>
       
-      {db && user && (
+      {db && user?.uid && (
         <InventoryForm 
+          db={db}
+          userId={user.uid}
           isOpen={isFormOpen}
           onClose={handleFormClose}
           item={selectedItem}

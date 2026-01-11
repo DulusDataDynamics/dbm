@@ -53,7 +53,7 @@ export default function ClientsPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const { toast } = useToast();
-
+  
   useEffect(() => {
     if (!db || !user?.uid) return;
     const unsubscribe = subscribeToClients(db, user.uid, (clientsData) => {
@@ -61,10 +61,8 @@ export default function ClientsPage() {
       setLoading(false);
     });
 
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
-  }, [db, user]);
+    return () => unsubscribe();
+  }, [db, user?.uid]);
 
   const handleAddClient = () => {
     setSelectedClient(null);
@@ -95,9 +93,9 @@ export default function ClientsPage() {
     window.open(url, '_blank');
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (clientToDelete && db && user?.uid) {
-      deleteClient(db, user.uid, clientToDelete.id);
+      await deleteClient(db, user.uid, clientToDelete.id);
       setIsDeleteDialogOpen(false);
       setClientToDelete(null);
     }
@@ -177,8 +175,10 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
       
-      {db && user && (
+      {db && user?.uid && (
         <ClientForm 
+          db={db}
+          userId={user.uid}
           isOpen={isFormOpen}
           onClose={handleFormClose}
           client={selectedClient}

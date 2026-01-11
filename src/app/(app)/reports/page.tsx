@@ -1,3 +1,4 @@
+
 'use client';
 import { RevenueChart } from "@/components/app/revenue-chart";
 import { InvoiceStatusChart } from "@/components/app/invoice-status-chart";
@@ -15,7 +16,6 @@ export default function ReportsPage() {
   const db = useFirestore();
   const { user } = useAuth();
 
-
   useEffect(() => {
     if (!db || !user?.uid) return;
     const unsubInvoices = subscribeToInvoices(db, user.uid, (invoicesData) => {
@@ -28,10 +28,10 @@ export default function ReportsPage() {
     });
 
     return () => {
-        if (unsubInvoices) unsubInvoices();
-        if (unsubInventory) unsubInventory();
+        unsubInvoices();
+        unsubInventory();
     };
-  }, [db, user]);
+  }, [db, user?.uid]);
 
   return (
     <div className="space-y-6">

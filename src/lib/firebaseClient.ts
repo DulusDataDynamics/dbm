@@ -42,7 +42,7 @@ export function getFirebase(): FirebaseServices {
 
 
 export async function waitForFirebaseReady(auth: Auth) {
-  await new Promise<void>((resolve) => {
+  return new Promise<void>((resolve) => {
     const unsub = auth.onAuthStateChanged(() => {
       unsub();
       resolve();
