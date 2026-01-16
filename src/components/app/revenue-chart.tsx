@@ -18,7 +18,7 @@ export function RevenueChart({ invoices }: RevenueChartProps) {
 
   const revenueByClient = invoices.reduce((acc, invoice) => {
     if (invoice.status === 'Paid') {
-      const clientName = invoice.client.name;
+      const clientName = invoice.client?.name || 'Unknown Client';
       if (!acc[clientName]) {
         acc[clientName] = { client: clientName, total: 0 };
       }

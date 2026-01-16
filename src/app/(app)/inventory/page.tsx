@@ -45,7 +45,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function InventoryPage() {
   const db = useFirestore();
-  const { user } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -56,7 +56,10 @@ export default function InventoryPage() {
   const { toast } = useToast();
   
   useEffect(() => {
-    if (!db || !user?.uid) return;
+    if (isUserLoading || !db || !user?.uid) {
+      setLoading(true);
+      return;
+    }
 
     const unsubscribe = subscribeToInventory(db, user.uid, (inventoryData) => {
       setInventory(inventoryData);
@@ -66,7 +69,7 @@ export default function InventoryPage() {
     getBusinessProfile(db, user.uid).then(setBusinessProfile);
 
     return () => unsubscribe();
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isUserLoading]);
 
   const handleAddItem = () => {
     setSelectedItem(null);
@@ -121,7 +124,7 @@ export default function InventoryPage() {
               <CardTitle>Inventory</CardTitle>
               <CardDescription>Manage your products, services, and stock levels.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddItem} disabled={!db || !user}>
+            <Button size="sm" onClick={handleAddItem} disabled={loading || !db || !user}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Item
             </Button>

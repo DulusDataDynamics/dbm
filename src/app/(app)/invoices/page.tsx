@@ -25,9 +25,9 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { deleteInvoice, subscribeToInvoices } from '@/lib/firestore';
-import { Invoice } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { deleteInvoice, subscribeToInvoices, subscribeToClients } from '@/lib/firestore';
+import { Invoice, Client } from '@/lib/types';
+import { useEffect, useMemo, useState } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceForm } from '@/components/app/invoice-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -48,8 +48,9 @@ import { useAuth, useFirestore } from '@/firebase';
 
 export default function InvoicesPage() {
   const db = useFirestore();
-  const { user } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -60,14 +61,31 @@ export default function InvoicesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!db || !user?.uid) return;
-    const unsubscribe = subscribeToInvoices(db, user.uid, (invoicesData) => {
+    if (isUserLoading || !db || !user?.uid) {
+      setLoading(true);
+      return;
+    }
+
+    const unsubInvoices = subscribeToInvoices(db, user.uid, (invoicesData) => {
       setInvoices(invoicesData);
       setLoading(false);
     });
 
-    return () => unsubscribe();
-  }, [db, user?.uid]);
+    const unsubClients = subscribeToClients(db, user.uid, setClients);
+
+    return () => {
+      unsubInvoices();
+      unsubClients();
+    };
+  }, [db, user?.uid, isUserLoading]);
+
+  const clientsMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
+
+  const enrichedInvoices = useMemo(() => 
+    invoices.map(invoice => ({
+      ...invoice,
+      client: clientsMap.get(invoice.clientId),
+    })), [invoices, clientsMap]);
 
   const handleAddInvoice = () => {
     setSelectedInvoice(null);
@@ -135,7 +153,7 @@ export default function InvoicesPage() {
             </div>
             <div className="flex items-center gap-2">
                 <DownloadInvoices />
-                <Button size="sm" onClick={handleAddInvoice} disabled={!db || !user}>
+                <Button size="sm" onClick={handleAddInvoice} disabled={loading || !db || !user}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Add Invoice
                 </Button>
@@ -168,7 +186,7 @@ export default function InvoicesPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {invoices.map((invoice) => (
+                    {enrichedInvoices.map((invoice) => (
                       <TableRow key={invoice.id}>
                         <TableCell className="hidden sm:table-cell font-medium">{invoice.id.substring(0,8)}</TableCell>
                         <TableCell>{invoice.client?.name || '...'}</TableCell>
@@ -247,7 +265,7 @@ export default function InvoicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {db && user && (
+      {db && user && invoiceToView && (
        <ViewInvoiceDialog
         db={db}
         isOpen={isViewDialogOpen}

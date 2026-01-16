@@ -41,13 +41,15 @@ export async function generateRevenueInsights(input: GenerateRevenueInsightsInpu
 
 const generateRevenueInsightsPrompt = ai.definePrompt({
   name: 'generateRevenueInsightsPrompt',
-  input: {schema: z.object({ salesData: z.string() })},
+  input: {schema: GenerateRevenueInsightsInputSchema},
   output: {schema: GenerateRevenueInsightsOutputSchema},
   prompt: `You are an AI financial analyst for a business management system called Dulus Business Manager (DBM).
 Analyze the following sales data and produce clear, actionable insights.
 
 DATA:
-{{{salesData}}}
+{{#each sales}}
+- Sale ID: {{id}}, Product: "{{product}}", Amount: {{amount}}, Quantity: {{quantity}}, Date: {{date}}
+{{/each}}
 
 Respond with JSON ONLY in the structure defined by the output schema.
 The response should be concise and professional.
@@ -77,10 +79,7 @@ const generateRevenueInsightsFlow = ai.defineFlow(
       };
     }
     
-    // Pre-stringify the data to avoid issues with Handlebars helpers
-    const salesDataString = JSON.stringify(input.sales, null, 2);
-
-    const {output} = await generateRevenueInsightsPrompt({ salesData: salesDataString });
+    const {output} = await generateRevenueInsightsPrompt(input);
 
     if (!output) {
       throw new Error("AI failed to generate a valid response. The output was empty.");

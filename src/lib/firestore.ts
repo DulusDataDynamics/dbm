@@ -39,52 +39,26 @@ export function subscribeToClients(db: Firestore, userId: string, callback: (dat
 }
 
 export function subscribeToInvoices(db: Firestore, userId: string, callback: (data: Invoice[]) => void) {
-  const invoicesRef = getCollectionRef(db, userId, 'invoices');
-  const q = query(invoicesRef, orderBy('dueDate', 'desc'));
+  const q = query(getCollectionRef(db, userId, 'invoices'), orderBy('dueDate', 'desc'));
+  return onSnapshot(q, (snapshot) => {
+    const invoices = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Invoice[];
 
-  return onSnapshot(q, async (snapshot) => {
-    const invoicesData = snapshot.docs.map((d) => ({
-      id: d.id,
-      ...(d.data() as Omit<Invoice, 'id'>),
-    }));
-
-    if (invoicesData.length === 0) {
-      callback([]);
-      return;
-    }
-
-    const clientIds = [...new Set(invoicesData.map(inv => inv.clientId).filter(Boolean))];
-    
-    if (clientIds.length === 0) {
-        const enrichedInvoices = invoicesData.map(invoice => ({ ...invoice, client: undefined }));
-        callback(enrichedInvoices);
-        return;
-    }
-
-    // Note: This query might become inefficient at scale.
-    // For large numbers of clients, consider denormalizing client data onto invoices.
-    const clientsQuery = query(getCollectionRef(db, userId, 'clients'), where('__name__', 'in', clientIds));
-    const clientSnaps = await getDocs(clientsQuery);
-    const clientsMap = new Map(
-      clientSnaps.docs.map((snap) => [snap.id, { id: snap.id, ...snap.data() } as Client])
-    );
-
-    const enrichedInvoices = invoicesData.map((invoice) => ({
-      ...invoice,
-      client: clientsMap.get(invoice.clientId),
-    }));
-
+    // Handle overdue status logic here, as it's pure data transformation
     const today = new Date();
     today.setHours(0, 0, 0, 0); 
-    enrichedInvoices.forEach(inv => {
+    invoices.forEach(inv => {
       if (inv.status === 'Unpaid' && new Date(inv.dueDate) < today) {
         inv.status = 'Overdue';
       }
     });
 
-    callback(enrichedInvoices);
+    callback(invoices);
   });
 }
+
 
 export function subscribeToTasks(db: Firestore, userId: string, callback: (data: Task[]) => void) {
   const q = query(getCollectionRef(db, userId, 'tasks'), orderBy('dueDate', 'asc'));

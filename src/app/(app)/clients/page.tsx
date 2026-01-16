@@ -45,7 +45,7 @@ import { useAuth, useFirestore } from '@/firebase';
 
 export default function ClientsPage() {
   const db = useFirestore();
-  const { user } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -55,14 +55,18 @@ export default function ClientsPage() {
   const { toast } = useToast();
   
   useEffect(() => {
-    if (!db || !user?.uid) return;
+    if (isUserLoading || !db || !user?.uid) {
+      setLoading(true);
+      return;
+    }
+
     const unsubscribe = subscribeToClients(db, user.uid, (clientsData) => {
       setClients(clientsData);
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isUserLoading]);
 
   const handleAddClient = () => {
     setSelectedClient(null);
@@ -116,7 +120,7 @@ export default function ClientsPage() {
               <CardTitle>Clients</CardTitle>
               <CardDescription>Manage your clients and view their details.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddClient} disabled={!db || !user}>
+            <Button size="sm" onClick={handleAddClient} disabled={loading || !db || !user}>
               <PlusCircle className="mr-2 h-4 w-4" />
               Add Client
             </Button>

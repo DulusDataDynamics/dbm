@@ -1,6 +1,6 @@
 'use client';
 import { Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuth } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { getBusinessProfile, getInvoiceSettings } from '@/lib/firestore';
 import { Building } from 'lucide-react';

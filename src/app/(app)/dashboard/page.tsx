@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   subscribeToClients,
   subscribeToInvoices,
@@ -35,7 +35,7 @@ import { RevenueInsightsGenerator } from '@/components/app/revenue-insights-gene
 import { useAuth, useFirestore } from '@/firebase';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const db = useFirestore();
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -44,14 +44,17 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!db || !user?.uid) return;
-
+    if (isUserLoading || !db || !user?.uid) {
+      setLoading(true);
+      return;
+    }
+    
     const unsubClients = subscribeToClients(db, user.uid, setClients);
     const unsubInvoices = subscribeToInvoices(db, user.uid, setInvoices);
     const unsubTasks = subscribeToTasks(db, user.uid, setTasks);
     const unsubInventory = subscribeToInventory(db, user.uid, (data) => {
       setInventory(data);
-      setLoading(false);
+      setLoading(false); // End loading after all subscriptions are initiated and first data is received
     });
 
     return () => {
@@ -60,15 +63,23 @@ export default function DashboardPage() {
       unsubTasks();
       unsubInventory();
     };
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isUserLoading]);
 
-  const activeInvoices = invoices.filter(
+  const clientsMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
+
+  const enrichedInvoices = useMemo(() => 
+    invoices.map(invoice => ({
+      ...invoice,
+      client: clientsMap.get(invoice.clientId),
+    })), [invoices, clientsMap]);
+
+  const activeInvoices = enrichedInvoices.filter(
     (inv) => inv.status === 'Unpaid' || inv.status === 'Overdue'
   ).length;
   const pendingTasks = tasks.filter(
     (task) => task.status === 'Pending' || task.status === 'In Progress'
   ).length;
-  const recentInvoices = invoices.slice(0, 5);
+  const recentInvoices = enrichedInvoices.slice(0, 5);
   const recentTasks = tasks
     .filter((t) => t.status !== 'Completed')
     .slice(0, 5);
@@ -141,7 +152,7 @@ export default function DashboardPage() {
                     {recentInvoices.map((invoice) => (
                       <TableRow key={invoice.id}>
                         <TableCell className="font-medium">
-                          {invoice.client?.name || 'N/A'}
+                          {invoice.client?.name || '...'}
                         </TableCell>
                         <TableCell>
                           <Badge
@@ -239,11 +250,11 @@ export default function DashboardPage() {
       </div>
       
       <div className="space-y-6">
-        <RevenueChart invoices={invoices} />
+        <RevenueChart invoices={enrichedInvoices} />
       </div>
 
       <div className="space-y-6">
-        <RevenueInsightsGenerator invoices={invoices} inventory={inventory} />
+        <RevenueInsightsGenerator invoices={enrichedInvoices} inventory={inventory} />
       </div>
     </div>
   );

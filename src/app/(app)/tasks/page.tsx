@@ -42,7 +42,7 @@ import { useAuth, useFirestore } from '@/firebase';
 
 export default function TasksPage() {
   const db = useFirestore();
-  const { user } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -52,7 +52,10 @@ export default function TasksPage() {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (!db || !user?.uid) return;
+    if (isUserLoading || !db || !user?.uid) {
+      setLoading(true);
+      return;
+    }
     const unsubscribe = subscribeToTasks(db, user.uid, (tasksData) => {
       // Sort by due date, then by status
       const sortedTasks = tasksData.sort((a, b) => {
@@ -67,7 +70,7 @@ export default function TasksPage() {
     });
 
     return () => unsubscribe();
-  }, [db, user?.uid]);
+  }, [db, user?.uid, isUserLoading]);
 
   const handleStatusChange = (task: Task, status: TaskStatus) => {
     if (!db || !user?.uid) return;
@@ -137,7 +140,7 @@ export default function TasksPage() {
             <CardTitle>Tasks</CardTitle>
             <CardDescription>Manage your tasks and track your workload.</CardDescription>
           </div>
-          <Button size="sm" onClick={handleAddTask} disabled={!db || !user}>
+          <Button size="sm" onClick={handleAddTask} disabled={loading || !db || !user}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Add Task
           </Button>

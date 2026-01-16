@@ -5,7 +5,7 @@ import { Button } from '../ui/button';
 import { Download } from 'lucide-react';
 import { Invoice, Client, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { getBusinessProfile, getInvoiceSettings, subscribeToInvoices } from '@/lib/firestore';
+import { getBusinessProfile, getInvoiceSettings, subscribeToInvoices, subscribeToClients } from '@/lib/firestore';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { useAuth, useFirestore } from '@/firebase';
@@ -20,18 +20,27 @@ export default function DownloadInvoices() {
   const db = useFirestore();
   const { toast } = useToast();
 
-  async function fetchAllInvoices(): Promise<AppInvoice[]> {
-    return new Promise((resolve) => {
-        if (!db || !user?.uid) {
-          resolve([]);
-          return;
-        }
-        const unsubscribe = subscribeToInvoices(db, user.uid, (invoices) => {
-            if (unsubscribe) unsubscribe();
-            resolve(invoices);
+  async function fetchAllData(): Promise<{ invoices: AppInvoice[], clients: Client[] }> {
+    if (!db || !user?.uid) return { invoices: [], clients: [] };
+    
+    const invoicesPromise = new Promise<AppInvoice[]>((resolve) => {
+      const unsubscribe = subscribeToInvoices(db, user!.uid, (data) => {
+        unsubscribe();
+        resolve(data);
+      });
+    });
+
+    const clientsPromise = new Promise<Client[]>((resolve) => {
+        const unsubscribe = subscribeToClients(db, user!.uid, (data) => {
+          unsubscribe();
+          resolve(data);
         });
     });
+
+    const [invoices, clients] = await Promise.all([invoicesPromise, clientsPromise]);
+    return { invoices, clients };
   }
+
 
   function formatDate(dateString?: string) {
     if (!dateString) return '';
@@ -55,7 +64,8 @@ export default function DownloadInvoices() {
     setLoading(true);
 
     try {
-      const invoices = await fetchAllInvoices();
+      const { invoices, clients } = await fetchAllData();
+      
       if (!invoices || invoices.length === 0) {
         toast({
             title: "No Invoices Found",
@@ -64,6 +74,9 @@ export default function DownloadInvoices() {
         setLoading(false);
         return;
       }
+
+      const clientsMap = new Map(clients.map(c => [c.id, c]));
+      const enrichedInvoices = invoices.map(inv => ({ ...inv, client: clientsMap.get(inv.clientId) }));
       
       const profile = await getBusinessProfile(db, user.uid);
       const settings = await getInvoiceSettings(db, user.uid);
@@ -78,7 +91,7 @@ export default function DownloadInvoices() {
         return;
       }
 
-      generatePDF(invoices, profile, settings);
+      generatePDF(enrichedInvoices, profile, settings);
 
     } catch (err: any) {
       console.error(err);
@@ -121,7 +134,7 @@ export default function DownloadInvoices() {
 
     const tableRows = invoices.map((inv) => ({
       id: inv.id.substring(0, 8),
-      client: inv.client?.name || inv.client?.email || 'N/A',
+      client: inv.client?.name || 'N/A',
       amount: `R ${(inv.amount || 0).toFixed(2)}`,
       dueDate: formatDate(inv.dueDate),
       status: inv.status || '-',
