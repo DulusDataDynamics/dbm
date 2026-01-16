@@ -56,7 +56,7 @@ const howItWorksSteps = [
 const faqItems = [
   {
     question: 'Is there a free trial?',
-    answer: 'Yes! All new accounts start with a 14-day free trial of our Unlimited Plan, giving you full access to all features. No credit card is required to start.',
+    answer: 'Yes! All new accounts start with a special 1-month free trial of our Unlimited Plan, giving you full access to all features. No credit card is required to start.',
   },
   {
     question: 'What happens after my free trial ends?',
@@ -121,7 +121,7 @@ export default function LandingPage() {
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                     <Button size="lg" asChild>
-                        <Link href="/signup">Start Your Free Trial</Link>
+                        <Link href="/signup">Start Your 1-Month Trial</Link>
                     </Button>
                     <Button size="lg" variant="outline" asChild>
                         <Link href="#features">Learn More <ChevronDown className="ml-2 h-4 w-4" /></Link>
@@ -219,15 +219,18 @@ export default function LandingPage() {
         <section id="pricing" className="py-20 md:py-32">
             <div className="container mx-auto flex max-w-7xl justify-center px-4 md:px-6">
                 <div className="w-full max-w-md rounded-2xl border-2 border-primary bg-card p-8 text-center shadow-2xl shadow-primary/10">
+                    <Badge variant="destructive" className="mb-4 py-1 px-4 text-base font-semibold">
+                        Limited Time Offer!
+                    </Badge>
                     <h3 className="text-3xl font-bold">Unlimited Plan</h3>
-                    <p className="mt-2 text-muted-foreground">Start with a 14-day free trial. No credit card required.</p>
+                    <p className="mt-2 text-muted-foreground">Start with a 1-month free trial. No credit card required.</p>
                     <div className="my-8">
-                        <span className="text-5xl font-extrabold">R349</span>
+                        <span className="text-5xl font-extrabold">R99</span>
                         <span className="text-lg text-muted-foreground">/month</span>
                     </div>
-                     <p className="text-sm text-muted-foreground mb-6">(approx. $20 USD, billed monthly)</p>
+                     <p className="text-sm text-muted-foreground mb-6">(approx. $5 USD, billed monthly)</p>
                     <Button size="lg" className="w-full" asChild>
-                        <Link href="/signup">Start Free Trial</Link>
+                        <Link href="/signup">Start Your 1-Month Trial</Link>
                     </Button>
                     <ul className="mt-8 space-y-4 text-left">
                         {[
