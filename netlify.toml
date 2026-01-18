@@ -1,9 +1,5 @@
-# Netlify configuration file for a Next.js app with Genkit.
-# This configures the build command and tells Netlify how to handle
-# the Genkit AI flows by packaging them into serverless functions.
-
 [build]
-  command = "next build"
+  command = "npm run build"
   publish = ".next"
 
 [[plugins]]
