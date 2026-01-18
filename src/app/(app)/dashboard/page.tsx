@@ -73,9 +73,6 @@ export default function DashboardPage() {
       client: clientsMap.get(invoice.clientId),
     })), [invoices, clientsMap]);
 
-  const activeInvoices = enrichedInvoices.filter(
-    (inv) => inv.status === 'Unpaid' || inv.status === 'Overdue'
-  ).length;
   const pendingTasks = tasks.filter(
     (task) => task.status === 'Pending' || task.status === 'In Progress'
   ).length;
@@ -102,8 +99,8 @@ export default function DashboardPage() {
               icon={Users}
             />
             <StatCard
-              title="Active Invoices"
-              value={activeInvoices.toString()}
+              title="Total Invoices"
+              value={invoices.length.toString()}
               icon={FileText}
             />
             <StatCard
