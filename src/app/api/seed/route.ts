@@ -61,11 +61,12 @@ async function seedInvoices(clientIds: string[]) {
 
 export async function GET() {
     try {
-        // Check if FIREBASE_ADMIN_KEY is set. If not, we can't seed.
-        if (!process.env.FIREBASE_ADMIN_KEY || process.env.FIREBASE_ADMIN_KEY === '{}') {
+        // Check if Firebase Admin is initialized. It will be null if the required
+        // environment variable is missing, preventing build-time errors.
+        if (!adminDb) {
              return NextResponse.json({ 
                 error: 'Firebase Admin not configured', 
-                details: 'FIREBASE_ADMIN_KEY is not set in environment variables. Cannot seed database.' 
+                details: 'FIREBASE_ADMIN_KEY is not set or invalid in environment variables. Cannot seed database.' 
             }, { status: 500 });
         }
 
