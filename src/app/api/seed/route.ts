@@ -1,10 +1,13 @@
 
 import { NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { adminDb, isAdminEnabled } from '@/lib/firebase-admin';
 import { collection, writeBatch, getDocs, query, doc } from 'firebase-admin/firestore';
 import { clients, invoices, tasks, inventory } from '@/lib/data';
 
 async function seedCollection(collectionName: string, data: any[]) {
+    if (!adminDb) {
+        throw new Error("Firebase Admin is not initialized.");
+    }
     const collectionRef = adminDb.collection(collectionName);
     const q = query(collectionRef);
     const snapshot = await getDocs(q);
@@ -29,6 +32,9 @@ async function seedCollection(collectionName: string, data: any[]) {
 }
 
 async function seedInvoices(clientIds: string[]) {
+    if (!adminDb) {
+        throw new Error("Firebase Admin is not initialized.");
+    }
     const collectionRef = adminDb.collection('invoices');
     const q = query(collectionRef);
     const snapshot = await getDocs(q);
@@ -60,16 +66,15 @@ async function seedInvoices(clientIds: string[]) {
 
 
 export async function GET() {
+    // Check if Firebase Admin is enabled.
+    if (!isAdminEnabled) {
+         return NextResponse.json({ 
+            error: 'Admin features are disabled.', 
+            details: 'The Firebase Admin SDK is not initialized, likely due to a missing FIREBASE_ADMIN_KEY environment variable. This endpoint is not available.' 
+        }, { status: 403 });
+    }
+    
     try {
-        // Check if Firebase Admin is initialized. It will be null if the required
-        // environment variable is missing, preventing build-time errors.
-        if (!adminDb) {
-             return NextResponse.json({ 
-                error: 'Firebase Admin not configured', 
-                details: 'FIREBASE_ADMIN_KEY is not set or invalid in environment variables. Cannot seed database.' 
-            }, { status: 500 });
-        }
-
         const results = [];
         
         const clientResult = await seedCollection('clients', clients);
