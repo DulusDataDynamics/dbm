@@ -1,13 +1,13 @@
+
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import {
   subscribeToClients,
-  subscribeToInvoices,
   subscribeToTasks,
   subscribeToInventory,
 } from '@/lib/firestore';
-import { Client, Invoice, Task, InventoryItem } from '@/lib/types';
+import { Client, Task, InventoryItem } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/app/stat-card';
 import { Users, FileText, CheckCircle2, Boxes } from 'lucide-react';
@@ -38,7 +38,6 @@ export default function DashboardPage() {
   const { user, isUserLoading } = useAuth();
   const db = useFirestore();
   const [clients, setClients] = useState<Client[]>([]);
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,34 +48,33 @@ export default function DashboardPage() {
       return;
     }
     
-    const unsubClients = subscribeToClients(db, user.uid, setClients);
-    const unsubInvoices = subscribeToInvoices(db, user.uid, setInvoices);
-    const unsubTasks = subscribeToTasks(db, user.uid, setTasks);
-    const unsubInventory = subscribeToInventory(db, user.uid, (data) => {
-      setInventory(data);
-      setLoading(false); // End loading after all subscriptions are initiated and first data is received
+    const unsubClients = subscribeToClients(db, user.uid, (data) => {
+        setClients(data);
+        // Assuming clients are the last to load for simplicity
+        setLoading(false); 
     });
+    const unsubTasks = subscribeToTasks(db, user.uid, setTasks);
+    const unsubInventory = subscribeToInventory(db, user.uid, setInventory);
 
     return () => {
       unsubClients();
-      unsubInvoices();
       unsubTasks();
       unsubInventory();
     };
   }, [db, user?.uid, isUserLoading]);
 
-  const clientsMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
-
-  const enrichedInvoices = useMemo(() => 
-    invoices.map(invoice => ({
-      ...invoice,
-      client: clientsMap.get(invoice.clientId),
-    })), [invoices, clientsMap]);
+  const activeInvoices = clients.filter(
+    (client) => client.invoice && (client.invoice.status === 'Sent' || client.invoice.status === 'Paid')
+  ).length;
 
   const pendingTasks = tasks.filter(
     (task) => task.status === 'Pending' || task.status === 'In Progress'
   ).length;
-  const recentInvoices = enrichedInvoices.slice(0, 5);
+
+  const recentInvoices = clients
+    .filter((client) => client.invoice)
+    .slice(0, 5);
+
   const recentTasks = tasks
     .filter((t) => t.status !== 'Completed')
     .slice(0, 5);
@@ -99,8 +97,8 @@ export default function DashboardPage() {
               icon={Users}
             />
             <StatCard
-              title="Total Invoices"
-              value={invoices.length.toString()}
+              title="Active Invoices"
+              value={activeInvoices.toString()}
               icon={FileText}
             />
             <StatCard
@@ -146,26 +144,26 @@ export default function DashboardPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentInvoices.map((invoice) => (
-                      <TableRow key={invoice.id}>
+                    {recentInvoices.map((client) => client.invoice && (
+                      <TableRow key={client.id}>
                         <TableCell className="font-medium">
-                          {invoice.client?.name || '...'}
+                          {client.name}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              invoice.status === 'Paid'
+                              client.invoice.status === 'Paid'
                                 ? 'default'
-                                : invoice.status === 'Overdue'
-                                ? 'destructive'
-                                : 'secondary'
+                                : client.invoice.status === 'Sent'
+                                ? 'secondary'
+                                : 'outline'
                             }
                           >
-                            {invoice.status}
+                            {client.invoice.status}
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          R{invoice.amount.toLocaleString()}
+                          R{client.invoice.total.toLocaleString()}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -247,11 +245,11 @@ export default function DashboardPage() {
       </div>
       
       <div className="space-y-6">
-        <RevenueChart invoices={enrichedInvoices} />
+        <RevenueChart clients={clients} />
       </div>
 
       <div className="space-y-6">
-        <RevenueInsightsGenerator invoices={enrichedInvoices} inventory={inventory} />
+        <RevenueInsightsGenerator clients={clients} />
       </div>
     </div>
   );

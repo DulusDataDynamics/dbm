@@ -2,16 +2,14 @@
 'use client';
 import { RevenueChart } from "@/components/app/revenue-chart";
 import { InvoiceStatusChart } from "@/components/app/invoice-status-chart";
-import { subscribeToInvoices, subscribeToInventory, subscribeToClients } from "@/lib/firestore";
-import { Invoice, InventoryItem, Client } from "@/lib/types";
-import { useEffect, useMemo, useState } from "react";
+import { subscribeToClients } from "@/lib/firestore";
+import { Client } from "@/lib/types";
+import { useEffect, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RevenueInsightsGenerator } from "@/components/app/revenue-insights-generator";
 import { useAuth, useFirestore } from "@/firebase";
 
 export default function ReportsPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const db = useFirestore();
@@ -23,31 +21,16 @@ export default function ReportsPage() {
       return;
     }
 
-    const unsubInvoices = subscribeToInvoices(db, user.uid, (invoicesData) => {
-      setInvoices(invoicesData);
+    const unsubClients = subscribeToClients(db, user.uid, (clientsData) => {
+      setClients(clientsData);
       setLoading(false);
     });
 
-    const unsubInventory = subscribeToInventory(db, user.uid, (inventoryData) => {
-        setInventory(inventoryData);
-    });
-
-    const unsubClients = subscribeToClients(db, user.uid, setClients);
-
     return () => {
-        unsubInvoices();
-        unsubInventory();
         unsubClients();
     };
   }, [db, user?.uid, isUserLoading]);
 
-  const clientsMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
-
-  const enrichedInvoices = useMemo(() => 
-    invoices.map(invoice => ({
-      ...invoice,
-      client: clientsMap.get(invoice.clientId),
-    })), [invoices, clientsMap]);
 
   return (
     <div className="space-y-6">
@@ -68,14 +51,14 @@ export default function ReportsPage() {
         <div className="space-y-6">
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
                 <div className="xl:col-span-3">
-                    <RevenueChart invoices={enrichedInvoices} />
+                    <RevenueChart clients={clients} />
                 </div>
                 <div className="xl:col-span-2">
-                    <InvoiceStatusChart invoices={enrichedInvoices} />
+                    <InvoiceStatusChart clients={clients} />
                 </div>
             </div>
             <div>
-                <RevenueInsightsGenerator invoices={enrichedInvoices} inventory={inventory} />
+                <RevenueInsightsGenerator clients={clients} />
             </div>
         </div>
       )}

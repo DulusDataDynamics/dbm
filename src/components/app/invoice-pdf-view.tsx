@@ -1,6 +1,6 @@
 
 'use client';
-import { Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
+import { Client, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { useAuth } from '@/firebase';
 import { useEffect, useState } from 'react';
 import { getBusinessProfile, getInvoiceSettings } from '@/lib/firestore';
@@ -9,10 +9,10 @@ import type { Firestore } from 'firebase/firestore';
 
 interface InvoicePDFViewProps {
   db: Firestore;
-  invoice: Invoice;
+  client: Client;
 }
 
-export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
+export function InvoicePDFView({ db, client }: InvoicePDFViewProps) {
     const { user } = useAuth();
     const [profile, setProfile] = useState<BusinessProfile | null>(null);
     const [settings, setSettings] = useState<InvoiceSettings | null>(null);
@@ -22,13 +22,18 @@ export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
             getBusinessProfile(db, user.uid).then(setProfile);
             getInvoiceSettings(db, user.uid).then(setSettings);
         }
-    }, [user, invoice, db]);
+    }, [user, client, db]);
     
+    if (!client.invoice) return <div className="p-8">No invoice data available for this client.</div>;
+    
+    const invoice = client.invoice;
     const brandColor = settings?.brandColor || '#2B579A';
     const taxRate = profile?.defaultTaxRate || 15;
+    const subtotal = invoice.items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
+    const tax = subtotal * (taxRate / 100);
 
   return (
-    <div id={`invoice-pdf-view-${invoice.id}`} className="p-8 bg-white text-gray-800 font-sans text-sm" style={{width: '210mm', height: '297mm', margin: 'auto', border: '1px solid #eee'}}>
+    <div id={`invoice-pdf-view-${client.id}`} className="p-8 bg-white text-gray-800 font-sans text-sm" style={{width: '210mm', height: '297mm', margin: 'auto', border: '1px solid #eee'}}>
         {/* Header */}
         <header className="flex justify-between items-start mb-8 border-b-2 pb-4" style={{borderColor: brandColor}}>
             <div className="company-info text-xs">
@@ -48,8 +53,8 @@ export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
             </div>
             <div className="invoice-info text-right text-xs">
                 <h1 className="text-4xl font-bold mb-2" style={{color: brandColor}}>INVOICE</h1>
-                <p><strong>Invoice #:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0,6).toUpperCase()}`}</p>
-                <p><strong>Date Issued:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</p>
+                <p><strong>Invoice #:</strong> {`${settings?.invoicePrefix || ''}${client.id.substring(0,6).toUpperCase()}`}</p>
+                <p><strong>Date Issued:</strong> {new Date().toLocaleDateString()}</p>
                 <p><strong>Due Date:</strong> {new Date(invoice.dueDate).toLocaleDateString()}</p>
             </div>
         </header>
@@ -57,9 +62,9 @@ export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
         {/* Bill To */}
         <div className="bill-to my-8">
             <h3 className="text-sm font-bold text-gray-500 mb-1">BILL TO</h3>
-            <p className="font-bold">{invoice.client?.name}</p>
-            <p>{invoice.client?.email}</p>
-            <p>{invoice.client?.phone}</p>
+            <p className="font-bold">{client.name}</p>
+            <p>{client.email}</p>
+            <p>{client.phone}</p>
         </div>
 
         {/* Items Table */}
@@ -91,11 +96,11 @@ export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
                     <tbody>
                         <tr>
                             <td className="p-2 text-right font-bold">Subtotal:</td>
-                            <td className="p-2 text-right">R {invoice.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="p-2 text-right">R {subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                          <tr>
                             <td className="p-2 text-right font-bold">Tax ({taxRate}%):</td>
-                            <td className="p-2 text-right">R {invoice.tax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                            <td className="p-2 text-right">R {tax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
                         <tr className="border-t-2 font-bold text-lg" style={{borderColor: brandColor}}>
                             <td className="p-2 text-right">Total:</td>
@@ -117,7 +122,7 @@ export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
                     <p><strong>Account Holder:</strong> {profile?.accountHolder || 'N/A'}</p>
                     <p><strong>Account Number:</strong> {profile?.accountNumber || 'N/A'}</p>
                     <p><strong>Branch Code:</strong> {profile?.branchCode || 'N/A'}</p>
-                    <p><strong>Reference:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0,6).toUpperCase()}`}</p>
+                    <p><strong>Reference:</strong> {`${settings?.invoicePrefix || ''}${client.id.substring(0,6).toUpperCase()}`}</p>
                 </div>
                  {/* Thank you note */}
                 <div className="text-right">

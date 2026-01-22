@@ -13,12 +13,12 @@ import {
 import { Lightbulb, Sparkles, AlertTriangle, TrendingUp, Target, DollarSign, Package } from 'lucide-react';
 import { getRevenueInsights } from '@/lib/actions';
 import { Skeleton } from '../ui/skeleton';
-import { Invoice } from '@/lib/types';
+import { Client } from '@/lib/types';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 
 interface RevenueInsightsGeneratorProps {
-    invoices: Invoice[];
+    clients: Client[];
 }
 
 interface Insights {
@@ -43,7 +43,7 @@ const InsightDisplay = ({ icon: Icon, label, value }: { icon: React.ElementType,
 );
 
 
-export function RevenueInsightsGenerator({ invoices }: RevenueInsightsGeneratorProps) {
+export function RevenueInsightsGenerator({ clients }: RevenueInsightsGeneratorProps) {
   const [insights, setInsights] = useState<Insights | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -52,7 +52,7 @@ export function RevenueInsightsGenerator({ invoices }: RevenueInsightsGeneratorP
     setError(null);
     setInsights(null);
     startTransition(async () => {
-      const result = await getRevenueInsights(invoices);
+      const result = await getRevenueInsights(clients);
       if (result.success) {
         setInsights(result.insights);
       } else {
@@ -61,7 +61,7 @@ export function RevenueInsightsGenerator({ invoices }: RevenueInsightsGeneratorP
     });
   };
 
-  const hasPaidInvoices = invoices.some(i => i.status === 'Paid');
+  const hasPaidInvoices = clients.some(c => c.invoice?.status === 'Paid');
 
   return (
     <Card>
@@ -130,7 +130,7 @@ export function RevenueInsightsGenerator({ invoices }: RevenueInsightsGeneratorP
                 <p className="font-semibold">Ready for Analysis</p>
                 <p className="text-sm text-muted-foreground">
                     {!hasPaidInvoices
-                    ? 'You need at least one paid invoice to generate an analysis.'
+                    ? 'Mark some invoices as "Paid" to generate an analysis.'
                     : 'Click "Generate Analysis" to get AI-powered insights.'
                     }
                 </p>

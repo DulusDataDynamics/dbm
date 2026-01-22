@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -9,25 +10,26 @@ import {
   CardTitle,
   CardDescription
 } from '@/components/ui/card';
-import { Invoice } from '@/lib/types';
+import { Client } from '@/lib/types';
 
 interface InvoiceStatusChartProps {
-  invoices: Invoice[];
+  clients: Client[];
 }
 
 const COLORS: Record<string, string> = {
   Paid: 'hsl(var(--chart-1))',
-  Unpaid: 'hsl(var(--chart-4))',
-  Overdue: 'hsl(var(--chart-5))',
+  Sent: 'hsl(var(--chart-4))',
+  Draft: 'hsl(var(--muted-foreground))',
 };
 
-export function InvoiceStatusChart({ invoices }: InvoiceStatusChartProps) {
+export function InvoiceStatusChart({ clients }: InvoiceStatusChartProps) {
 
-  const statusData = invoices.reduce((acc, invoice) => {
-    if (!acc[invoice.status]) {
-      acc[invoice.status] = { name: invoice.status, value: 0 };
+  const statusData = clients.reduce((acc, client) => {
+    const status = client.invoice?.status || 'Draft';
+    if (!acc[status]) {
+      acc[status] = { name: status, value: 0 };
     }
-    acc[invoice.status].value += 1;
+    acc[status].value += 1;
     return acc;
   }, {} as Record<string, { name: string, value: number }>);
 

@@ -29,6 +29,9 @@
         "phone": {
           "type": "string",
           "description": "The phone number of the client."
+        },
+        "invoice": {
+          "$ref": "#/entities/invoice"
         }
       },
       "required": ["name", "email"]
@@ -40,25 +43,15 @@
       "properties": {
         "description": { "type": "string" },
         "quantity": { "type": "number" },
-        "price": { "type": "number" },
-        "total": { "type": "number" }
+        "price": { "type": "number" }
       },
-      "required": ["description", "quantity", "price", "total"]
+      "required": ["description", "quantity", "price"]
     },
     "invoice": {
       "title": "Invoice",
       "description": "An invoice for a client, containing multiple line items.",
       "type": "object",
       "properties": {
-        "clientId": {
-          "type": "string",
-          "description": "The ID of the client this invoice belongs to."
-        },
-        "status": {
-          "type": "string",
-          "enum": ["Draft", "Unpaid", "Paid", "Overdue"],
-          "description": "The current status of the invoice."
-        },
         "items": {
           "type": "array",
           "description": "A list of line items for the invoice.",
@@ -66,19 +59,18 @@
             "$ref": "#/entities/invoiceItem"
           }
         },
-        "subtotal": { "type": "number" },
-        "tax": { "type": "number" },
         "total": { "type": "number" },
         "dueDate": {
           "type": "string",
           "format": "date"
         },
-        "createdAt": {
+        "status": {
           "type": "string",
-          "format": "date-time"
+          "enum": ["Draft", "Sent", "Paid"],
+          "description": "The current status of the invoice."
         }
       },
-      "required": ["clientId", "status", "items", "total", "dueDate", "createdAt"]
+      "required": ["items", "total", "dueDate", "status"]
     },
     "task": {
       "title": "Task",
@@ -128,10 +120,6 @@
           "type": "string",
           "description": "The name of the inventory item."
         },
-        "category": {
-            "type": "string",
-            "description": "The category of the item."
-        },
         "quantity": {
           "type": "number",
           "description": "The quantity of the inventory item."
@@ -139,68 +127,18 @@
         "price": {
           "type": "number",
           "description": "The price of the inventory item."
-        },
-        "reorderLevel": {
-            "type": "number",
-            "description": "The minimum quantity before a restock is needed."
         }
       },
       "required": ["sku", "name", "quantity", "price"]
-    },
-    "businessProfile": {
-      "title": "Business Profile",
-      "description": "Stores the user's business profile information.",
-      "type": "object",
-      "properties": {
-        "companyName": { "type": "string" },
-        "ownerName": { "type": "string" },
-        "businessEmail": { "type": "string", "format": "email" },
-        "businessPhone": { "type": "string" },
-        "businessAddress": { "type": "string" },
-        "website": { "type": "string" },
-        "taxNumber": { "type": "string" },
-        "bankName": { "type": "string" },
-        "accountHolder": { "type": "string" },
-        "accountNumber": { "type": "string" },
-        "branchCode": { "type": "string" },
-        "defaultCurrency": { "type": "string" },
-        "defaultTaxRate": { "type": "number" }
-      }
-    },
-    "invoiceSettings": {
-      "title": "Invoice Settings",
-      "description": "Stores settings related to invoicing.",
-      "type": "object",
-      "properties": {
-        "companyLogoUrl": { "type": "string" },
-        "signatureImageUrl": { "type": "string" },
-        "brandColor": { "type": "string" },
-        "invoiceContactName": { "type": "string" },
-        "invoiceContactEmail": { "type": "string" },
-        "invoiceContactPhone": { "type": "string" },
-        "invoicePrefix": { "type": "string" },
-        "defaultDueDays": { "type": "number" },
-        "paymentTerms": { "type": "string" },
-        "footerMessage": { "type": "string" },
-        "showWatermark": { "type": "boolean" }
-      }
     }
   },
   "auth": {
     "providers": ["email"]
   },
   "firestore": {
-    "/users/{userId}": {
-      "schema": { "$ref": "#/entities/user" },
-      "description": "Stores basic user account information."
-    },
     "/users/{userId}/clients/{clientId}": {
       "schema": { "$ref": "#/entities/client" },
-      "description": "Stores client information for a specific user."
-    },
-    "/users/{userId}/invoices/{invoiceId}": {
-      "schema": { "$ref": "#/entities/invoice" },
-      "description": "Stores invoice information for a specific user."
+      "description": "Stores client information and their single associated invoice."
     },
     "/users/{userId}/tasks/{taskId}": {
       "schema": { "$ref": "#/entities/task" },
@@ -209,16 +147,6 @@
     "/users/{userId}/inventory/{itemId}": {
       "schema": { "$ref": "#/entities/inventoryItem" },
       "description": "Stores inventory item information for a specific user."
-    },
-    "/profiles/{userId}": {
-      "schema": {
-        "$ref": "#/entities/businessProfile"
-      },
-      "description": "Stores user-specific business profile settings."
-    },
-    "/profiles/{userId}/settings/invoice": {
-        "schema": { "$ref": "#/entities/invoiceSettings" },
-        "description": "Stores user-specific invoice settings."
     }
   }
 }

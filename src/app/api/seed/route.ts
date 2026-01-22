@@ -1,10 +1,8 @@
 
 import { NextResponse } from 'next/server';
 import { adminDb, isAdminEnabled } from '@/lib/firebase-admin';
-import { collection, writeBatch, getDocs, query, doc } from 'firebase-admin/firestore';
-import { clients, invoices, tasks, inventory } from '@/lib/data';
-import { Client, Invoice, Task, InventoryItem } from '@/lib/types';
-
+import { collection, writeBatch, getDocs, query } from 'firebase-admin/firestore';
+import { clients, tasks, inventory } from '@/lib/data';
 
 async function seedCollection(collectionName: string, data: any[], userId: string) {
     if (!adminDb) {
@@ -16,53 +14,18 @@ async function seedCollection(collectionName: string, data: any[], userId: strin
 
     if (!snapshot.empty) {
         console.log(`Collection ${collectionName} is not empty for user ${userId}. Skipping seed.`);
-        const docIds = snapshot.docs.map(doc => doc.id);
-        return { message: `Collection ${collectionName} already contains data.`, skipped: true, docIds };
+        return { message: `Collection ${collectionName} already contains data.`, skipped: true };
     }
 
     const batch = adminDb.batch();
-    const docIds: string[] = [];
     data.forEach((item) => {
         const docRef = collectionRef.doc(); // Let Firestore generate the ID
         batch.set(docRef, item);
-        docIds.push(docRef.id);
     });
     
     await batch.commit();
     console.log(`Seeded ${collectionName} collection for user ${userId}.`);
-    return { message: `Successfully seeded ${collectionName}.`, skipped: false, docIds };
-}
-
-async function seedInvoices(clientIds: string[], userId: string) {
-    if (!adminDb) {
-        throw new Error("Firebase Admin is not initialized.");
-    }
-    const collectionRef = adminDb.collection('users').doc(userId).collection('invoices');
-    const q = query(collectionRef);
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-        console.log(`Collection invoices is not empty for user ${userId}. Skipping seed.`);
-        return { message: `Collection invoices already contains data.`, skipped: true };
-    }
-    
-    if (clientIds.length === 0) {
-        console.log(`No client IDs provided for invoice seeding. Skipping.`);
-        return { message: `No client IDs to link.`, skipped: true };
-    }
-
-    const batch = adminDb.batch();
-    invoices.forEach((invoice) => {
-        // Randomly assign a client ID from the list
-        const randomClientId = clientIds[Math.floor(Math.random() * clientIds.length)];
-        const newInvoice = { ...invoice, clientId: randomClientId };
-        
-        const docRef = collectionRef.doc();
-        batch.set(docRef, newInvoice);
-    });
-    await batch.commit();
-    console.log(`Seeded invoices collection for user ${userId}.`);
-    return { message: `Successfully seeded invoices.`, skipped: false };
+    return { message: `Successfully seeded ${collectionName}.`, skipped: false };
 }
 
 
@@ -85,14 +48,7 @@ export async function GET(req: Request) {
     try {
         const results = [];
         
-        const clientResult = await seedCollection('clients', clients, userId);
-        results.push(clientResult);
-
-        if (clientResult.docIds && clientResult.docIds.length > 0) {
-            const invoiceResult = await seedInvoices(clientResult.docIds, userId);
-            results.push(invoiceResult);
-        }
-
+        results.push(await seedCollection('clients', clients, userId));
         results.push(await seedCollection('tasks', tasks, userId));
         results.push(await seedCollection('inventory', inventory, userId));
         

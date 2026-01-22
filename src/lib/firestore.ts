@@ -1,3 +1,4 @@
+
 import {
   collection,
   onSnapshot,
@@ -13,9 +14,8 @@ import {
   orderBy,
   Firestore,
   serverTimestamp,
-  Timestamp,
 } from 'firebase/firestore';
-import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus } from './types';
+import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority } from './types';
 
 function getCollectionRef(db: Firestore, userId: string, collectionName: string) {
     return collection(db, 'users', userId, collectionName);
@@ -39,28 +39,6 @@ export function subscribeToClients(db: Firestore, userId: string, callback: (dat
     callback(clientsData);
   });
 }
-
-export function subscribeToInvoices(db: Firestore, userId: string, callback: (data: Invoice[]) => void) {
-  const q = query(getCollectionRef(db, userId, 'invoices'), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snapshot) => {
-    const invoices = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Invoice[];
-
-    // Handle overdue status logic here, as it's pure data transformation
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-    invoices.forEach(inv => {
-      if (inv.status === 'Unpaid' && new Date(inv.dueDate) < today) {
-        inv.status = 'Overdue';
-      }
-    });
-
-    callback(invoices);
-  });
-}
-
 
 export function subscribeToTasks(db: Firestore, userId: string, callback: (data: Task[]) => void) {
   const q = query(getCollectionRef(db, userId, 'tasks'), orderBy('dueDate', 'asc'));
@@ -92,20 +70,9 @@ export async function saveClient(db: Firestore, userId: string, id: string | nul
   if (id) {
     await setDoc(getDocRef(db, userId, 'clients', id), data, { merge: true });
   } else {
-    await addDoc(getCollectionRef(db, userId, 'clients'), data);
-  }
-}
-
-export async function saveInvoice(db: Firestore, userId: string, id: string | null, data: Omit<Invoice, 'id' | 'client'>) {
-  const invoiceData = {
-    ...data,
-    createdAt: data.createdAt || new Date().toISOString()
-  };
-  
-  if (id) {
-    await setDoc(getDocRef(db, userId, 'invoices', id), invoiceData, { merge: true });
-  } else {
-    await addDoc(getCollectionRef(db, userId, 'invoices'), invoiceData);
+    // When creating a new client, we can initialize with a default draft invoice
+    const newClientData = { ...data, invoice: { status: 'Draft', items: [], total: 0, dueDate: new Date().toISOString().split('T')[0] }};
+    await addDoc(getCollectionRef(db, userId, 'clients'), newClientData);
   }
 }
 
@@ -133,10 +100,6 @@ export async function deleteClient(db: Firestore, userId: string, id: string) {
   await deleteDoc(getDocRef(db, userId, 'clients', id));
 }
 
-export async function deleteInvoice(db: Firestore, userId: string, id: string) {
-  await deleteDoc(getDocRef(db, userId, 'invoices', id));
-}
-
 export async function deleteTask(db: Firestore, userId: string, id: string) {
   await deleteDoc(getDocRef(db, userId, 'tasks', id));
 }
@@ -156,22 +119,6 @@ export async function updateTaskStatus(db: Firestore, userId: string, id: string
 export async function updateTaskPriority(db: Firestore, userId: string, id: string, priority: TaskPriority) {
     await updateDoc(getDocRef(db, userId, 'tasks', id), { priority });
 }
-
-export async function updateInvoiceStatus(db: Firestore, userId: string, id: string, status: InvoiceStatus) {
-    await updateDoc(getDocRef(db, userId, 'invoices', id), { status });
-}
-
-export async function duplicateInvoice(db: Firestore, userId: string, invoice: Invoice) {
-    const { id, client, status, ...newInvoiceData } = invoice;
-    const duplicatedInvoice = {
-        ...newInvoiceData,
-        status: 'Draft' as InvoiceStatus,
-        createdAt: new Date().toISOString(),
-        dueDate: new Date().toISOString().split('T')[0], // Set due date to today for the new draft
-    };
-    await addDoc(getCollectionRef(db, userId, 'invoices'), duplicatedInvoice);
-}
-
 
 // ============================================================================
 // Settings and Profile Management

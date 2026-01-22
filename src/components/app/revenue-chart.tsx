@@ -9,26 +9,17 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Invoice } from '@/lib/types';
+import { Client } from '@/lib/types';
 
 interface RevenueChartProps {
-  invoices: Invoice[];
+  clients: Client[];
 }
 
-export function RevenueChart({ invoices }: RevenueChartProps) {
-
-  const revenueByClient = invoices.reduce((acc, invoice) => {
-    if (invoice.status === 'Paid') {
-      const clientName = invoice.client?.name || 'Unknown Client';
-      if (!acc[clientName]) {
-        acc[clientName] = { client: clientName, total: 0 };
-      }
-      acc[clientName].total += invoice.total;
-    }
-    return acc;
-  }, {} as Record<string, { client: string, total: number }>);
-
-  const chartData = Object.values(revenueByClient);
+export function RevenueChart({ clients }: RevenueChartProps) {
+  const chartData = clients.map(client => ({
+    client: client.name,
+    total: client.invoice?.status === 'Paid' ? client.invoice.total : 0,
+  }));
 
   return (
     <Card>

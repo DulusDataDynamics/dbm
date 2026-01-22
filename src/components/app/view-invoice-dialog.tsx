@@ -1,3 +1,4 @@
+
 'use client';
 import {
   Dialog,
@@ -8,7 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Invoice } from '@/lib/types';
+import { Client } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -20,19 +21,19 @@ import { useFirestore, useAuth } from '@/firebase';
 interface ViewInvoiceDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  invoice: Invoice | null;
+  client: Client | null;
   db: any;
 }
 
-export function ViewInvoiceDialog({ isOpen, onClose, invoice, db }: ViewInvoiceDialogProps) {
+export function ViewInvoiceDialog({ isOpen, onClose, client, db }: ViewInvoiceDialogProps) {
   const { user } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadPdf = async () => {
-    if (!invoice) return;
+    if (!client) return;
     setIsDownloading(true);
 
-    const element = document.getElementById(`invoice-pdf-view-${invoice.id}`);
+    const element = document.getElementById(`invoice-pdf-view-${client.id}`);
     if (!element) {
         setIsDownloading(false);
         return;
@@ -60,7 +61,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, db }: ViewInvoiceD
       heightLeft -= pageHeight;
     }
 
-    pdf.save(`Invoice-${invoice.id.substring(0, 8)}.pdf`);
+    pdf.save(`Invoice-${client.name.replace(/\s/g, '_')}.pdf`);
     setIsDownloading(false);
   };
 
@@ -70,12 +71,12 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, db }: ViewInvoiceD
         <DialogHeader>
           <DialogTitle>Invoice Details</DialogTitle>
           <DialogDescription>
-            A preview of invoice {invoice?.id.substring(0, 8)}. You can download it as a PDF.
+            A preview of the invoice for {client?.name}. You can download it as a PDF.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          {invoice && db && user ? (
-            <InvoicePDFView db={db} invoice={invoice} />
+          {client && db && user ? (
+            <InvoicePDFView db={db} client={client} />
           ) : (
             <div className="space-y-3">
               <Skeleton className="h-40 w-full" />
@@ -88,7 +89,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, db }: ViewInvoiceD
           <Button type="button" variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button type="button" onClick={downloadPdf} disabled={isDownloading || !invoice || !db || !user}>
+          <Button type="button" onClick={downloadPdf} disabled={isDownloading || !client || !db || !user}>
             <Download className="mr-2 h-4 w-4" />
             {isDownloading ? 'Downloading...' : 'Download as PDF'}
           </Button>

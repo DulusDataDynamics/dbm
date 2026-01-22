@@ -2,12 +2,12 @@
 'use server';
 
 import { generateRevenueInsights } from "@/ai/flows/generate-revenue-insights";
-import { Invoice } from "./types";
+import { Client } from "./types";
 import { mapToAISchema } from "./utils";
 
-export async function getRevenueInsights(invoices: Invoice[]) {
+export async function getRevenueInsights(clients: Client[]) {
   try {
-    const salesData = mapToAISchema(invoices);
+    const salesData = mapToAISchema(clients);
     
     if (!salesData.sales || salesData.sales.length === 0) {
       return {
@@ -18,7 +18,7 @@ export async function getRevenueInsights(invoices: Invoice[]) {
           bestMonth: 'N/A',
           revenueTrend: 'No sales data available to analyze trends.',
           predictions: 'Cannot make predictions without sales data.',
-          actions: 'Record some paid invoices to start generating insights.'
+          actions: 'Mark some invoices as "Paid" to start generating insights.'
         }
       };
     }
@@ -27,7 +27,6 @@ export async function getRevenueInsights(invoices: Invoice[]) {
     return { success: true, insights: result };
   } catch (error) {
     console.error('Error generating revenue insights:', error);
-    // Check for a specific AI-related error message if possible
     const errorMessage = (error as Error)?.message || 'An unknown error occurred while generating insights.';
     return { success: false, error: errorMessage };
   }
