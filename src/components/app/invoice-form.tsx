@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect } from 'react';
@@ -143,7 +142,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, client }: InvoiceForm
                 {/* Totals Section */}
                 <div className="flex justify-end pt-4">
                   <div className="w-full max-w-sm space-y-2">
-                    <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2"><span>Total</span><span>R {form.getValues('invoice.total').toFixed(2)}</span></div>
+                    <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2"><span>Total</span><span>R {(form.getValues('invoice.total') || 0).toFixed(2)}</span></div>
                   </div>
                 </div>
 
