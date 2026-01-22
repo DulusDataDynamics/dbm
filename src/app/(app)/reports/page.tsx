@@ -2,14 +2,15 @@
 'use client';
 import { RevenueChart } from "@/components/app/revenue-chart";
 import { InvoiceStatusChart } from "@/components/app/invoice-status-chart";
-import { subscribeToClients } from "@/lib/firestore";
-import { Client } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { subscribeToInvoices, subscribeToClients } from "@/lib/firestore";
+import { Invoice, Client } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RevenueInsightsGenerator } from "@/components/app/revenue-insights-generator";
 import { useAuth, useFirestore } from "@/firebase";
 
 export default function ReportsPage() {
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
   const db = useFirestore();
@@ -21,16 +22,26 @@ export default function ReportsPage() {
       return;
     }
 
-    const unsubClients = subscribeToClients(db, user.uid, (clientsData) => {
-      setClients(clientsData);
+    const unsubInvoices = subscribeToInvoices(db, user.uid, (invoicesData) => {
+      setInvoices(invoicesData);
       setLoading(false);
     });
 
+    const unsubClients = subscribeToClients(db, user.uid, setClients);
+
     return () => {
+        unsubInvoices();
         unsubClients();
     };
   }, [db, user?.uid, isUserLoading]);
 
+  const clientsMap = useMemo(() => new Map(clients.map(c => [c.id, c])), [clients]);
+
+  const enrichedInvoices = useMemo(() => 
+    invoices.map(invoice => ({
+      ...invoice,
+      client: clientsMap.get(invoice.clientId),
+    })), [invoices, clientsMap]);
 
   return (
     <div className="space-y-6">
@@ -51,14 +62,14 @@ export default function ReportsPage() {
         <div className="space-y-6">
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
                 <div className="xl:col-span-3">
-                    <RevenueChart clients={clients} />
+                    <RevenueChart invoices={enrichedInvoices} />
                 </div>
                 <div className="xl:col-span-2">
-                    <InvoiceStatusChart clients={clients} />
+                    <InvoiceStatusChart invoices={enrichedInvoices} />
                 </div>
             </div>
             <div>
-                <RevenueInsightsGenerator clients={clients} />
+                <RevenueInsightsGenerator invoices={invoices} clients={clients} />
             </div>
         </div>
       )}

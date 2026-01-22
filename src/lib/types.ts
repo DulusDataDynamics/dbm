@@ -5,10 +5,9 @@ export type Client = {
   name: string;
   email: string;
   phone: string;
-  invoice?: Invoice;
 };
 
-export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid';
+export type InvoiceStatus = 'Draft' | 'Unpaid' | 'Paid' | 'Overdue';
 
 export type InvoiceItem = {
   description: string;
@@ -17,10 +16,15 @@ export type InvoiceItem = {
 };
 
 export type Invoice = {
+  id: string;
+  clientId: string;
+  status: InvoiceStatus;
   items: InvoiceItem[];
+  subtotal: number;
+  tax: number;
   total: number;
   dueDate: string; // ISO Date
-  status: InvoiceStatus;
+  createdAt: string; // ISO Date
 };
 
 export type TaskStatus = 'Pending' | 'In Progress' | 'Completed';

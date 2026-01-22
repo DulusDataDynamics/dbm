@@ -13,11 +13,12 @@ import {
 import { Lightbulb, Sparkles, AlertTriangle, TrendingUp, Target, DollarSign, Package } from 'lucide-react';
 import { getRevenueInsights } from '@/lib/actions';
 import { Skeleton } from '../ui/skeleton';
-import { Client } from '@/lib/types';
+import { Invoice, Client } from '@/lib/types';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 
 interface RevenueInsightsGeneratorProps {
+    invoices: Invoice[];
     clients: Client[];
 }
 
@@ -43,7 +44,7 @@ const InsightDisplay = ({ icon: Icon, label, value }: { icon: React.ElementType,
 );
 
 
-export function RevenueInsightsGenerator({ clients }: RevenueInsightsGeneratorProps) {
+export function RevenueInsightsGenerator({ invoices, clients }: RevenueInsightsGeneratorProps) {
   const [insights, setInsights] = useState<Insights | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -52,7 +53,7 @@ export function RevenueInsightsGenerator({ clients }: RevenueInsightsGeneratorPr
     setError(null);
     setInsights(null);
     startTransition(async () => {
-      const result = await getRevenueInsights(clients);
+      const result = await getRevenueInsights(invoices, clients);
       if (result.success) {
         setInsights(result.insights);
       } else {
@@ -61,7 +62,7 @@ export function RevenueInsightsGenerator({ clients }: RevenueInsightsGeneratorPr
     });
   };
 
-  const hasPaidInvoices = clients.some(c => c.invoice?.status === 'Paid');
+  const hasPaidInvoices = invoices.some(inv => inv.status === 'Paid');
 
   return (
     <Card>

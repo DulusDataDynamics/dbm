@@ -14,8 +14,9 @@ import {
   orderBy,
   Firestore,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
-import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority } from './types';
+import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus } from './types';
 
 function getCollectionRef(db: Firestore, userId: string, collectionName: string) {
     return collection(db, 'users', userId, collectionName);
@@ -32,21 +33,23 @@ function getDocRef(db: Firestore, userId: string, collectionName: string, docId:
 export function subscribeToClients(db: Firestore, userId: string, callback: (data: Client[]) => void) {
   const q = query(getCollectionRef(db, userId, 'clients'), orderBy('name', 'asc'));
   return onSnapshot(q, (snapshot) => {
-    const clientsData = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Client[];
+    const clientsData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Client[];
     callback(clientsData);
+  });
+}
+
+export function subscribeToInvoices(db: Firestore, userId: string, callback: (data: Invoice[]) => void) {
+  const q = query(getCollectionRef(db, userId, 'invoices'), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snapshot) => {
+    const invoicesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Invoice[];
+    callback(invoicesData);
   });
 }
 
 export function subscribeToTasks(db: Firestore, userId: string, callback: (data: Task[]) => void) {
   const q = query(getCollectionRef(db, userId, 'tasks'), orderBy('dueDate', 'asc'));
   return onSnapshot(q, (snapshot) => {
-    const tasksData = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Task[];
+    const tasksData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Task[];
     callback(tasksData);
   });
 }
@@ -54,10 +57,7 @@ export function subscribeToTasks(db: Firestore, userId: string, callback: (data:
 export function subscribeToInventory(db: Firestore, userId: string, callback: (data: InventoryItem[]) => void) {
   const q = query(getCollectionRef(db, userId, 'inventory'), orderBy('name', 'asc'));
   return onSnapshot(q, (snapshot) => {
-    const inventoryData = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as InventoryItem[];
+    const inventoryData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as InventoryItem[];
     callback(inventoryData);
   });
 }
@@ -70,9 +70,18 @@ export async function saveClient(db: Firestore, userId: string, id: string | nul
   if (id) {
     await setDoc(getDocRef(db, userId, 'clients', id), data, { merge: true });
   } else {
-    // When creating a new client, we can initialize with a default draft invoice
-    const newClientData = { ...data, invoice: { status: 'Draft', items: [], total: 0, dueDate: new Date().toISOString().split('T')[0] }};
-    await addDoc(getCollectionRef(db, userId, 'clients'), newClientData);
+    await addDoc(getCollectionRef(db, userId, 'clients'), data);
+  }
+}
+
+export async function saveInvoice(db: Firestore, userId: string, id: string | null, data: Omit<Invoice, 'id' | 'createdAt'> & { createdAt?: string }) {
+  if (id) {
+    // Merge true to prevent overwriting createdAt field on updates
+    await setDoc(getDocRef(db, userId, 'invoices', id), data, { merge: true });
+  } else {
+    // Add createdAt timestamp for new documents
+    const newData = { ...data, createdAt: new Date().toISOString() };
+    await addDoc(getCollectionRef(db, userId, 'invoices'), newData);
   }
 }
 
@@ -97,7 +106,23 @@ export async function saveInventoryItem(db: Firestore, userId: string, id: strin
 // ============================================================================
 
 export async function deleteClient(db: Firestore, userId: string, id: string) {
-  await deleteDoc(getDocRef(db, userId, 'clients', id));
+  const batch = writeBatch(db);
+  
+  // Delete the client
+  const clientDocRef = getDocRef(db, userId, 'clients', id);
+  batch.delete(clientDocRef);
+  
+  // Find and delete all associated invoices
+  const invoicesQuery = query(getCollectionRef(db, userId, 'invoices'), where('clientId', '==', id));
+  const invoicesSnapshot = await getDocs(invoicesQuery);
+  invoicesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+  await batch.commit();
+}
+
+
+export async function deleteInvoice(db: Firestore, userId: string, id: string) {
+    await deleteDoc(getDocRef(db, userId, 'invoices', id));
 }
 
 export async function deleteTask(db: Firestore, userId: string, id: string) {
@@ -111,6 +136,10 @@ export async function deleteInventoryItem(db: Firestore, userId: string, id: str
 // ============================================================================
 // Quick Updates & Actions
 // ============================================================================
+
+export async function updateInvoiceStatus(db: Firestore, userId: string, id: string, status: InvoiceStatus) {
+    await updateDoc(getDocRef(db, userId, 'invoices', id), { status });
+}
 
 export async function updateTaskStatus(db: Firestore, userId: string, id: string, status: TaskStatus) {
     await updateDoc(getDocRef(db, userId, 'tasks', id), { status });

@@ -184,7 +184,7 @@ export default function DownloadInvoices() {
           item.description,
           item.quantity.toString(),
           `R ${item.price.toFixed(2)}`,
-          `R ${item.total.toFixed(2)}`,
+          `R ${(item.price * item.quantity).toFixed(2)}`,
       ]);
 
       // @ts-ignore

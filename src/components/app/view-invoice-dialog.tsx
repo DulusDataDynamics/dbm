@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Client } from '@/lib/types';
+import { Client, Invoice } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
@@ -21,19 +21,20 @@ import { useFirestore, useAuth } from '@/firebase';
 interface ViewInvoiceDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  invoice: Invoice | null;
   client: Client | null;
   db: any;
 }
 
-export function ViewInvoiceDialog({ isOpen, onClose, client, db }: ViewInvoiceDialogProps) {
+export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, db }: ViewInvoiceDialogProps) {
   const { user } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadPdf = async () => {
-    if (!client) return;
+    if (!invoice) return;
     setIsDownloading(true);
 
-    const element = document.getElementById(`invoice-pdf-view-${client.id}`);
+    const element = document.getElementById(`invoice-pdf-view-${invoice.id}`);
     if (!element) {
         setIsDownloading(false);
         return;
@@ -61,27 +62,27 @@ export function ViewInvoiceDialog({ isOpen, onClose, client, db }: ViewInvoiceDi
       heightLeft -= pageHeight;
     }
 
-    pdf.save(`Invoice-${client.name.replace(/\s/g, '_')}.pdf`);
+    pdf.save(`Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`);
     setIsDownloading(false);
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Invoice Details</DialogTitle>
+          <DialogTitle>Invoice Preview</DialogTitle>
           <DialogDescription>
             A preview of the invoice for {client?.name}. You can download it as a PDF.
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
-          {client && db && user ? (
-            <InvoicePDFView db={db} client={client} />
+        <div className="py-4 bg-muted/30">
+          {client && invoice && db && user ? (
+            <div className="flex justify-center">
+              <InvoicePDFView db={db} client={client} invoice={invoice} />
+            </div>
           ) : (
-            <div className="space-y-3">
-              <Skeleton className="h-40 w-full" />
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-10 w-1/2" />
+            <div className="p-8">
+              <Skeleton className="h-[500px] w-full" />
             </div>
           )}
         </div>

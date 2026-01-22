@@ -2,12 +2,12 @@
 'use server';
 
 import { generateRevenueInsights } from "@/ai/flows/generate-revenue-insights";
-import { Client } from "./types";
+import { Invoice, Client } from "./types";
 import { mapToAISchema } from "./utils";
 
-export async function getRevenueInsights(clients: Client[]) {
+export async function getRevenueInsights(invoices: Invoice[], clients: Client[]) {
   try {
-    const salesData = mapToAISchema(clients);
+    const salesData = mapToAISchema(invoices, clients);
     
     if (!salesData.sales || salesData.sales.length === 0) {
       return {
