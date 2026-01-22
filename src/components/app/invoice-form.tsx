@@ -1,8 +1,7 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm, useFieldArray, Controller } from 'react-hook-form';
+import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -89,27 +88,23 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
     name: 'items'
   });
 
-  const { watch, setValue } = form;
+  const { control, watch, setValue } = form;
+
+  const watchedItems = useWatch({
+    control: form.control,
+    name: 'items',
+  });
 
   useEffect(() => {
-    const subscription = watch((values, { name, type }) => {
-      if (name && (name.startsWith('items') || name === 'taxRate')) {
-        const items = values.items || [];
-        const updatedItems = items.map(item => ({
-            ...item,
-            total: (item.quantity || 0) * (item.price || 0)
-        }));
-        
-        const { subtotal, tax, total } = calculateInvoiceTotals(updatedItems, taxRate);
-        
-        setValue('items', updatedItems, { shouldValidate: false });
-        setValue('subtotal', subtotal, { shouldValidate: false });
-        setValue('tax', tax, { shouldValidate: false });
-        setValue('total', total, { shouldValidate: false });
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [watch, setValue, taxRate]);
+    if (!watchedItems) return;
+
+    const { subtotal, tax, total } = calculateInvoiceTotals(watchedItems, taxRate);
+
+    // ONLY update derived fields — NEVER re-set items to prevent infinite loops
+    setValue('subtotal', subtotal, { shouldValidate: false });
+    setValue('tax', tax, { shouldValidate: false });
+    setValue('total', total, { shouldValidate: false });
+  }, [watchedItems, taxRate, setValue]);
 
   useEffect(() => {
     if (!db || !userId) return;
@@ -145,8 +140,16 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
 
   const onSubmit = async (data: InvoiceFormValues) => {
     if (!db || !userId) return;
+
+    // Ensure item totals are correct before saving
+    const itemsWithCorrectTotals = data.items.map(item => ({
+        ...item,
+        total: (item.quantity || 0) * (item.price || 0)
+    }));
+
     const invoiceData = {
       ...data,
+      items: itemsWithCorrectTotals,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
     };
     await saveInvoice(db, userId, invoice?.id || null, invoiceData);
