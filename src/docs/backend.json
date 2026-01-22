@@ -1,0 +1,160 @@
+
+{
+  "entities": {
+    "user": {
+      "title": "User",
+      "description": "Represents a user of the application.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "client": {
+      "title": "Client",
+      "description": "A client of the business.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the client."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The email address of the client."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The phone number of the client."
+        }
+      },
+      "required": ["name", "email"]
+    },
+    "invoiceItem": {
+      "title": "Invoice Item",
+      "description": "A single line item in an invoice.",
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "quantity": { "type": "number" },
+        "price": { "type": "number" }
+      },
+      "required": ["description", "quantity", "price"]
+    },
+    "invoice": {
+      "title": "Invoice",
+      "description": "An invoice for a client, containing multiple line items.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "items": {
+          "type": "array",
+          "description": "A list of line items for the invoice.",
+          "items": {
+            "$ref": "#/entities/invoiceItem"
+          }
+        },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
+        "dueDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Draft", "Unpaid", "Paid", "Overdue"],
+          "description": "The current status of the invoice."
+        }
+      },
+      "required": ["clientId", "items", "total", "dueDate", "status", "createdAt"]
+    },
+    "task": {
+      "title": "Task",
+      "description": "A task to be completed.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the task."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "In Progress", "Completed"],
+          "description": "The current status of the task."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["Low", "Medium", "High"],
+          "description": "The priority of the task."
+        },
+        "dueDate": {
+          "type": "string",
+          "format": "date",
+          "description": "The due date of the task."
+        },
+        "assignedTo": {
+          "type": "string",
+          "description": "Who the task is assigned to."
+        }
+      },
+      "required": ["title", "status", "priority", "dueDate"]
+    },
+    "inventoryItem": {
+      "title": "Inventory Item",
+      "description": "An item in the inventory.",
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "description": "The SKU of the inventory item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the inventory item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the inventory item."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the inventory item."
+        }
+      },
+      "required": ["sku", "name", "quantity", "price"]
+    }
+  },
+  "auth": {
+    "providers": ["email"]
+  },
+  "firestore": {
+    "/users/{userId}/clients/{clientId}": {
+      "schema": { "$ref": "#/entities/client" },
+      "description": "Stores client information."
+    },
+    "/users/{userId}/invoices/{invoiceId}": {
+      "schema": { "$ref": "#/entities/invoice" },
+      "description": "Stores invoice information for a specific client."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": { "$ref": "#/entities/task" },
+      "description": "Stores task information for a specific user."
+    },
+    "/users/{userId}/inventory/{itemId}": {
+      "schema": { "$ref": "#/entities/inventoryItem" },
+      "description": "Stores inventory item information for a specific user."
+    }
+  }
+}
