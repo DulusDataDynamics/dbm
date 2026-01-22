@@ -17,18 +17,18 @@ export const clients: SeedClient[] = [
 ];
 
 const invoiceItems1: InvoiceItem[] = [
-    { description: 'Standard Website Package', quantity: 1, price: 1500, total: 1500 },
+    { description: 'Standard Website Package', quantity: 1, price: 1500 },
 ];
 const invoiceItems2: InvoiceItem[] = [
-    { description: 'Pro Website Package', quantity: 1, price: 2500, total: 2500 },
-    { description: '1-Hour Consultation', quantity: 2, price: 250, total: 500 },
+    { description: 'Pro Website Package', quantity: 1, price: 2500 },
+    { description: '1-Hour Consultation', quantity: 2, price: 250 },
 ];
 const invoiceItems3: InvoiceItem[] = [
-    { description: 'Logo Design', quantity: 1, price: 750, total: 750 },
+    { description: 'Logo Design', quantity: 1, price: 750 },
 ];
 
 function calculateTotals(items: InvoiceItem[]) {
-    const subtotal = items.reduce((acc, item) => acc + item.total, 0);
+    const subtotal = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
     const tax = subtotal * 0.15; // Assuming 15% tax
     const total = subtotal + tax;
     return { subtotal, tax, total };

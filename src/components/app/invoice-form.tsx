@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm, useFieldArray, Controller, useWatch } from 'react-hook-form';
+import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
@@ -31,10 +32,10 @@ import {
 } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon, Plus, Trash2, X } from 'lucide-react';
+import { Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn, calculateInvoiceTotals } from '@/lib/utils';
 import { format } from 'date-fns';
-import { Client, Invoice, InvoiceItem } from '@/lib/types';
+import { Client, Invoice } from '@/lib/types';
 import { saveInvoice, subscribeToClients, getBusinessProfile } from '@/lib/firestore';
 import type { Firestore } from 'firebase/firestore';
 import { ScrollArea } from '../ui/scroll-area';
@@ -43,7 +44,6 @@ const invoiceItemSchema = z.object({
   description: z.string().min(1, "Description is required."),
   quantity: z.coerce.number().min(0.01, "Quantity must be positive."),
   price: z.coerce.number().min(0, "Price cannot be negative."),
-  total: z.number()
 });
 
 const formSchema = z.object({
@@ -100,7 +100,6 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
 
     const { subtotal, tax, total } = calculateInvoiceTotals(watchedItems, taxRate);
 
-    // ONLY update derived fields — NEVER re-set items to prevent infinite loops
     setValue('subtotal', subtotal, { shouldValidate: false });
     setValue('tax', tax, { shouldValidate: false });
     setValue('total', total, { shouldValidate: false });
@@ -129,7 +128,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
           clientId: '',
           status: 'Draft',
           dueDate: new Date(),
-          items: [{ description: '', quantity: 1, price: 0, total: 0 }],
+          items: [{ description: '', quantity: 1, price: 0 }],
           subtotal: 0,
           tax: 0,
           total: 0,
@@ -141,15 +140,8 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
   const onSubmit = async (data: InvoiceFormValues) => {
     if (!db || !userId) return;
 
-    // Ensure item totals are correct before saving
-    const itemsWithCorrectTotals = data.items.map(item => ({
-        ...item,
-        total: (item.quantity || 0) * (item.price || 0)
-    }));
-
     const invoiceData = {
       ...data,
-      items: itemsWithCorrectTotals,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
     };
     await saveInvoice(db, userId, invoice?.id || null, invoiceData);
@@ -242,7 +234,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                   </div>
                 ))}
                 
-                <Button type="button" variant="outline" size="sm" onClick={() => append({ description: '', quantity: 1, price: 0, total: 0 })}>
+                <Button type="button" variant="outline" size="sm" onClick={() => append({ description: '', quantity: 1, price: 0 })}>
                   <Plus className="mr-2 h-4 w-4" /> Add Item
                 </Button>
 

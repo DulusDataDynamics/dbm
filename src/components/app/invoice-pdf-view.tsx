@@ -78,7 +78,7 @@ export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
                         <td className="p-2.5">{item.description}</td>
                         <td className="p-2.5 text-center">{item.quantity}</td>
                         <td className="p-2.5 text-right">R {item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        <td className="p-2.5 text-right">R {item.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="p-2.5 text-right">R {(item.quantity * item.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     </tr>
                 ))}
             </tbody>

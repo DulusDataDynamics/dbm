@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function calculateInvoiceTotals(items: InvoiceItem[], taxRate: number = 0.15) {
+export function calculateInvoiceTotals(items: Omit<InvoiceItem, 'total'>[], taxRate: number = 0.15) {
   const subtotal = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
   const tax = subtotal * taxRate;
   const total = subtotal + tax;
@@ -25,7 +25,7 @@ export function mapToAISchema(invoices: Invoice[]): GenerateRevenueInsightsInput
     invoice.items.map(item => ({
       id: invoice.id,
       product: item.description,
-      amount: item.total,
+      amount: item.quantity * item.price,
       quantity: item.quantity,
       date: invoice.createdAt,
     }))
