@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useTransition } from 'react';
@@ -12,13 +13,12 @@ import {
 import { Lightbulb, Sparkles, AlertTriangle, TrendingUp, Target, DollarSign, Package } from 'lucide-react';
 import { getRevenueInsights } from '@/lib/actions';
 import { Skeleton } from '../ui/skeleton';
-import { Invoice, InventoryItem } from '@/lib/types';
+import { Invoice } from '@/lib/types';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 
 interface RevenueInsightsGeneratorProps {
     invoices: Invoice[];
-    inventory: InventoryItem[];
 }
 
 interface Insights {
@@ -43,7 +43,7 @@ const InsightDisplay = ({ icon: Icon, label, value }: { icon: React.ElementType,
 );
 
 
-export function RevenueInsightsGenerator({ invoices, inventory }: RevenueInsightsGeneratorProps) {
+export function RevenueInsightsGenerator({ invoices }: RevenueInsightsGeneratorProps) {
   const [insights, setInsights] = useState<Insights | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -52,7 +52,7 @@ export function RevenueInsightsGenerator({ invoices, inventory }: RevenueInsight
     setError(null);
     setInsights(null);
     startTransition(async () => {
-      const result = await getRevenueInsights(invoices, inventory);
+      const result = await getRevenueInsights(invoices);
       if (result.success) {
         setInsights(result.insights);
       } else {

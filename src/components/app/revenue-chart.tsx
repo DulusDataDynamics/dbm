@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
@@ -22,7 +23,7 @@ export function RevenueChart({ invoices }: RevenueChartProps) {
       if (!acc[clientName]) {
         acc[clientName] = { client: clientName, total: 0 };
       }
-      acc[clientName].total += invoice.amount;
+      acc[clientName].total += invoice.total;
     }
     return acc;
   }, {} as Record<string, { client: string, total: number }>);

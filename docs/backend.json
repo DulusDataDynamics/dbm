@@ -33,31 +33,52 @@
       },
       "required": ["name", "email"]
     },
+    "invoiceItem": {
+      "title": "Invoice Item",
+      "description": "A single line item in an invoice.",
+      "type": "object",
+      "properties": {
+        "description": { "type": "string" },
+        "quantity": { "type": "number" },
+        "price": { "type": "number" },
+        "total": { "type": "number" }
+      },
+      "required": ["description", "quantity", "price", "total"]
+    },
     "invoice": {
       "title": "Invoice",
-      "description": "An invoice for a client.",
+      "description": "An invoice for a client, containing multiple line items.",
       "type": "object",
       "properties": {
         "clientId": {
           "type": "string",
           "description": "The ID of the client this invoice belongs to."
         },
-        "amount": {
-          "type": "number",
-          "description": "The amount of the invoice."
-        },
         "status": {
           "type": "string",
-          "enum": ["Paid", "Unpaid", "Overdue"],
-          "description": "The status of the invoice."
+          "enum": ["Draft", "Unpaid", "Paid", "Overdue"],
+          "description": "The current status of the invoice."
         },
+        "items": {
+          "type": "array",
+          "description": "A list of line items for the invoice.",
+          "items": {
+            "$ref": "#/entities/invoiceItem"
+          }
+        },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
+        "total": { "type": "number" },
         "dueDate": {
           "type": "string",
-          "format": "date",
-          "description": "The due date of the invoice."
+          "format": "date"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
         }
       },
-      "required": ["clientId", "amount", "status", "dueDate"]
+      "required": ["clientId", "status", "items", "total", "dueDate", "createdAt"]
     },
     "task": {
       "title": "Task",

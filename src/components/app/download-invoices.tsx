@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState } from 'react';
@@ -114,56 +115,46 @@ export default function DownloadInvoices() {
     const companyName = profile.companyName || 'Your Business';
     const companyEmail = profile.businessEmail || '';
     const generatedDate = new Date().toLocaleString();
+    const brandColor = settings?.brandColor || '#2B579A';
 
+    // Summary Page
     doc.setFontSize(18);
     doc.text(companyName, 40, 50);
     doc.setFontSize(10);
     doc.text(`Generated: ${generatedDate}`, 40, 68);
     doc.text(`Contact: ${companyEmail}`, 40, 84);
-
     doc.setFontSize(14);
     doc.text('All Invoices Summary', 40, 120);
 
-    const tableColumns = [
-      { header: 'Invoice ID', dataKey: 'id' },
-      { header: 'Client', dataKey: 'client' },
-      { header: 'Amount', dataKey: 'amount' },
-      { header: 'Due Date', dataKey: 'dueDate' },
-      { header: 'Status', dataKey: 'status' },
-    ];
-
-    const tableRows = invoices.map((inv) => ({
-      id: inv.id.substring(0, 8),
-      client: inv.client?.name || 'N/A',
-      amount: `R ${(inv.amount || 0).toFixed(2)}`,
-      dueDate: formatDate(inv.dueDate),
-      status: inv.status || '-',
-    }));
+    const summaryTableColumns = ['Invoice ID', 'Client', 'Total', 'Due Date', 'Status'];
+    const summaryTableRows = invoices.map((inv) => [
+        inv.id.substring(0, 8).toUpperCase(),
+        inv.client?.name || 'N/A',
+        `R ${inv.total.toFixed(2)}`,
+        formatDate(inv.dueDate),
+        inv.status || '-',
+    ]);
     
     // @ts-ignore
     doc.autoTable({
       startY: 140,
-      head: [tableColumns.map((c) => c.header)],
-      body: tableRows.map((r) => [
-        r.id,
-        r.client,
-        r.amount,
-        r.dueDate,
-        r.status,
-      ]),
+      head: [summaryTableColumns],
+      body: summaryTableRows,
       styles: { fontSize: 10 },
-      headStyles: { fillColor: settings?.brandColor || '#2B579A' },
+      headStyles: { fillColor: brandColor },
       theme: 'grid',
       margin: { left: 40, right: 40 },
     });
     
+    // Individual Invoice Pages
     invoices.forEach((inv) => {
       doc.addPage();
       
       doc.setFontSize(18);
-      doc.setTextColor(settings?.brandColor || '#000000');
+      doc.setTextColor(brandColor);
       doc.text(profile.companyName || "Your Company", 40, 40);
       doc.setTextColor('#000000');
+
       doc.setFontSize(10);
       doc.text(profile.businessAddress || '', 40, 55);
       doc.text(`Email: ${profile.businessEmail || ''}`, 40, 65);
@@ -171,15 +162,14 @@ export default function DownloadInvoices() {
       if (profile.website) doc.text(`Website: ${profile.website}`, 40, 85);
       if (profile.taxNumber) doc.text(`Tax/VAT No: ${profile.taxNumber}`, 40, 95);
 
-
       doc.setFontSize(22);
       doc.setFont('helvetica', 'bold');
-      doc.text("INVOICE", doc.internal.pageSize.getWidth() - 40, 40, { align: 'right' });
+      doc.text("INVOICE", doc.internal.pageSize.width - 40, 40, { align: 'right' });
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
-      doc.text(`Invoice #: ${settings?.invoicePrefix || ''}${inv.id.substring(0,6).toUpperCase()}`, doc.internal.pageSize.getWidth() - 40, 55, { align: 'right' });
-      doc.text(`Date: ${new Date().toLocaleDateString()}`, doc.internal.pageSize.getWidth() - 40, 65, { align: 'right' });
-      doc.text(`Due Date: ${formatDate(inv.dueDate)}`, doc.internal.pageSize.getWidth() - 40, 75, { align: 'right' });
+      doc.text(`Invoice #: ${settings?.invoicePrefix || ''}${inv.id.substring(0,6).toUpperCase()}`, doc.internal.pageSize.width - 40, 55, { align: 'right' });
+      doc.text(`Date: ${formatDate(inv.createdAt)}`, doc.internal.pageSize.width - 40, 65, { align: 'right' });
+      doc.text(`Due Date: ${formatDate(inv.dueDate)}`, doc.internal.pageSize.width - 40, 75, { align: 'right' });
 
       doc.setFontSize(11);
       doc.setFont('helvetica', 'bold');
@@ -189,48 +179,60 @@ export default function DownloadInvoices() {
       doc.text(inv.client?.name || 'N/A', 40, 145);
       if (inv.client?.email) doc.text(inv.client.email, 40, 155);
 
+      const itemsTableColumns = ['Description', 'Qty', 'Price', 'Total'];
+      const itemsTableRows = inv.items.map(item => [
+          item.description,
+          item.quantity.toString(),
+          `R ${item.price.toFixed(2)}`,
+          `R ${item.total.toFixed(2)}`,
+      ]);
+
       // @ts-ignore
       doc.autoTable({
           startY: 180,
-          head: [['Description', 'Amount']],
-          body: [['Service/Product Rendered', `R ${inv.amount.toFixed(2)}`]],
+          head: [itemsTableColumns],
+          body: itemsTableRows,
           theme: 'striped',
-          headStyles: { fillColor: settings?.brandColor || '#2B579A' },
+          headStyles: { fillColor: brandColor },
+          didDrawPage: (data: any) => {
+            // @ts-ignore
+            let finalY = doc.lastAutoTable.finalY;
+            
+            // Totals
+            const totalsX = doc.internal.pageSize.width - 40;
+            doc.setFontSize(10);
+            doc.text(`Subtotal: R ${inv.subtotal.toFixed(2)}`, totalsX, finalY + 20, { align: 'right' });
+            doc.text(`Tax (${(profile.defaultTaxRate || 15)}%): R ${inv.tax.toFixed(2)}`, totalsX, finalY + 35, { align: 'right' });
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`Total: R ${inv.total.toFixed(2)}`, totalsX, finalY + 55, { align: 'right' });
+            doc.setFont('helvetica', 'normal');
+
+            // Footer
+            const pageHeight = doc.internal.pageSize.height;
+            const bottomY = pageHeight - 140;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.text("BANKING DETAILS", 40, bottomY);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            doc.text(`Bank: ${profile.bankName || ''}`, 40, bottomY + 12);
+            doc.text(`Account Holder: ${profile.accountHolder || ''}`, 40, bottomY + 22);
+            doc.text(`Account Number: ${profile.accountNumber || ''}`, 40, bottomY + 32);
+            doc.text(`Branch Code: ${profile.branchCode || ''}`, 40, bottomY + 42);
+
+            const footerY = pageHeight - 40;
+            doc.setFontSize(9);
+            doc.text(settings?.footerMessage || 'Thank you for your business!', doc.internal.pageSize.width / 2, footerY, { align: 'center' });
+            
+            if (settings?.showWatermark) {
+                doc.setFontSize(8);
+                doc.setTextColor('#aaaaaa');
+                doc.text("Generated by Dulus Business Manager © 2025 Dulus Data Dynamics", doc.internal.pageSize.width / 2, footerY + 15, { align: 'center' });
+                doc.setTextColor('#000000');
+            }
+          }
       });
-      
-      // @ts-ignore
-      let finalY = doc.lastAutoTable.finalY;
-
-      doc.setFontSize(14);
-      doc.text(
-        `Total: R ${inv.amount.toFixed(2)}`,
-        doc.internal.pageSize.getWidth() - 40,
-        finalY + 40,
-        { align: 'right' }
-      );
-      
-      const bottomY = doc.internal.pageSize.getHeight() - 140;
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.text("BANKING DETAILS", 40, bottomY);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
-      doc.text(`Bank: ${profile.bankName || ''}`, 40, bottomY + 12);
-      doc.text(`Account Holder: ${profile.accountHolder || ''}`, 40, bottomY + 22);
-      doc.text(`Account Number: ${profile.accountNumber || ''}`, 40, bottomY + 32);
-      doc.text(`Branch Code: ${profile.branchCode || ''}`, 40, bottomY + 42);
-
-      const footerY = doc.internal.pageSize.getHeight() - 40;
-      doc.setFontSize(9);
-      doc.text(settings?.footerMessage || 'Thank you for your business!', doc.internal.pageSize.getWidth() / 2, footerY, { align: 'center' });
-      
-      if (settings?.showWatermark) {
-          doc.setFontSize(8);
-          doc.setTextColor('#aaaaaa');
-          doc.text("Generated by Dulus Business Manager © 2025 Dulus Data Dynamics", doc.internal.pageSize.getWidth() / 2, footerY + 15, { align: 'center' });
-          doc.setTextColor('#000000');
-      }
-
     });
 
     const fileName = `DBM_Invoices_${new Date().toISOString().slice(0, 10)}.pdf`;

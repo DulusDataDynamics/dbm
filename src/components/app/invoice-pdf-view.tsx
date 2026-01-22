@@ -1,3 +1,4 @@
+
 'use client';
 import { Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { useAuth } from '@/firebase';
@@ -22,20 +23,23 @@ export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
             getInvoiceSettings(db, user.uid).then(setSettings);
         }
     }, [user, invoice, db]);
+    
+    const brandColor = settings?.brandColor || '#2B579A';
+    const taxRate = profile?.defaultTaxRate || 15;
 
   return (
-    <div id={`invoice-pdf-view-${invoice.id}`} className="p-6 bg-white text-gray-800 font-sans text-sm" style={{width: '800px', margin: 'auto'}}>
+    <div id={`invoice-pdf-view-${invoice.id}`} className="p-8 bg-white text-gray-800 font-sans text-sm" style={{width: '210mm', height: '297mm', margin: 'auto', border: '1px solid #eee'}}>
         {/* Header */}
-        <header className="flex justify-between items-start mb-6">
+        <header className="flex justify-between items-start mb-8 border-b-2 pb-4" style={{borderColor: brandColor}}>
             <div className="company-info text-xs">
                 {settings?.companyLogoUrl ? (
-                    <img src={settings.companyLogoUrl} alt="Company Logo" className="w-20 h-auto mb-2" />
+                    <img src={settings.companyLogoUrl} alt="Company Logo" className="w-24 h-auto mb-2" />
                 ) : (
                     <div className="w-20 h-20 mb-2 bg-gray-100 flex items-center justify-center rounded">
                         <Building className="w-10 h-10 text-gray-400" />
                     </div>
                 )}
-                <h2 className="text-lg font-bold text-gray-900">{profile?.companyName || "Your Company"}</h2>
+                <h2 className="text-xl font-bold text-gray-900">{profile?.companyName || "Your Company"}</h2>
                 <p>{profile?.businessAddress}</p>
                 <p>Email: {profile?.businessEmail}</p>
                 <p>Phone: {profile?.businessPhone}</p>
@@ -43,63 +47,89 @@ export function InvoicePDFView({ db, invoice }: InvoicePDFViewProps) {
                 {profile?.taxNumber && <p>TAX/VAT No: {profile.taxNumber}</p>}
             </div>
             <div className="invoice-info text-right text-xs">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">INVOICE</h1>
+                <h1 className="text-4xl font-bold mb-2" style={{color: brandColor}}>INVOICE</h1>
                 <p><strong>Invoice #:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0,6).toUpperCase()}`}</p>
-                <p><strong>Date Issued:</strong> {new Date().toLocaleDateString()}</p>
+                <p><strong>Date Issued:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</p>
                 <p><strong>Due Date:</strong> {new Date(invoice.dueDate).toLocaleDateString()}</p>
             </div>
         </header>
 
         {/* Bill To */}
-        <div className="bill-to my-5">
-            <h3 className="text-base font-bold underline mb-1">BILL TO</h3>
-            <p>{invoice.client?.name}</p>
+        <div className="bill-to my-8">
+            <h3 className="text-sm font-bold text-gray-500 mb-1">BILL TO</h3>
+            <p className="font-bold">{invoice.client?.name}</p>
             <p>{invoice.client?.email}</p>
             <p>{invoice.client?.phone}</p>
         </div>
 
         {/* Items Table */}
-        <table className="w-full border-collapse mb-6">
+        <table className="w-full border-collapse mb-8 text-sm">
             <thead>
-                <tr>
-                    <th className="bg-[#1D3557] text-white p-2.5 text-left">Description</th>
-                    <th className="bg-[#1D3557] text-white p-2.5 text-left">Amount</th>
+                <tr style={{backgroundColor: brandColor}} className="text-white">
+                    <th className="p-2.5 text-left font-bold">Description</th>
+                    <th className="p-2.5 text-center font-bold">Qty</th>
+                    <th className="p-2.5 text-right font-bold">Unit Price</th>
+                    <th className="p-2.5 text-right font-bold">Total</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td className="p-2.5 border-b border-gray-300">Service/Product Rendered</td>
-                    <td className="p-2.5 border-b border-gray-300">R {invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                </tr>
+                {invoice.items.map((item, index) => (
+                    <tr key={index} className="border-b">
+                        <td className="p-2.5">{item.description}</td>
+                        <td className="p-2.5 text-center">{item.quantity}</td>
+                        <td className="p-2.5 text-right">R {item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        <td className="p-2.5 text-right">R {item.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                ))}
             </tbody>
         </table>
 
-        {/* Total */}
-        <div className="text-right mb-4">
-            <h2 className="text-xl font-bold">Total: R {invoice.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h2>
-        </div>
-        
-        {/* Payment Instructions */}
-        <div className="text-sm italic my-2">
-            <p>{settings?.paymentTerms || 'Please make payment within the specified due date.'}</p>
-            <p>Use the invoice number as your payment reference.</p>
+        {/* Totals Section */}
+        <div className="flex justify-end mb-8">
+             <div className="w-1/2">
+                <table className="w-full text-sm">
+                    <tbody>
+                        <tr>
+                            <td className="p-2 text-right font-bold">Subtotal:</td>
+                            <td className="p-2 text-right">R {invoice.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                         <tr>
+                            <td className="p-2 text-right font-bold">Tax ({taxRate}%):</td>
+                            <td className="p-2 text-right">R {invoice.tax.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                        <tr className="border-t-2 font-bold text-lg" style={{borderColor: brandColor}}>
+                            <td className="p-2 text-right">Total:</td>
+                            <td className="p-2 text-right">R {invoice.total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
 
-        {/* Banking Details */}
-        <div className="mt-6 border-t-2 border-gray-300 pt-2 text-sm">
-            <h3 className="text-base font-bold mb-1">BANKING DETAILS</h3>
-            <p><strong>Bank:</strong> {profile?.bankName}</p>
-            <p><strong>Account Holder:</strong> {profile?.accountHolder}</p>
-            <p><strong>Account Number:</strong> {profile?.accountNumber}</p>
-            <p><strong>Branch Code:</strong> {profile?.branchCode}</p>
+        {/* Fixed Footer */}
+        <div className="absolute bottom-8 left-8 right-8 text-xs">
+            <div className="flex justify-between gap-8 border-t pt-4">
+                 {/* Payment Instructions & Banking */}
+                <div className="text-gray-600">
+                    <h3 className="text-sm font-bold text-gray-800 mb-1">Payment Information</h3>
+                    <p className="italic mb-2">{settings?.paymentTerms || 'Please make payment by the due date.'}</p>
+                    <p><strong>Bank:</strong> {profile?.bankName || 'N/A'}</p>
+                    <p><strong>Account Holder:</strong> {profile?.accountHolder || 'N/A'}</p>
+                    <p><strong>Account Number:</strong> {profile?.accountNumber || 'N/A'}</p>
+                    <p><strong>Branch Code:</strong> {profile?.branchCode || 'N/A'}</p>
+                    <p><strong>Reference:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0,6).toUpperCase()}`}</p>
+                </div>
+                 {/* Thank you note */}
+                <div className="text-right">
+                    <p className="font-bold text-lg" style={{color: brandColor}}>Thank you!</p>
+                </div>
+            </div>
+            {settings?.showWatermark && (
+                <p className="text-center text-gray-400 text-xs mt-4">
+                    Generated by Dulus Business Manager © {new Date().getFullYear()} Dulus Data Dynamics
+                </p>
+            )}
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-gray-500 text-xs mt-8">
-            Thank you for your business!
-            <br />
-            {settings?.showWatermark && `Generated by Dulus Business Manager © ${new Date().getFullYear()} Dulus Data Dynamics`}
-        </p>
     </div>
   );
 }
