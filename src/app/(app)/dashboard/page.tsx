@@ -133,9 +133,6 @@ export default function DashboardPage() {
                   Your most recently created invoices.
                 </CardDescription>
               </div>
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/invoices">View All</Link>
-              </Button>
             </div>
           </CardHeader>
           <CardContent>

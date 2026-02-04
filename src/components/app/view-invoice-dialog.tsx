@@ -17,6 +17,7 @@ import html2canvas from 'html2canvas';
 import { useState } from 'react';
 import { InvoicePDFView } from './invoice-pdf-view';
 import { useFirestore, useAuth } from '@/firebase';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface ViewInvoiceDialogProps {
   isOpen: boolean;
@@ -76,15 +77,17 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, db }: View
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 bg-muted/30">
-          {client && invoice && db && user ? (
-            <div className="flex justify-center">
-              <InvoicePDFView db={db} client={client} invoice={invoice} />
-            </div>
-          ) : (
-            <div className="p-8">
-              <Skeleton className="h-[500px] w-full" />
-            </div>
-          )}
+          <ScrollArea className="h-[65vh]">
+            {client && invoice && db && user ? (
+              <div className="flex justify-center">
+                <InvoicePDFView db={db} client={client} invoice={invoice} />
+              </div>
+            ) : (
+              <div className="p-8">
+                <Skeleton className="h-[500px] w-full" />
+              </div>
+            )}
+          </ScrollArea>
         </div>
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
