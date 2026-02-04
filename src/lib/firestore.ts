@@ -1,4 +1,3 @@
-
 import {
   collection,
   onSnapshot,
@@ -15,7 +14,8 @@ import {
   Firestore,
   writeBatch,
 } from 'firebase/firestore';
-import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus } from './types';
+import type { Client, Invoice, Task, InventoryItem, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus, InvoiceItem } from './types';
+import { calculateInvoiceTotals } from './utils';
 
 function getCollectionRef(db: Firestore, userId: string, collectionName: string) {
     return collection(db, 'users', userId, collectionName);
@@ -73,17 +73,6 @@ export async function saveClient(db: Firestore, userId: string, id: string | nul
   }
 }
 
-export async function saveInvoice(db: Firestore, userId: string, id: string | null, data: Omit<Invoice, 'id' | 'createdAt'> & { createdAt?: string }) {
-  if (id) {
-    // Merge true to prevent overwriting createdAt field on updates
-    await setDoc(getDocRef(db, userId, 'invoices', id), data, { merge: true });
-  } else {
-    // Add createdAt timestamp for new documents
-    const newData = { ...data, createdAt: new Date().toISOString() };
-    await addDoc(getCollectionRef(db, userId, 'invoices'), newData);
-  }
-}
-
 export async function saveTask(db: Firestore, userId: string, id: string | null, data: Omit<Task, 'id'>) {
   if (id) {
     await setDoc(getDocRef(db, userId, 'tasks', id), data, { merge: true });
@@ -101,24 +90,64 @@ export async function saveInventoryItem(db: Firestore, userId: string, id: strin
 }
 
 // ============================================================================
+// Invoice Specific Logic (Auto-Merge)
+// ============================================================================
+
+export async function addItemToClientInvoice(db: Firestore, userId: string, clientId: string, newItem: InvoiceItem) {
+  const invoicesRef = getCollectionRef(db, userId, 'invoices');
+  const q = query(invoicesRef, where('clientId', '==', clientId));
+  
+  const querySnapshot = await getDocs(q);
+
+  if (querySnapshot.empty) {
+    // No invoice for this client, create a new one
+    const { subtotal, tax, total } = calculateInvoiceTotals([newItem], 0); // No tax
+    const newInvoiceData = {
+      clientId,
+      items: [newItem],
+      subtotal,
+      tax,
+      total,
+      status: 'Draft' as InvoiceStatus,
+      dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(), // Default due date 30 days from now
+      createdAt: new Date().toISOString(),
+    };
+    await addDoc(invoicesRef, newInvoiceData);
+  } else {
+    // Existing invoice found, update it
+    const invoiceDoc = querySnapshot.docs[0];
+    const invoiceData = invoiceDoc.data() as Invoice;
+
+    const updatedItems = [...invoiceData.items, newItem];
+    const { subtotal, tax, total } = calculateInvoiceTotals(updatedItems, 0); // No tax
+
+    await updateDoc(invoiceDoc.ref, {
+      items: updatedItems,
+      subtotal,
+      tax,
+      total,
+      createdAt: new Date().toISOString(), // Update timestamp to reflect recent activity
+    });
+  }
+}
+
+
+// ============================================================================
 // Delete Operations
 // ============================================================================
 
 export async function deleteClient(db: Firestore, userId: string, id: string) {
   const batch = writeBatch(db);
   
-  // Delete the client
   const clientDocRef = getDocRef(db, userId, 'clients', id);
   batch.delete(clientDocRef);
   
-  // Find and delete all associated invoices
   const invoicesQuery = query(getCollectionRef(db, userId, 'invoices'), where('clientId', '==', id));
   const invoicesSnapshot = await getDocs(invoicesQuery);
   invoicesSnapshot.forEach(doc => batch.delete(doc.ref));
 
   await batch.commit();
 }
-
 
 export async function deleteInvoice(db: Firestore, userId: string, id: string) {
     await deleteDoc(getDocRef(db, userId, 'invoices', id));
@@ -135,10 +164,6 @@ export async function deleteInventoryItem(db: Firestore, userId: string, id: str
 // ============================================================================
 // Quick Updates & Actions
 // ============================================================================
-
-export async function updateInvoiceStatus(db: Firestore, userId: string, id: string, status: InvoiceStatus) {
-    await updateDoc(getDocRef(db, userId, 'invoices', id), { status });
-}
 
 export async function updateTaskStatus(db: Firestore, userId: string, id: string, status: TaskStatus) {
     await updateDoc(getDocRef(db, userId, 'tasks', id), { status });
@@ -163,7 +188,6 @@ export async function getBusinessProfile(db: Firestore, userId: string): Promise
 }
 
 export async function saveInvoiceSettings(db: Firestore, userId: string, data: InvoiceSettings) {
-  // Settings are stored in a subcollection of the user's profile
   await setDoc(doc(db, 'profiles', userId, 'settings', 'invoice'), data, { merge: true });
 }
 

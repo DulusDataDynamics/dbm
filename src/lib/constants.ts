@@ -21,6 +21,11 @@ export const NAV_LINKS = [
     label: 'Clients',
   },
   {
+    href: '/invoices',
+    icon: FileText,
+    label: 'Invoices',
+  },
+  {
     href: '/tasks',
     icon: CheckCircle2,
     label: 'Tasks',
