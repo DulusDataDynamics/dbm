@@ -1,3 +1,4 @@
+
 import {
   collection,
   onSnapshot,
@@ -89,46 +90,57 @@ export async function saveInventoryItem(db: Firestore, userId: string, id: strin
   }
 }
 
-// ============================================================================
-// Invoice Specific Logic (Auto-Merge)
-// ============================================================================
-
-export async function addItemToClientInvoice(db: Firestore, userId: string, clientId: string, newItem: InvoiceItem) {
-  const invoicesRef = getCollectionRef(db, userId, 'invoices');
-  const q = query(invoicesRef, where('clientId', '==', clientId));
-  
-  const querySnapshot = await getDocs(q);
-
-  if (querySnapshot.empty) {
-    // No invoice for this client, create a new one
-    const { subtotal, tax, total } = calculateInvoiceTotals([newItem], 0); // No tax
-    const newInvoiceData = {
-      clientId,
-      items: [newItem],
-      subtotal,
-      tax,
-      total,
-      status: 'Draft' as InvoiceStatus,
-      dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(), // Default due date 30 days from now
+export async function saveInvoice(db: Firestore, userId: string, id: string | null, data: Omit<Invoice, 'id'>) {
+  if (id) {
+    // Updating an existing invoice
+    await setDoc(getDocRef(db, userId, 'invoices', id), data, { merge: true });
+  } else {
+    // Creating a new invoice
+    const invoiceDataWithTimestamp = {
+      ...data,
       createdAt: new Date().toISOString(),
     };
-    await addDoc(invoicesRef, newInvoiceData);
-  } else {
-    // Existing invoice found, update it
-    const invoiceDoc = querySnapshot.docs[0];
-    const invoiceData = invoiceDoc.data() as Invoice;
-
-    const updatedItems = [...invoiceData.items, newItem];
-    const { subtotal, tax, total } = calculateInvoiceTotals(updatedItems, 0); // No tax
-
-    await updateDoc(invoiceDoc.ref, {
-      items: updatedItems,
-      subtotal,
-      tax,
-      total,
-      createdAt: new Date().toISOString(), // Update timestamp to reflect recent activity
-    });
+    await addDoc(getCollectionRef(db, userId, 'invoices'), invoiceDataWithTimestamp);
   }
+}
+
+// ============================================================================
+// Quick Updates & Actions
+// ============================================================================
+
+export async function updateTaskStatus(db: Firestore, userId: string, id: string, status: TaskStatus) {
+    await updateDoc(getDocRef(db, userId, 'tasks', id), { status });
+}
+
+export async function updateTaskPriority(db: Firestore, userId: string, id: string, priority: TaskPriority) {
+    await updateDoc(getDocRef(db, userId, 'tasks', id), { priority });
+}
+
+export async function updateInvoiceStatus(db: Firestore, userId: string, id: string, status: InvoiceStatus) {
+  await updateDoc(getDocRef(db, userId, 'invoices', id), { status });
+}
+
+export async function duplicateInvoice(db: Firestore, userId: string, invoiceId: string) {
+    const originalInvoiceRef = getDocRef(db, userId, 'invoices', invoiceId);
+    const originalInvoiceSnap = await getDoc(originalInvoiceRef);
+
+    if (!originalInvoiceSnap.exists()) {
+        throw new Error("Original invoice not found.");
+    }
+
+    const originalData = originalInvoiceSnap.data() as Invoice;
+    
+    // Create a new object excluding the original ID
+    const { id, ...newData } = originalData;
+
+    const duplicatedInvoice = {
+        ...newData,
+        status: 'Draft' as InvoiceStatus,
+        createdAt: new Date().toISOString(),
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(), // New due date
+    };
+
+    await addDoc(getCollectionRef(db, userId, 'invoices'), duplicatedInvoice);
 }
 
 
@@ -159,18 +171,6 @@ export async function deleteTask(db: Firestore, userId: string, id: string) {
 
 export async function deleteInventoryItem(db: Firestore, userId: string, id: string) {
   await deleteDoc(getDocRef(db, userId, 'inventory', id));
-}
-
-// ============================================================================
-// Quick Updates & Actions
-// ============================================================================
-
-export async function updateTaskStatus(db: Firestore, userId: string, id: string, status: TaskStatus) {
-    await updateDoc(getDocRef(db, userId, 'tasks', id), { status });
-}
-
-export async function updateTaskPriority(db: Firestore, userId: string, id: string, priority: TaskPriority) {
-    await updateDoc(getDocRef(db, userId, 'tasks', id), { priority });
 }
 
 // ============================================================================

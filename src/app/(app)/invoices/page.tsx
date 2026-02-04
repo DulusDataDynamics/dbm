@@ -1,19 +1,19 @@
+
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useTransition } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
-import { Client, Invoice, InvoiceItem } from '@/lib/types';
+import { Client, Invoice, InvoiceStatus } from '@/lib/types';
 import {
   subscribeToClients,
   subscribeToInvoices,
-  addItemToClientInvoice,
   deleteInvoice,
+  updateInvoiceStatus,
+  duplicateInvoice
 } from '@/lib/firestore';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import {
   DropdownMenu,
@@ -21,18 +21,19 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
-import { MoreVertical, MessageSquare, Mail, Printer, Download, Trash, Eye, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
-
-const initialItemState = { name: '', price: 0, qty: 1 };
+import { InvoiceForm } from '@/components/app/invoice-form';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export default function InvoicesPage() {
   const { user, isUserLoading } = useAuth();
@@ -42,11 +43,16 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [selectedClient, setSelectedClient] = useState('');
-  const [item, setItem] = useState(initialItemState);
   
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (isUserLoading || !db || !user?.uid) {
@@ -68,70 +74,78 @@ export default function InvoicesPage() {
 
   const clientsMap = useMemo(() => new Map(clients.map(c => [c.id, c.name])), [clients]);
 
-  const handleAddItem = async () => {
-    if (!selectedClient || !item.name || item.price <= 0 || item.qty <= 0) {
+  const handleAddInvoice = () => {
+    setSelectedInvoice(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditInvoice = (invoice: Invoice) => {
+    if (invoice.status !== 'Draft') {
       toast({
         variant: 'destructive',
-        title: 'Invalid Item',
-        description: 'Please select a client and fill in all item details.',
+        title: 'Cannot Edit Sent Invoice',
+        description: 'Once an invoice is marked as Unpaid or Paid, it cannot be edited. You can duplicate it instead.',
       });
       return;
     }
-    if (!db || !user?.uid) return;
-
-    try {
-      await addItemToClientInvoice(db, user.uid, selectedClient, {
-        description: item.name,
-        price: item.price,
-        quantity: item.qty,
-      });
-      toast({
-        title: 'Item Added',
-        description: `Successfully added ${item.name} to the client's invoice.`,
-      });
-      setItem(initialItemState);
-      setSelectedClient('');
-    } catch (error) {
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Could not add item to invoice.',
-      });
-    }
-  };
-
-  const downloadInvoicePdf = (invoice: Invoice) => {
-    const clientName = clientsMap.get(invoice.clientId) || 'Unknown Client';
-    const doc = new jsPDF();
-    
-    doc.setFontSize(18);
-    doc.text(`Invoice for ${clientName}`, 14, 22);
-    doc.setFontSize(11);
-    doc.text(`Invoice ID: ${invoice.id}`, 14, 32);
-    doc.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`, 14, 42);
-
-    (doc as any).autoTable({
-      startY: 50,
-      head: [['Description', 'Quantity', 'Price', 'Total']],
-      body: invoice.items.map(i => [
-        i.description,
-        i.quantity,
-        `R ${i.price.toFixed(2)}`,
-        `R ${(i.price * i.quantity).toFixed(2)}`,
-      ]),
-      foot: [
-        [{ content: 'Total', colSpan: 3, styles: { halign: 'right' } }, `R ${invoice.total.toFixed(2)}`]
-      ]
-    });
-    
-    doc.save(`invoice-${invoice.id.substring(0, 8)}.pdf`);
+    setSelectedInvoice(invoice);
+    setIsFormOpen(true);
   };
   
   const handleViewInvoice = (invoice: Invoice) => {
     setViewingInvoice(invoice);
     setIsViewOpen(true);
   };
+
+  const handleDeleteClick = (invoice: Invoice) => {
+    if (invoice.status !== 'Draft') {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Delete Sent Invoice',
+        description: 'Only draft invoices can be deleted.',
+      });
+      return;
+    }
+    setInvoiceToDelete(invoice);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (invoiceToDelete && db && user?.uid) {
+      await deleteInvoice(db, user.uid, invoiceToDelete.id);
+      toast({ title: 'Invoice deleted successfully.' });
+      setIsDeleteDialogOpen(false);
+      setInvoiceToDelete(null);
+    }
+  };
+
+  const handleDuplicateInvoice = (invoiceId: string) => {
+    if (!db || !user?.uid) return;
+    startTransition(async () => {
+      await duplicateInvoice(db, user.uid, invoiceId);
+      toast({ title: 'Invoice duplicated successfully.' });
+    });
+  }
   
+  const handleStatusChange = (invoiceId: string, status: InvoiceStatus) => {
+    if (!db || !user?.uid) return;
+    startTransition(async () => {
+      await updateInvoiceStatus(db, user.uid, invoiceId, status);
+      toast({ title: `Invoice status updated to ${status}.` });
+    });
+  };
+  
+  const getStatusBadge = (status: InvoiceStatus) => {
+    switch (status) {
+      case 'Paid': return <Badge variant="default"><CheckCircle className="mr-1 h-3 w-3" />Paid</Badge>;
+      case 'Unpaid': return <Badge variant="secondary"><AlertCircle className="mr-1 h-3 w-3" />Unpaid</Badge>;
+      case 'Overdue': return <Badge variant="destructive"><Clock className="mr-1 h-3 w-3" />Overdue</Badge>;
+      case 'Draft':
+      default:
+        return <Badge variant="outline"><CircleDot className="mr-1 h-3 w-3" />Draft</Badge>;
+    }
+  };
+
   const selectedClientForView = useMemo(() => {
     if (!viewingInvoice) return null;
     const client = clients.find(c => c.id === viewingInvoice.clientId);
@@ -143,90 +157,66 @@ export default function InvoicesPage() {
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Create & Manage Invoices</CardTitle>
-          <CardDescription>Add billable items to client invoices. New items are automatically merged into a client's existing invoice.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-2 items-end p-4 mb-4 border rounded-lg">
-            <div className="grid w-full gap-2 md:grid-cols-4">
-              <div className="space-y-1.5 md:col-span-2">
-                <Select value={selectedClient} onValueChange={setSelectedClient}>
-                  <SelectTrigger><SelectValue placeholder="Select Client" /></SelectTrigger>
-                  <SelectContent>
-                    {clients.map(c => <option key={c.id} value={c.id}>{c.name || c.id}</option>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Input placeholder="Service / Item Name" value={item.name} onChange={e => setItem({ ...item, name: e.target.value })} />
-              </div>
-              <div className="space-y-1.5">
-                <Input type="number" placeholder="Price (R)" value={item.price || ''} onChange={e => setItem({ ...item, price: Number(e.target.value) })} />
-              </div>
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+                <CardTitle>Invoices</CardTitle>
+                <CardDescription>Create and manage your client invoices.</CardDescription>
             </div>
-            <Button onClick={handleAddItem} className="w-full md:w-auto mt-2 md:mt-0">
-              <PlusCircle className="mr-2 h-4 w-4" /> Add Item
+             <Button size="sm" onClick={handleAddInvoice} disabled={loading || !db || !user}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Create Invoice
             </Button>
           </div>
-        
+        </CardHeader>
+        <CardContent>
           {loading ? (
             <div className="space-y-2">
-              {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
+              {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
           ) : (
-            <ScrollArea className="h-[calc(100vh-30rem)]">
+            <ScrollArea className="h-[calc(100vh-22rem)]">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Client</TableHead>
-                    <TableHead>Total Items</TableHead>
-                    <TableHead>Total Amount</TableHead>
-                    <TableHead>Last Updated</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="hidden sm:table-cell">Status</TableHead>
+                    <TableHead className="hidden md:table-cell">Created</TableHead>
+                    <TableHead className="hidden md:table-cell">Due</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>
+                      <span className="sr-only">Actions</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {invoices.map(inv => (
                     <TableRow key={inv.id}>
                       <TableCell className="font-medium">{clientsMap.get(inv.clientId) || 'Unknown Client'}</TableCell>
-                      <TableCell>{inv.items.length}</TableCell>
-                      <TableCell>R {inv.total.toFixed(2)}</TableCell>
-                      <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{getStatusBadge(inv.status)}</TableCell>
+                      <TableCell className="hidden md:table-cell">{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell className="hidden md:table-cell">{new Date(inv.dueDate).toLocaleDateString()}</TableCell>
+                      <TableCell className="text-right">R {inv.total.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon"><MoreVertical className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" disabled={isPending}><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onSelect={() => handleViewInvoice(inv)}>
-                              <Eye className="mr-2 h-4 w-4" /> View / Print
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => downloadInvoicePdf(inv)}>
-                              <Download className="mr-2 h-4 w-4" /> Download PDF
-                            </DropdownMenuItem>
-                             <DropdownMenuItem onSelect={() => {
-                                const client = clients.find(c => c.id === inv.clientId);
-                                if (client?.phone) {
-                                  window.open(`https://wa.me/${client.phone.replace(/\D/g, '')}`, '_blank');
-                                } else {
-                                  toast({ variant: 'destructive', title: 'No phone number for this client.'});
-                                }
-                            }}>
-                              <MessageSquare className="mr-2 h-4 w-4" /> WhatsApp
-                            </DropdownMenuItem>
-                             <DropdownMenuItem onSelect={() => {
-                                const client = clients.find(c => c.id === inv.clientId);
-                                if (client?.email) {
-                                  window.location.href = `mailto:${client.email}`;
-                                } else {
-                                  toast({ variant: 'destructive', title: 'No email for this client.'});
-                                }
-                             }}>
-                              <Mail className="mr-2 h-4 w-4" /> Email
-                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleViewInvoice(inv)}><Eye className="mr-2 h-4 w-4" /> View</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleEditInvoice(inv)} disabled={inv.status !== 'Draft'}><Pencil className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleDuplicateInvoice(inv.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate</DropdownMenuItem>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onSelect={() => handleStatusChange(inv.id, 'Draft')}>Draft</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleStatusChange(inv.id, 'Unpaid')}>Unpaid</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleStatusChange(inv.id, 'Paid')}>Paid</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleStatusChange(inv.id, 'Overdue')}>Overdue</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => db && user && deleteInvoice(db, user.uid, inv.id)} className="text-red-500">
+                            <DropdownMenuItem onSelect={() => handleDeleteClick(inv)} className="text-red-500" disabled={inv.status !== 'Draft'}>
                               <Trash className="mr-2 h-4 w-4" /> Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -241,6 +231,16 @@ export default function InvoicesPage() {
         </CardContent>
       </Card>
       
+      {db && user?.uid && (
+        <InvoiceForm 
+            db={db}
+            userId={user.uid}
+            isOpen={isFormOpen}
+            onClose={() => setIsFormOpen(false)}
+            invoice={selectedInvoice}
+        />
+      )}
+
       {db && (
         <ViewInvoiceDialog 
             isOpen={isViewOpen}
@@ -250,6 +250,21 @@ export default function InvoicesPage() {
             db={db}
         />
       )}
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this draft invoice.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

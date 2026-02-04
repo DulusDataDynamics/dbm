@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function calculateInvoiceTotals(items: InvoiceItem[], taxRate: number = 0.15) {
-  const subtotal = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
+  const subtotal = items.reduce((acc, item) => acc + ((item.quantity || 0) * (item.price || 0)), 0);
   const tax = subtotal * taxRate;
   const total = subtotal + tax;
   return { subtotal, tax, total };

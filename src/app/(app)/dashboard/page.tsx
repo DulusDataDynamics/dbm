@@ -74,10 +74,6 @@ export default function DashboardPage() {
       client: clientsMap.get(invoice.clientId),
     })), [invoices, clientsMap]);
 
-  const activeInvoices = invoices.filter(
-    (invoice) => invoice.status === 'Unpaid' || invoice.status === 'Overdue'
-  ).length;
-
   const pendingTasks = tasks.filter(
     (task) => task.status === 'Pending' || task.status === 'In Progress'
   ).length;
@@ -105,8 +101,8 @@ export default function DashboardPage() {
               icon={Users}
             />
             <StatCard
-              title="Active Invoices"
-              value={activeInvoices.toString()}
+              title="Total Invoices"
+              value={invoices.length.toString()}
               icon={FileText}
             />
             <StatCard
@@ -133,6 +129,9 @@ export default function DashboardPage() {
                   Your most recently created invoices.
                 </CardDescription>
               </div>
+               <Button variant="outline" size="sm" asChild>
+                <Link href="/invoices">View All</Link>
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
