@@ -23,7 +23,6 @@ import {
   Copy,
   Trash2,
   CheckCircle,
-  Clock,
   Send,
   FileWarning,
 } from 'lucide-react';

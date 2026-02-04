@@ -6,7 +6,7 @@ export function Logo({ className }: { className?: string }) {
       <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold">
         DB
       </div>
-       <span className="font-bold text-lg text-foreground group-data-[collapsible=icon]:hidden whitespace-nowrap">Dulus BS Manager</span>
+       <span className="font-bold text-lg text-foreground group-data-[collapsible=icon]:hidden whitespace-nowrap">Dulus Business Hub</span>
     </div>
   );
 }

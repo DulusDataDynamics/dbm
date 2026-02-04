@@ -88,7 +88,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
     name: 'items'
   });
 
-  const { setValue, watch } = form;
+  const { setValue } = form;
 
   const watchedItems = useWatch({
     control: form.control,
@@ -228,7 +228,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                       <FormItem className="col-span-2"><FormControl><Input type="number" {...field} placeholder="100.00" /></FormControl><FormMessage /></FormItem>
                     )} />
                     <div className="col-span-2 flex h-10 items-center justify-end rounded-md border border-input bg-muted px-3 py-2 text-sm">
-                      R {((watch(`items.${index}.quantity`) || 0) * (watch(`items.${index}.price`) || 0)).toFixed(2)}
+                      R {((form.watch(`items.${index}.quantity`) || 0) * (form.watch(`items.${index}.price`) || 0)).toFixed(2)}
                     </div>
                     <div className="col-span-1">
                       <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -243,9 +243,9 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                 {/* Totals Section */}
                 <div className="flex justify-end pt-4">
                   <div className="w-full max-w-sm space-y-2">
-                    <div className="flex justify-between"><span>Subtotal</span><span>R {(watch('subtotal') || 0).toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span>Tax ({(taxRate * 100).toFixed(0)}%)</span><span>R {(watch('tax') || 0).toFixed(2)}</span></div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2"><span>Total</span><span>R {(watch('total') || 0).toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Subtotal</span><span>R {(form.watch('subtotal') || 0).toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Tax ({(taxRate * 100).toFixed(0)}%)</span><span>R {(form.watch('tax') || 0).toFixed(2)}</span></div>
+                    <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2"><span>Total</span><span>R {(form.watch('total') || 0).toFixed(2)}</span></div>
                   </div>
                 </div>
 
