@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo, useTransition, useCallback } from 'react';
+import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
 import { Client, Invoice, InvoiceStatus, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import {
@@ -39,6 +39,13 @@ import { InvoiceForm } from '@/components/app/invoice-form';
 import { InvoicePDFView } from '@/components/app/invoice-pdf-view';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
+type PDFData = {
+  invoice: Invoice;
+  client: Client;
+  profile: BusinessProfile;
+  settings: InvoiceSettings;
+};
+
 export default function InvoicesPage() {
   const { user, isUserLoading } = useAuth();
   const db = useFirestore();
@@ -58,9 +65,12 @@ export default function InvoicesPage() {
 
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isProcessing, startTransition] = useTransition();
 
-  const [invoiceToDownload, setInvoiceToDownload] = useState<Invoice | null>(null);
+  const [pdfData, setPdfData] = useState<PDFData | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const pdfContainerRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     if (isUserLoading || !db || !user?.uid) {
@@ -146,51 +156,73 @@ export default function InvoicesPage() {
     });
   };
   
-  const handleDownloadPdf = useCallback(async (invoice: Invoice | null) => {
-      if (!invoice) return;
+  const handleDownloadClick = (invoice: Invoice) => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    toast({ title: 'Preparing download...', description: 'Please wait a moment.' });
+    
+    const client = clients.find(c => c.id === invoice.clientId);
 
-      const element = document.getElementById(`invoice-pdf-view-${invoice.id}`);
-      if (!element) {
-          toast({ variant: "destructive", title: "Error", description: "Could not find invoice content to download." });
-          setInvoiceToDownload(null);
-          return;
-      }
-      
-      toast({ title: "Preparing Download...", description: "Your PDF is being generated." });
-
-      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/jpeg', 0.9);
-      
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pdfWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pdfHeight;
-      }
-
-      pdf.save(`Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`);
-      setInvoiceToDownload(null);
-  }, [toast]);
-
+    if (!client || !businessProfile || !invoiceSettings) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Generate PDF',
+        description: 'Missing required data (client, profile, or settings).',
+      });
+      setIsDownloading(false);
+      return;
+    }
+    
+    setPdfData({ invoice, client, profile: businessProfile, settings: invoiceSettings });
+  };
+  
   useEffect(() => {
-      if (invoiceToDownload) {
-          // Give React time to render the hidden component before capturing
-          const timer = setTimeout(() => handleDownloadPdf(invoiceToDownload), 100);
-          return () => clearTimeout(timer);
-      }
-  }, [invoiceToDownload, handleDownloadPdf]);
+    if (pdfData && pdfContainerRef.current) {
+      const generatePdf = async () => {
+        const element = pdfContainerRef.current;
+        if (!element || !element.firstChild) {
+          toast({ variant: 'destructive', title: 'PDF Generation Failed', description: 'Could not capture invoice element.' });
+          setIsDownloading(false);
+          setPdfData(null);
+          return;
+        }
+
+        try {
+          const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+          const imgData = canvas.toDataURL('image/jpeg', 0.9);
+
+          const pdf = new jsPDF('p', 'mm', 'a4');
+          const pdfWidth = pdf.internal.pageSize.getWidth();
+          const pdfHeight = pdf.internal.pageSize.getHeight();
+          const imgWidth = pdfWidth;
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          let heightLeft = imgHeight;
+          let position = 0;
+
+          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+          heightLeft -= pdfHeight;
+
+          while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+            heightLeft -= pdfHeight;
+          }
+
+          pdf.save(`Invoice-${pdfData.invoice.id.substring(0, 6).toUpperCase()}.pdf`);
+        } catch (error) {
+          console.error("PDF generation error:", error);
+          toast({ variant: 'destructive', title: 'PDF Generation Failed', description: 'An unexpected error occurred.' });
+        } finally {
+          setIsDownloading(false);
+          setPdfData(null);
+        }
+      };
+      
+      const timer = setTimeout(generatePdf, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [pdfData, toast]);
 
 
   const handleSendWhatsApp = (invoice: Invoice) => {
@@ -235,11 +267,6 @@ export default function InvoicesPage() {
     const client = clients.find(c => c.id === viewingInvoice.clientId);
     return client || null;
   }, [viewingInvoice, clients]);
-
-  const clientForDownload = useMemo(() => {
-    if (!invoiceToDownload) return null;
-    return clients.find(c => c.id === invoiceToDownload.clientId) || null;
-  }, [invoiceToDownload, clients]);
 
   return (
     <>
@@ -287,14 +314,14 @@ export default function InvoicesPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={isPending}><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" disabled={isProcessing || isDownloading}><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem onSelect={() => handleViewInvoice(inv)}><Eye className="mr-2 h-4 w-4" /> View</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleEditInvoice(inv)} disabled={inv.status !== 'Draft'}><Pencil className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleDuplicateInvoice(inv.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => setInvoiceToDownload(inv)}><Download className="mr-2 h-4 w-4" /> Download PDF</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleDownloadClick(inv)} disabled={isDownloading}><Download className="mr-2 h-4 w-4" /> Download PDF</DropdownMenuItem>
                              <DropdownMenuSub>
                                 <DropdownMenuSubTrigger><Send className="mr-2 h-4 w-4" /> Send to Client</DropdownMenuSubTrigger>
                                 <DropdownMenuSubContent>
@@ -362,13 +389,18 @@ export default function InvoicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
+      
       <div className="hidden">
-        {invoiceToDownload && clientForDownload && businessProfile && invoiceSettings ? (
-          <div id={`invoice-pdf-view-${invoiceToDownload.id}`}>
-            <InvoicePDFView client={clientForDownload} invoice={invoiceToDownload} profile={businessProfile} settings={invoiceSettings} />
-          </div>
-        ) : null}
+        <div ref={pdfContainerRef}>
+          {pdfData && (
+            <InvoicePDFView
+              client={pdfData.client}
+              invoice={pdfData.invoice}
+              profile={pdfData.profile}
+              settings={pdfData.settings}
+            />
+          )}
+        </div>
       </div>
     </>
   );

@@ -83,6 +83,10 @@ export function InvoicePDFView({ client, invoice, profile, settings }: InvoicePD
                             <td className="p-2 text-right font-bold">Subtotal:</td>
                             <td className="p-2 text-right">R {invoice.subtotal.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
+                         <tr>
+                            <td className="p-2 text-right font-bold">Tax ({profile.defaultTaxRate || 0}%):</td>
+                            <td className="p-2 text-right">R {invoice.tax.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                        </tr>
                         <tr className="border-t-2 font-bold text-lg" style={{borderColor: brandColor}}>
                             <td className="p-2 text-right">Total:</td>
                             <td className="p-2 text-right">R {invoice.total.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
