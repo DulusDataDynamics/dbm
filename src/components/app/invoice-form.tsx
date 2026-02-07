@@ -51,7 +51,9 @@ const formSchema = z.object({
   status: z.enum(['Draft', 'Unpaid', 'Paid', 'Overdue']),
   dueDate: z.date({ required_error: 'A due date is required.' }),
   items: z.array(invoiceItemSchema).min(1, "At least one item is required."),
-  createdAt: z.string().optional(), // Handled by firestore logic
+  subtotal: z.number(),
+  total: z.number(),
+  createdAt: z.string().optional(),
 });
 
 type InvoiceFormValues = z.infer<typeof formSchema>;
@@ -72,7 +74,9 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
     defaultValues: {
       clientId: '',
       status: 'Draft',
-      items: [],
+      items: [{ description: '', quantity: 1, price: 0 }],
+      subtotal: 0,
+      total: 0,
     },
   });
   
@@ -86,7 +90,12 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
     name: 'items',
   });
 
-  const { subtotal, total } = calculateInvoiceTotals(watchedItems || []);
+  useEffect(() => {
+    const { subtotal, total } = calculateInvoiceTotals(watchedItems || []);
+    form.setValue('subtotal', subtotal, { shouldValidate: false });
+    form.setValue('total', total, { shouldValidate: false });
+  }, [watchedItems, form]);
+
 
   useEffect(() => {
     if (!db || !userId) return;
@@ -139,7 +148,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
             <ScrollArea className="max-h-[70vh] p-1">
               <div className="space-y-4 p-4">
                 {/* Client and Due Date */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
                     name="clientId"
@@ -151,6 +160,29 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                             <SelectTrigger><SelectValue placeholder="Select a client" /></SelectTrigger>
                           </FormControl>
                           <SelectContent>{clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Draft">Draft</SelectItem>
+                            <SelectItem value="Unpaid">Unpaid</SelectItem>
+                            <SelectItem value="Paid">Paid</SelectItem>
+                            <SelectItem value="Overdue">Overdue</SelectItem>
+                          </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
@@ -218,8 +250,8 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                 {/* Totals Section */}
                 <div className="flex justify-end pt-4">
                   <div className="w-full max-w-sm space-y-2">
-                    <div className="flex justify-between"><span>Subtotal</span><span>R {subtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2"><span>Total</span><span>R {total.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>Subtotal</span><span>R {(form.getValues('subtotal') || 0).toFixed(2)}</span></div>
+                    <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2"><span>Total</span><span>R {(form.getValues('total') || 0).toFixed(2)}</span></div>
                   </div>
                 </div>
 
