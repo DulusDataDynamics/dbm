@@ -1,4 +1,3 @@
-
 'use client';
 import {
   Dialog,
@@ -33,46 +32,88 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
   const pdfPreviewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
+  const waitForRender = async (element: HTMLElement) => {
+    // Wait for next paint
+    await new Promise(requestAnimationFrame);
+    await new Promise(requestAnimationFrame);
+
+    // Wait for images
+    const images = element.querySelectorAll('img');
+    await Promise.all(
+      Array.from(images).map(img => {
+        if (img.complete) return Promise.resolve();
+        return new Promise(res => {
+          img.onload = res;
+          img.onerror = res;
+        });
+      })
+    );
+
+    // Wait for fonts
+    if (document.fonts) {
+      await document.fonts.ready;
+    }
+  };
+
   const downloadPdf = async () => {
     if (!invoice || !pdfPreviewRef.current) {
       toast({ variant: 'destructive', title: 'Error', description: 'Invoice content is not ready.' });
       return;
-    };
+    }
 
     setIsDownloading(true);
-    toast({ title: 'Downloading PDF...', description: 'Please wait.' });
+    toast({ title: 'Downloading PDF...', description: 'Preparing invoice layout...' });
 
-    const element = pdfPreviewRef.current;
-    
     try {
-        const canvas = await html2canvas(element.querySelector(`#invoice-pdf-view-${invoice.id}`)!, { scale: 2, useCORS: true });
-        const imgData = canvas.toDataURL('image/jpeg', 0.9);
-        
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const imgWidth = pageWidth;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const container = pdfPreviewRef.current;
+      const target = container.querySelector(
+        `#invoice-pdf-view-${invoice.id}`
+      ) as HTMLElement;
 
-        let heightLeft = imgHeight;
-        let position = 0;
+      if (!target) {
+        throw new Error('Invoice PDF node not found');
+      }
 
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      // ✅ wait for real render completion
+      await waitForRender(target);
 
-        while (heightLeft > 0) {
+      const canvas = await html2canvas(target, {
+        scale: Math.max(2, window.devicePixelRatio || 2),
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        windowWidth: target.scrollWidth,
+        windowHeight: target.scrollHeight,
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
         pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
-        }
+      }
 
-        pdf.save(`Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`);
+      pdf.save(`Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`);
     } catch (error) {
-        console.error("PDF download error:", error);
-        toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not generate the PDF.' });
+      console.error('PDF download error:', error);
+      toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not generate the PDF.' });
     } finally {
-        setIsDownloading(false);
+      setIsDownloading(false);
     }
   };
 
