@@ -3,13 +3,15 @@
 
 import { useEffect, useState, useMemo, useTransition, useCallback } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
-import { Client, Invoice, InvoiceStatus } from '@/lib/types';
+import { Client, Invoice, InvoiceStatus, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import {
   subscribeToClients,
   subscribeToInvoices,
   deleteInvoice,
   updateInvoiceStatus,
-  duplicateInvoice
+  duplicateInvoice,
+  getBusinessProfile,
+  getInvoiceSettings,
 } from '@/lib/firestore';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -45,6 +47,8 @@ export default function InvoicesPage() {
   const [loading, setLoading] = useState(true);
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings | null>(null);
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
@@ -69,6 +73,9 @@ export default function InvoicesPage() {
       setInvoices(invoiceData);
       setLoading(false);
     });
+
+    getBusinessProfile(db, user.uid).then(setBusinessProfile);
+    getInvoiceSettings(db, user.uid).then(setInvoiceSettings);
 
     return () => {
       unsubClients();
@@ -152,7 +159,7 @@ export default function InvoicesPage() {
       toast({ title: "Preparing Download...", description: "Your PDF is being generated." });
 
       const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
       
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -163,13 +170,13 @@ export default function InvoicesPage() {
       let heightLeft = imgHeight;
       let position = 0;
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pdfHeight;
 
       while (heightLeft > 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
         heightLeft -= pdfHeight;
       }
 
@@ -179,6 +186,7 @@ export default function InvoicesPage() {
 
   useEffect(() => {
       if (invoiceToDownload) {
+          // Give React time to render the hidden component before capturing
           const timer = setTimeout(() => handleDownloadPdf(invoiceToDownload), 100);
           return () => clearTimeout(timer);
       }
@@ -275,7 +283,7 @@ export default function InvoicesPage() {
                       <TableCell className="hidden sm:table-cell">{getStatusBadge(inv.status)}</TableCell>
                       <TableCell className="hidden md:table-cell">{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell className="hidden md:table-cell">{new Date(inv.dueDate).toLocaleDateString()}</TableCell>
-                      <TableCell className="text-right">R {inv.total.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">R {(inv.total || 0).toFixed(2)}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -335,7 +343,8 @@ export default function InvoicesPage() {
             onClose={() => setIsViewOpen(false)}
             invoice={viewingInvoice}
             client={selectedClientForView}
-            db={db}
+            profile={businessProfile}
+            settings={invoiceSettings}
         />
       )}
 
@@ -355,9 +364,9 @@ export default function InvoicesPage() {
       </AlertDialog>
 
       <div className="hidden">
-        {invoiceToDownload && clientForDownload && db ? (
+        {invoiceToDownload && clientForDownload && businessProfile && invoiceSettings ? (
           <div id={`invoice-pdf-view-${invoiceToDownload.id}`}>
-            <InvoicePDFView db={db} client={clientForDownload} invoice={invoiceToDownload} />
+            <InvoicePDFView client={clientForDownload} invoice={invoiceToDownload} profile={businessProfile} settings={invoiceSettings} />
           </div>
         ) : null}
       </div>

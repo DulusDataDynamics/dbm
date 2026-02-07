@@ -9,14 +9,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Client, Invoice } from '@/lib/types';
+import { Client, Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useState } from 'react';
 import { InvoicePDFView } from './invoice-pdf-view';
-import { useFirestore, useAuth } from '@/firebase';
 import { ScrollArea } from '../ui/scroll-area';
 
 interface ViewInvoiceDialogProps {
@@ -24,11 +23,11 @@ interface ViewInvoiceDialogProps {
   onClose: () => void;
   invoice: Invoice | null;
   client: Client | null;
-  db: any;
+  profile: BusinessProfile | null;
+  settings: InvoiceSettings | null;
 }
 
-export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, db }: ViewInvoiceDialogProps) {
-  const { user } = useAuth();
+export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, settings }: ViewInvoiceDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const downloadPdf = async () => {
@@ -42,7 +41,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, db }: View
     }
 
     const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.9);
     
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -53,13 +52,13 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, db }: View
     let heightLeft = imgHeight;
     let position = 0;
 
-    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
     heightLeft -= pageHeight;
 
     while (heightLeft > 0) {
       position = heightLeft - imgHeight;
       pdf.addPage();
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
     }
 
@@ -78,9 +77,9 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, db }: View
         </DialogHeader>
         <div className="py-4 bg-muted/30">
           <ScrollArea className="h-[65vh]">
-            {client && invoice && db && user ? (
+            {client && invoice && profile && settings ? (
               <div className="flex justify-center">
-                <InvoicePDFView db={db} client={client} invoice={invoice} />
+                <InvoicePDFView client={client} invoice={invoice} profile={profile} settings={settings} />
               </div>
             ) : (
               <div className="p-8">
@@ -93,7 +92,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, db }: View
           <Button type="button" variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button type="button" onClick={downloadPdf} disabled={isDownloading || !client || !db || !user}>
+          <Button type="button" onClick={downloadPdf} disabled={isDownloading || !client || !profile || !settings}>
             <Download className="mr-2 h-4 w-4" />
             {isDownloading ? 'Downloading...' : 'Download as PDF'}
           </Button>

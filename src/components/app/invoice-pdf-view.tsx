@@ -1,31 +1,19 @@
 
 'use client';
 import { Client, BusinessProfile, InvoiceSettings, Invoice } from '@/lib/types';
-import { useAuth } from '@/firebase';
-import { useEffect, useState } from 'react';
-import { getBusinessProfile, getInvoiceSettings } from '@/lib/firestore';
 import { Building } from 'lucide-react';
-import type { Firestore } from 'firebase/firestore';
 
 interface InvoicePDFViewProps {
-  db: Firestore;
   client: Client;
   invoice: Invoice;
+  profile: BusinessProfile;
+  settings: InvoiceSettings;
 }
 
-export function InvoicePDFView({ db, client, invoice }: InvoicePDFViewProps) {
-    const { user } = useAuth();
-    const [profile, setProfile] = useState<BusinessProfile | null>(null);
-    const [settings, setSettings] = useState<InvoiceSettings | null>(null);
-    
-    useEffect(() => {
-        if(user?.uid && db) {
-            getBusinessProfile(db, user.uid).then(setProfile);
-            getInvoiceSettings(db, user.uid).then(setSettings);
-        }
-    }, [user, client, db]);
-    
-    if (!invoice) return <div className="p-8">No invoice data available for this client.</div>;
+export function InvoicePDFView({ client, invoice, profile, settings }: InvoicePDFViewProps) {
+    if (!invoice || !profile || !settings) {
+        return <div className="p-8">Loading invoice data...</div>;
+    }
     
     const brandColor = settings?.brandColor || '#2B579A';
 
