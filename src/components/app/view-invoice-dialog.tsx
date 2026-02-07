@@ -29,31 +29,9 @@ interface ViewInvoiceDialogProps {
 
 export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, settings }: ViewInvoiceDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [pdfReady, setPdfReady] = useState(false);
   const pdfPreviewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-
-  const waitForRender = async (element: HTMLElement) => {
-    // Wait for next paint
-    await new Promise(requestAnimationFrame);
-    await new Promise(requestAnimationFrame);
-
-    // Wait for images
-    const images = element.querySelectorAll('img');
-    await Promise.all(
-      Array.from(images).map(img => {
-        if (img.complete) return Promise.resolve();
-        return new Promise(res => {
-          img.onload = res;
-          img.onerror = res;
-        });
-      })
-    );
-
-    // Wait for fonts
-    if (document.fonts) {
-      await document.fonts.ready;
-    }
-  };
 
   const downloadPdf = async () => {
     if (!invoice || !pdfPreviewRef.current) {
@@ -73,9 +51,6 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
       if (!target) {
         throw new Error('Invoice PDF node not found');
       }
-
-      // ✅ wait for real render completion
-      await waitForRender(target);
 
       const canvas = await html2canvas(target, {
         scale: Math.max(2, window.devicePixelRatio || 2),
@@ -117,8 +92,15 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
     }
   };
 
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      setPdfReady(false);
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Invoice Preview</DialogTitle>
@@ -130,7 +112,13 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
           <ScrollArea className="h-[65vh]">
             {client && invoice && profile && settings ? (
               <div className="flex justify-center" ref={pdfPreviewRef}>
-                <InvoicePDFView client={client} invoice={invoice} profile={profile} settings={settings} />
+                <InvoicePDFView
+                  client={client}
+                  invoice={invoice}
+                  profile={profile}
+                  settings={settings}
+                  onReady={() => setPdfReady(true)}
+                />
               </div>
             ) : (
               <div className="p-8">
@@ -143,7 +131,11 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
           <Button type="button" variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button type="button" onClick={downloadPdf} disabled={isDownloading || !client || !profile || !settings}>
+          <Button
+            type="button"
+            onClick={downloadPdf}
+            disabled={isDownloading || !pdfReady}
+          >
             <Download className="mr-2 h-4 w-4" />
             {isDownloading ? 'Downloading...' : 'Download as PDF'}
           </Button>
