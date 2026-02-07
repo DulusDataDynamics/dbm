@@ -95,10 +95,6 @@ export function InvoicePDFView({ db, client, invoice }: InvoicePDFViewProps) {
                             <td className="p-2 text-right font-bold">Subtotal:</td>
                             <td className="p-2 text-right">R {invoice.subtotal.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                         </tr>
-                         <tr>
-                            <td className="p-2 text-right font-bold">Tax ({profile?.defaultTaxRate || 15}%):</td>
-                            <td className="p-2 text-right">R {invoice.tax.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                        </tr>
                         <tr className="border-t-2 font-bold text-lg" style={{borderColor: brandColor}}>
                             <td className="p-2 text-right">Total:</td>
                             <td className="p-2 text-right">R {invoice.total.toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -115,6 +111,7 @@ export function InvoicePDFView({ db, client, invoice }: InvoicePDFViewProps) {
                 <div className="text-gray-600">
                     <h3 className="text-sm font-bold text-gray-800 mb-1">Payment Information</h3>
                     <p className="italic mb-2">{settings?.paymentTerms || 'Please make payment by the due date.'}</p>
+
                     <p><strong>Bank:</strong> {profile?.bankName || 'N/A'}</p>
                     <p><strong>Account Holder:</strong> {profile?.accountHolder || 'N/A'}</p>
                     <p><strong>Account Number:</strong> {profile?.accountNumber || 'N/A'}</p>

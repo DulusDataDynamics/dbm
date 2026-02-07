@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useEffect, useState, useMemo, useTransition } from 'react';
+import { useEffect, useState, useMemo, useTransition, useCallback } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
 import { Client, Invoice, InvoiceStatus } from '@/lib/types';
 import {
@@ -11,7 +11,8 @@ import {
   updateInvoiceStatus,
   duplicateInvoice
 } from '@/lib/firestore';
-
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -26,13 +27,14 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil, Download, Send, MessageSquare, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
 import { InvoiceForm } from '@/components/app/invoice-form';
+import { InvoicePDFView } from '@/components/app/invoice-pdf-view';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export default function InvoicesPage() {
@@ -53,6 +55,8 @@ export default function InvoicesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const [invoiceToDownload, setInvoiceToDownload] = useState<Invoice | null>(null);
 
   useEffect(() => {
     if (isUserLoading || !db || !user?.uid) {
@@ -135,6 +139,78 @@ export default function InvoicesPage() {
     });
   };
   
+  const handleDownloadPdf = useCallback(async (invoice: Invoice | null) => {
+      if (!invoice) return;
+
+      const element = document.getElementById(`invoice-pdf-view-${invoice.id}`);
+      if (!element) {
+          toast({ variant: "destructive", title: "Error", description: "Could not find invoice content to download." });
+          setInvoiceToDownload(null);
+          return;
+      }
+      
+      toast({ title: "Preparing Download...", description: "Your PDF is being generated." });
+
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pdfWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pdfHeight;
+      }
+
+      pdf.save(`Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`);
+      setInvoiceToDownload(null);
+  }, [toast]);
+
+  useEffect(() => {
+      if (invoiceToDownload) {
+          const timer = setTimeout(() => handleDownloadPdf(invoiceToDownload), 100);
+          return () => clearTimeout(timer);
+      }
+  }, [invoiceToDownload, handleDownloadPdf]);
+
+
+  const handleSendWhatsApp = (invoice: Invoice) => {
+      const client = clients.find(c => c.id === invoice.clientId);
+      if (!client || !client.phone) {
+          toast({
+              variant: 'destructive',
+              title: 'Cannot Send Message',
+              description: 'This client does not have a phone number saved.',
+          });
+          return;
+      }
+      const phoneNumber = client.phone.replace(/\D/g, '');
+      const message = `Hi ${client.name},\n\nHere is your invoice ${invoice.id.substring(0, 6).toUpperCase()} for R ${invoice.total.toFixed(2)}.\n\nThank you!`;
+      const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+      window.open(url, '_blank');
+  };
+
+  const handleSendEmail = (invoice: Invoice) => {
+      const client = clients.find(c => c.id === invoice.clientId);
+      if (!client) return;
+
+      const subject = `Invoice ${invoice.id.substring(0, 6).toUpperCase()} from Your Company`;
+      const body = `Hi ${client.name},\n\nPlease find your invoice attached (you can download it from the app).\n\nTotal Amount: R ${invoice.total.toFixed(2)}\nDue Date: ${new Date(invoice.dueDate).toLocaleDateString()}\n\nThank you!`;
+      const url = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+      window.open(url, '_blank');
+  };
+
   const getStatusBadge = (status: InvoiceStatus) => {
     switch (status) {
       case 'Paid': return <Badge variant="default"><CheckCircle className="mr-1 h-3 w-3" />Paid</Badge>;
@@ -152,6 +228,10 @@ export default function InvoicesPage() {
     return client || null;
   }, [viewingInvoice, clients]);
 
+  const clientForDownload = useMemo(() => {
+    if (!invoiceToDownload) return null;
+    return clients.find(c => c.id === invoiceToDownload.clientId) || null;
+  }, [invoiceToDownload, clients]);
 
   return (
     <>
@@ -206,6 +286,14 @@ export default function InvoicesPage() {
                             <DropdownMenuItem onSelect={() => handleViewInvoice(inv)}><Eye className="mr-2 h-4 w-4" /> View</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleEditInvoice(inv)} disabled={inv.status !== 'Draft'}><Pencil className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleDuplicateInvoice(inv.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setInvoiceToDownload(inv)}><Download className="mr-2 h-4 w-4" /> Download PDF</DropdownMenuItem>
+                             <DropdownMenuSub>
+                                <DropdownMenuSubTrigger><Send className="mr-2 h-4 w-4" /> Send to Client</DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem onSelect={() => handleSendWhatsApp(inv)}><MessageSquare className="mr-2 h-4 w-4" /> via WhatsApp</DropdownMenuItem>
+                                    <DropdownMenuItem onSelect={() => handleSendEmail(inv)}><Mail className="mr-2 h-4 w-4" /> via Email</DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
                             <DropdownMenuSub>
                                 <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
                                 <DropdownMenuSubContent>
@@ -265,6 +353,14 @@ export default function InvoicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <div className="hidden">
+        {invoiceToDownload && clientForDownload && db ? (
+          <div id={`invoice-pdf-view-${invoiceToDownload.id}`}>
+            <InvoicePDFView db={db} client={clientForDownload} invoice={invoiceToDownload} />
+          </div>
+        ) : null}
+      </div>
     </>
   );
 }

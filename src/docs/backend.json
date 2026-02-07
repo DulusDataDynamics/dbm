@@ -58,7 +58,6 @@
           }
         },
         "subtotal": { "type": "number" },
-        "tax": { "type": "number" },
         "total": { "type": "number" },
         "dueDate": {
           "type": "string",
@@ -110,30 +109,6 @@
         }
       },
       "required": ["title", "status", "priority", "dueDate"]
-    },
-    "inventoryItem": {
-      "title": "Inventory Item",
-      "description": "An item in the inventory.",
-      "type": "object",
-      "properties": {
-        "sku": {
-          "type": "string",
-          "description": "The SKU of the inventory item."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the inventory item."
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The quantity of the inventory item."
-        },
-        "price": {
-          "type": "number",
-          "description": "The price of the inventory item."
-        }
-      },
-      "required": ["sku", "name", "quantity", "price"]
     }
   },
   "auth": {
@@ -151,10 +126,6 @@
     "/users/{userId}/tasks/{taskId}": {
       "schema": { "$ref": "#/entities/task" },
       "description": "Stores task information for a specific user."
-    },
-    "/users/{userId}/inventory/{itemId}": {
-      "schema": { "$ref": "#/entities/inventoryItem" },
-      "description": "Stores inventory item information for a specific user."
     }
   }
 }

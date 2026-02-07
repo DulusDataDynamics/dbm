@@ -36,7 +36,7 @@ import { Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn, calculateInvoiceTotals } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Client, Invoice } from '@/lib/types';
-import { saveInvoice, subscribeToClients, getBusinessProfile } from '@/lib/firestore';
+import { saveInvoice, subscribeToClients } from '@/lib/firestore';
 import type { Firestore } from 'firebase/firestore';
 import { ScrollArea } from '../ui/scroll-area';
 
@@ -66,7 +66,6 @@ interface InvoiceFormProps {
 
 export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
-  const [taxRate, setTaxRate] = useState(0.15); // Default 15%
 
   const form = useForm<InvoiceFormValues>({
     resolver: zodResolver(formSchema),
@@ -87,16 +86,11 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
     name: 'items',
   });
 
-  const { subtotal, tax, total } = calculateInvoiceTotals(watchedItems || [], taxRate);
+  const { subtotal, total } = calculateInvoiceTotals(watchedItems || []);
 
   useEffect(() => {
     if (!db || !userId) return;
     const unsubscribe = subscribeToClients(db, userId, setClients);
-    getBusinessProfile(db, userId).then(profile => {
-      if (profile?.defaultTaxRate != null) {
-        setTaxRate(profile.defaultTaxRate / 100);
-      }
-    });
     return () => unsubscribe();
   }, [db, userId]);
 
@@ -120,12 +114,11 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
 
   const onSubmit = async (data: InvoiceFormValues) => {
     if (!db || !userId) return;
-    const { subtotal, tax, total } = calculateInvoiceTotals(data.items, taxRate);
+    const { subtotal, total } = calculateInvoiceTotals(data.items);
     const invoiceData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
       subtotal,
-      tax,
       total
     };
     await saveInvoice(db, userId, invoice?.id || null, invoiceData);
@@ -226,7 +219,6 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                 <div className="flex justify-end pt-4">
                   <div className="w-full max-w-sm space-y-2">
                     <div className="flex justify-between"><span>Subtotal</span><span>R {subtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span>Tax ({taxRate * 100}%)</span><span>R {tax.toFixed(2)}</span></div>
                     <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2"><span>Total</span><span>R {total.toFixed(2)}</span></div>
                   </div>
                 </div>

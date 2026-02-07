@@ -8,11 +8,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function calculateInvoiceTotals(items: InvoiceItem[], taxRate: number = 0.15) {
+export function calculateInvoiceTotals(items: InvoiceItem[]) {
   const subtotal = items.reduce((acc, item) => acc + ((item.quantity || 0) * (item.price || 0)), 0);
-  const tax = subtotal * taxRate;
-  const total = subtotal + tax;
-  return { subtotal, tax, total };
+  const total = subtotal;
+  return { subtotal, total };
 }
 
 export function mapToAISchema(invoices: Invoice[], clients: Client[]): GenerateRevenueInsightsInput {

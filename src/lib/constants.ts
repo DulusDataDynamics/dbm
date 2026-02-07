@@ -3,7 +3,6 @@ import {
   Users,
   FileText,
   CheckCircle2,
-  Boxes,
   BarChart3,
   Settings,
   LifeBuoy,
@@ -29,11 +28,6 @@ export const NAV_LINKS = [
     href: '/tasks',
     icon: CheckCircle2,
     label: 'Tasks',
-  },
-  {
-    href: '/inventory',
-    icon: Boxes,
-    label: 'Inventory',
   },
   {
     href: '/reports',

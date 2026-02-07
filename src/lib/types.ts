@@ -21,7 +21,6 @@ export type Invoice = {
   status: InvoiceStatus;
   items: InvoiceItem[];
   subtotal: number;
-  tax: number;
   total: number;
   dueDate: string; // ISO Date
   createdAt: string; // ISO Date
@@ -38,16 +37,6 @@ export type Task = {
   priority: TaskPriority;
   dueDate: string;
   assignedTo?: string;
-};
-
-export type InventoryItem = {
-  id: string;
-  sku: string;
-  name: string;
-  category?: string;
-  quantity: number;
-  price: number;
-  reorderLevel: number;
 };
 
 export type BusinessProfile = {

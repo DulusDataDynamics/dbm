@@ -71,7 +71,7 @@ export function RevenueChart({ invoices }: RevenueChartProps) {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(value) => `R${(value as number / 1000)}k`}
+              tickFormatter={(value) => `R${value}`}
             />
             <Tooltip
               cursor={{ fill: 'hsl(var(--muted))' }}
