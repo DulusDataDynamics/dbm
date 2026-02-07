@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useEffect, useState, useMemo, useTransition, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useTransition } from 'react';
 import { useAuth, useFirestore } from '@/firebase';
 import { Client, Invoice, InvoiceStatus, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import {
@@ -13,8 +12,6 @@ import {
   getBusinessProfile,
   getInvoiceSettings,
 } from '@/lib/firestore';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -29,22 +26,14 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil, Download, Send, MessageSquare, Mail } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil, Send, MessageSquare, Mail } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
 import { InvoiceForm } from '@/components/app/invoice-form';
-import { InvoicePDFView } from '@/components/app/invoice-pdf-view';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-
-type PDFData = {
-  invoice: Invoice;
-  client: Client;
-  profile: BusinessProfile;
-  settings: InvoiceSettings;
-};
 
 export default function InvoicesPage() {
   const { user, isUserLoading } = useAuth();
@@ -66,10 +55,6 @@ export default function InvoicesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [isProcessing, startTransition] = useTransition();
-
-  const [pdfData, setPdfData] = useState<PDFData | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
-  const pdfContainerRef = useRef<HTMLDivElement>(null);
 
 
   useEffect(() => {
@@ -155,75 +140,6 @@ export default function InvoicesPage() {
       toast({ title: `Invoice status updated to ${status}.` });
     });
   };
-  
-  const handleDownloadClick = (invoice: Invoice) => {
-    if (isDownloading) return;
-    setIsDownloading(true);
-    toast({ title: 'Preparing download...', description: 'Please wait a moment.' });
-    
-    const client = clients.find(c => c.id === invoice.clientId);
-
-    if (!client || !businessProfile || !invoiceSettings) {
-      toast({
-        variant: 'destructive',
-        title: 'Cannot Generate PDF',
-        description: 'Missing required data (client, profile, or settings).',
-      });
-      setIsDownloading(false);
-      return;
-    }
-    
-    setPdfData({ invoice, client, profile: businessProfile, settings: invoiceSettings });
-  };
-  
-  useEffect(() => {
-    if (pdfData && pdfContainerRef.current) {
-      const generatePdf = async () => {
-        const element = pdfContainerRef.current;
-        if (!element || !element.firstChild) {
-          toast({ variant: 'destructive', title: 'PDF Generation Failed', description: 'Could not capture invoice element.' });
-          setIsDownloading(false);
-          setPdfData(null);
-          return;
-        }
-
-        try {
-          const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-          const imgData = canvas.toDataURL('image/jpeg', 0.9);
-
-          const pdf = new jsPDF('p', 'mm', 'a4');
-          const pdfWidth = pdf.internal.pageSize.getWidth();
-          const pdfHeight = pdf.internal.pageSize.getHeight();
-          const imgWidth = pdfWidth;
-          const imgHeight = (canvas.height * imgWidth) / canvas.width;
-          let heightLeft = imgHeight;
-          let position = 0;
-
-          pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-          heightLeft -= pdfHeight;
-
-          while (heightLeft > 0) {
-            position = heightLeft - imgHeight;
-            pdf.addPage();
-            pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-            heightLeft -= pdfHeight;
-          }
-
-          pdf.save(`Invoice-${pdfData.invoice.id.substring(0, 6).toUpperCase()}.pdf`);
-        } catch (error) {
-          console.error("PDF generation error:", error);
-          toast({ variant: 'destructive', title: 'PDF Generation Failed', description: 'An unexpected error occurred.' });
-        } finally {
-          setIsDownloading(false);
-          setPdfData(null);
-        }
-      };
-      
-      const timer = setTimeout(generatePdf, 100);
-      return () => clearTimeout(timer);
-    }
-  }, [pdfData, toast]);
-
 
   const handleSendWhatsApp = (invoice: Invoice) => {
       const client = clients.find(c => c.id === invoice.clientId);
@@ -245,7 +161,7 @@ export default function InvoicesPage() {
       const client = clients.find(c => c.id === invoice.clientId);
       if (!client) return;
 
-      const subject = `Invoice ${invoice.id.substring(0, 6).toUpperCase()} from Your Company`;
+      const subject = `Invoice ${invoice.id.substring(0, 6).toUpperCase()} from Dulus Business Manager`;
       const body = `Hi ${client.name},\n\nPlease find your invoice attached (you can download it from the app).\n\nTotal Amount: R ${invoice.total.toFixed(2)}\nDue Date: ${new Date(invoice.dueDate).toLocaleDateString()}\n\nThank you!`;
       const url = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
       window.open(url, '_blank');
@@ -314,14 +230,13 @@ export default function InvoicesPage() {
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" disabled={isProcessing || isDownloading}><MoreHorizontal className="h-4 w-4" /></Button>
+                            <Button variant="ghost" size="icon" disabled={isProcessing}><MoreHorizontal className="h-4 w-4" /></Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem onSelect={() => handleViewInvoice(inv)}><Eye className="mr-2 h-4 w-4" /> View</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleEditInvoice(inv)} disabled={inv.status !== 'Draft'}><Pencil className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleDuplicateInvoice(inv.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate</DropdownMenuItem>
-                            <DropdownMenuItem onSelect={() => handleDownloadClick(inv)} disabled={isDownloading}><Download className="mr-2 h-4 w-4" /> Download PDF</DropdownMenuItem>
                              <DropdownMenuSub>
                                 <DropdownMenuSubTrigger><Send className="mr-2 h-4 w-4" /> Send to Client</DropdownMenuSubTrigger>
                                 <DropdownMenuSubContent>
@@ -389,19 +304,6 @@ export default function InvoicesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      <div className="hidden">
-        <div ref={pdfContainerRef}>
-          {pdfData && (
-            <InvoicePDFView
-              client={pdfData.client}
-              invoice={pdfData.invoice}
-              profile={pdfData.profile}
-              settings={pdfData.settings}
-            />
-          )}
-        </div>
-      </div>
     </>
   );
 }
