@@ -1,56 +1,77 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, CheckCircle, ChevronDown, DollarSign, BarChart, Users, FileText, Zap, Shield, GitBranch } from 'lucide-react';
+import { ArrowRight, Check, LayoutDashboard, UsersRound, FileText, TrendingUp, Bot, Sparkles, FilePieChart, X } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/firebase';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Card, CardContent } from '@/components/ui/card';
 
-const featureHighlights = [
-    {
-        icon: Users,
-        title: 'Client Management',
-        description: 'Keep a complete directory of your clients, track communications, and manage relationships with ease.',
-        image: PlaceHolderImages.find(p => p.id === 'feature-clients')?.imageUrl || "https://picsum.photos/seed/feature-clients/600/400",
-        imageHint: 'people business meeting'
-    },
+const problems = [
+    { icon: X, text: "Invoices scattered everywhere" },
+    { icon: X, text: "Sales written in notebooks" },
+    { icon: X, text: "No idea how much profit you're making" },
+    { icon: X, text: "Clients aren't organized" },
+    { icon: X, text: "End of the month is a stressful nightmare" },
+];
+
+const solutionFeatures = [
     {
         icon: FileText,
-        title: 'Effortless Invoicing',
-        description: 'Create, send, and track professional invoices in seconds. Get paid faster with automated reminders.',
-        image: PlaceHolderImages.find(p => p.id === 'feature-invoicing')?.imageUrl || "https://picsum.photos/seed/feature-invoicing/600/400",
-        imageHint: 'invoice document payment'
+        title: 'Smart Invoicing',
+        description: 'Create and send professional invoices in seconds, and get paid faster.',
     },
     {
-        icon: Zap,
-        title: 'AI-Powered Insights',
-        description: 'Leverage our AI financial analyst to get daily summaries, revenue trends, and actionable business advice.',
-        image: PlaceHolderImages.find(p => p.id === 'feature-ai')?.imageUrl || "https://picsum.photos/seed/feature-ai/600/400",
-        imageHint: 'abstract data chart'
+        icon: LayoutDashboard,
+        title: 'Business Dashboard',
+        description: 'See your sales, income, and business performance instantly in one clear view.',
+    },
+    {
+        icon: UsersRound,
+        title: 'Client Manager',
+        description: 'Store, manage, and track all your customer information and history with ease.',
+    },
+    {
+        icon: TrendingUp,
+        title: 'Sales Tracking',
+        description: 'Know exactly how your business is performing every day with real-time analytics.',
     },
 ];
 
 const howItWorksSteps = [
   {
     number: "01",
-    title: "Sign Up & Set Up",
-    description: "Create your account in minutes and set up your business profile. It's quick, easy, and free to start.",
+    title: "Create Your Account",
+    description: "Sign up in minutes with just your email. No credit card required to start.",
   },
   {
     number: "02",
-    title: "Add Your Data",
-    description: "Easily import or add your clients, products, and services. Our intuitive interface makes data entry a breeze.",
+    title: "Add Customers & Products",
+    description: "Easily import or add your clients and the services or products you sell.",
   },
   {
     number: "03",
     title: "Manage & Grow",
-    description: "Start sending invoices, tracking tasks, and generating AI insights to streamline operations and grow your business.",
+    description: "Start sending invoices, tracking tasks, and using AI insights to grow your business.",
   },
+];
+
+const aiFeatures = [
+    { icon: Bot, title: "AI Invoice Generation", description: "Let AI create draft invoices for you based on client history." },
+    { icon: Sparkles, title: "Smart Business Insights", description: "Get daily, easy-to-understand summaries of your financial health." },
+    { icon: FilePieChart, title: "Automated Reports", description: "Generate sales, revenue, and client reports automatically." },
+];
+
+const whoIsItFor = [
+    "Small Businesses",
+    "Freelancers",
+    "Retail Shops",
+    "Service-based Businesses",
+    "Startups & Entrepreneurs",
+    "Artisans & Creators"
 ];
 
 const faqItems = [
@@ -74,26 +95,13 @@ const faqItems = [
 
 
 export default function LandingPage() {
-  const { user, isUserLoading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isUserLoading && user) {
-      router.replace('/dashboard');
-    }
-  }, [user, isUserLoading, router]);
-
-  if (isUserLoading || user) {
-    return null; // or a loading spinner
-  }
-
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground">
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-6">
           <Logo />
           <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-             <Link href="#features" className="text-muted-foreground transition-colors hover:text-foreground">Features</Link>
+             <Link href="#solution" className="text-muted-foreground transition-colors hover:text-foreground">Solution</Link>
              <Link href="#pricing" className="text-muted-foreground transition-colors hover:text-foreground">Pricing</Link>
              <Link href="#faq" className="text-muted-foreground transition-colors hover:text-foreground">FAQ</Link>
           </nav>
@@ -102,7 +110,7 @@ export default function LandingPage() {
                 <Link href="/login">Login</Link>
             </Button>
             <Button asChild>
-              <Link href="/signup">Get Started <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href="/signup">Start Free Trial <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </div>
         </div>
@@ -110,91 +118,109 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative border-b">
-             <div className="container mx-auto max-w-7xl px-4 md:px-6 text-center py-20 md:py-32">
-                <Badge variant="outline" className="mb-4 py-1 px-3 rounded-full">Your All-in-One Business Command Center</Badge>
+        <section className="relative border-b py-20 md:py-32">
+             <div className="container mx-auto max-w-7xl px-4 md:px-6 text-center">
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
-                    The Smart Way to Run Your Small Business
+                    Run Your Entire Business in One Simple Dashboard
                 </h1>
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground md:text-xl">
-                    Stop juggling spreadsheets and apps. Dulus Business Manager (DBM) brings your clients, invoices, tasks, and financial insights into one powerful, AI-driven platform.
+                    Manage invoices, clients, sales, and business performance in one place — built for small businesses.
                 </p>
                 <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
                     <Button size="lg" asChild>
-                        <Link href="/signup">Start Your 1-Month Trial</Link>
+                        <Link href="/signup">Start Your 1-Month Free Trial</Link>
                     </Button>
                     <Button size="lg" variant="outline" asChild>
-                        <Link href="#features">Learn More <ChevronDown className="ml-2 h-4 w-4" /></Link>
+                        <Link href="#demo">Watch Demo</Link>
                     </Button>
                 </div>
             </div>
              <div
-                className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] dark:bg-background dark:bg-[linear-gradient(to_right,#1e1e1e_1px,transparent_1px),linear-gradient(to_bottom,#1e1e1e_1px,transparent_1px)]">
+                className="absolute inset-0 -z-10 h-full w-full bg-white bg-[linear-gradient(to_right,#f0f0f0_1px,transparent_1px),linear-gradient(to_bottom,#f0f0f0_1px,transparent_1px)] bg-[size:6rem_4rem] dark:bg-background dark:bg-[linear-gradient(to_right,hsl(var(--border)),transparent_1px),linear-gradient(to_bottom,hsl(var(--border)),transparent_1px)]">
                 <div
                     className="absolute bottom-0 left-0 right-0 top-0 bg-[radial-gradient(circle_500px_at_50%_200px,hsl(var(--primary)/0.1),transparent)] dark:bg-[radial-gradient(circle_500px_at_50%_200px,hsl(var(--primary)/0.05),transparent)]"></div>
             </div>
         </section>
-
-        {/* Social Proof */}
-        <section className="py-12 bg-muted/40 border-b">
-            <div className="container mx-auto max-w-7xl px-4 md:px-6">
-                <p className="text-center text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-                    Trusted by small businesses and freelancers
+        
+        {/* Problem Section */}
+        <section id="problem" className="py-20 md:py-28 bg-muted/40 border-b">
+            <div className="container mx-auto max-w-4xl px-4 md:px-6 text-center">
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Running a Business Shouldn't Be This Messy</h2>
+                <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+                    If you're juggling notebooks, spreadsheets, and messages just to keep track of everything, you're not alone.
                 </p>
-                <div className="mt-6 grid grid-cols-2 place-items-center gap-8 sm:grid-cols-3 md:grid-cols-6">
-                    <GitBranch className="h-8 w-auto text-muted-foreground" />
-                    <Zap className="h-8 w-auto text-muted-foreground" />
-                    <DollarSign className="h-8 w-auto text-muted-foreground" />
-                    <Shield className="h-8 w-auto text-muted-foreground" />
-                    <BarChart className="h-8 w-auto text-muted-foreground" />
-                    <Users className="h-8 w-auto text-muted-foreground" />
+                <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-left">
+                    {problems.map((problem) => (
+                        <Card key={problem.text} className="p-4 bg-background/50">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+                                    <problem.icon className="h-4 w-4" />
+                                </div>
+                                <span className="font-medium">{problem.text}</span>
+                            </div>
+                        </Card>
+                    ))}
                 </div>
+                <p className="mt-12 text-xl font-semibold">Dulus Business Manager fixes all of this in one place.</p>
             </div>
         </section>
 
-
-        {/* Features Section */}
-        <section id="features" className="py-20 md:py-32">
+        {/* Solution Section */}
+        <section id="solution" className="py-20 md:py-28">
             <div className="container mx-auto max-w-7xl px-4 md:px-6">
                 <div className="text-center">
-                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything You Need. Nothing You Don’t.</h2>
+                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything Your Business Needs in One Place</h2>
                     <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-                       DBM is packed with features designed to save you time, reduce stress, and give you a clear view of your business health.
+                       DBM is packed with features designed to save you time and give you a clear view of your business health.
                     </p>
                 </div>
-                <div className="mt-16 space-y-24">
-                    {featureHighlights.map((feature, index) => (
-                        <div key={feature.title} className={`grid gap-8 md:grid-cols-2 md:gap-16 items-center`}>
-                            <div className={index % 2 !== 0 ? 'md:order-2' : ''}>
-                                <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mb-4">
-                                    <feature.icon className="w-6 h-6" />
-                                </div>
-                                <h3 className="text-2xl font-bold">{feature.title}</h3>
-                                <p className="mt-2 text-muted-foreground">{feature.description}</p>
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mt-16">
+                    {solutionFeatures.map((feature) => (
+                        <div key={feature.title}>
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mb-4">
+                                <feature.icon className="w-6 h-6" />
                             </div>
-                            <div className={`relative ${index % 2 !== 0 ? 'md:order-1' : ''}`}>
-                                <Image
-                                    src={feature.image}
-                                    alt={feature.title}
-                                    width={600}
-                                    height={400}
-                                    className="rounded-lg shadow-lg"
-                                    data-ai-hint={feature.imageHint}
-                                />
-                            </div>
+                            <h3 className="text-xl font-bold">{feature.title}</h3>
+                            <p className="mt-2 text-muted-foreground">{feature.description}</p>
                         </div>
                     ))}
                 </div>
             </div>
         </section>
-        
+
+        {/* Dashboard Screenshot Section */}
+        <section id="demo" className="py-20 md:py-28 bg-muted/40 border-y">
+            <div className="container mx-auto max-w-7xl px-4 md:px-6">
+                 <div className="text-center">
+                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">See Your Business at a Glance</h2>
+                    <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+                       Our clean, simple dashboard gives you instant access to revenue, invoices, clients, and performance analytics.
+                    </p>
+                </div>
+                <div className="mt-12">
+                    <Card className="overflow-hidden shadow-2xl shadow-primary/10">
+                        <CardContent className="p-0">
+                             <Image
+                                src={PlaceHolderImages.find(p => p.id === 'dashboard-screenshot')?.imageUrl || "https://picsum.photos/seed/dashboard-screenshot/1200/800"}
+                                alt="Dulus Business Manager Dashboard"
+                                width={1200}
+                                height={800}
+                                className="w-full h-auto"
+                                data-ai-hint="dashboard analytics"
+                            />
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </section>
+
         {/* How It Works Section */}
-        <section className="py-20 md:py-32 bg-muted/40 border-y">
+        <section id="how-it-works" className="py-20 md:py-28">
             <div className="container mx-auto max-w-7xl px-4 md:px-6">
                 <div className="text-center">
-                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Get Started in 3 Simple Steps</h2>
+                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Get Started in Minutes</h2>
                     <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-                        From signup to sending your first invoice in under 5 minutes.
+                        From signup to sending your first invoice in under 5 minutes. It's that simple.
                     </p>
                 </div>
                  <div className="relative mt-16 grid gap-16 md:gap-8 md:grid-cols-3">
@@ -202,7 +228,7 @@ export default function LandingPage() {
                     {howItWorksSteps.map((step) => (
                         <div key={step.number} className="relative text-center p-6 bg-background rounded-lg border shadow-sm">
                              <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-background px-2">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full border bg-primary font-bold text-primary-foreground">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary bg-primary/10 font-bold text-primary">
                                     {step.number}
                                 </div>
                             </div>
@@ -214,15 +240,58 @@ export default function LandingPage() {
             </div>
         </section>
 
+        {/* AI Feature Section */}
+        <section id="ai-features" className="py-20 md:py-28 bg-muted/40 border-y">
+            <div className="container mx-auto max-w-4xl px-4 md:px-6 text-center">
+                <Badge variant="outline" className="mb-4 py-1 px-3 rounded-full text-primary border-primary">Your Secret Weapon</Badge>
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Built with AI to Save You Time</h2>
+                <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
+                    DBM uses the latest AI technology to automate tasks and provide you with powerful, actionable insights, making your business smarter.
+                </p>
+                <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
+                    {aiFeatures.map((feature) => (
+                        <Card key={feature.title} className="p-6 text-center bg-background/50">
+                            <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mb-4">
+                                <feature.icon className="w-6 h-6" />
+                            </div>
+                            <h3 className="font-bold">{feature.title}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">{feature.description}</p>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        </section>
+        
+        {/* Who It's For Section */}
+        <section id="who-its-for" className="py-20 md:py-28">
+            <div className="container mx-auto max-w-4xl px-4 md:px-6 text-center">
+                 <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Perfect for Businesses Like Yours</h2>
+                 <div className="flex flex-wrap justify-center gap-x-6 gap-y-4 mt-8">
+                    {whoIsItFor.map(who => (
+                        <div key={who} className="flex items-center gap-2 text-lg">
+                           <Check className="h-5 w-5 text-green-500" />
+                           <span>{who}</span>
+                        </div>
+                    ))}
+                 </div>
+            </div>
+        </section>
+
+        {/* Social Proof Section */}
+        <section className="py-20 md:py-28 bg-muted/40 border-y">
+             <div className="container mx-auto max-w-3xl px-4 md:px-6 text-center">
+                <blockquote className="text-xl italic md:text-2xl text-foreground">
+                    “DBM made managing my invoices so much easier and saved me hours every week. I finally feel in control of my business finances.”
+                </blockquote>
+                <p className="mt-6 font-semibold">- Small Business Owner</p>
+             </div>
+        </section>
 
         {/* Pricing Section */}
-        <section id="pricing" className="py-20 md:py-32">
+        <section id="pricing" className="py-20 md:py-28">
             <div className="container mx-auto flex max-w-7xl justify-center px-4 md:px-6">
                 <div className="w-full max-w-md rounded-2xl border-2 border-primary bg-card p-8 text-center shadow-2xl shadow-primary/10">
-                    <Badge variant="destructive" className="mb-4 py-1 px-4 text-base font-semibold">
-                        Limited Time Offer!
-                    </Badge>
-                    <h3 className="text-3xl font-bold">Unlimited Plan</h3>
+                    <h3 className="text-3xl font-bold">Simple, Transparent Pricing</h3>
                     <p className="mt-2 text-muted-foreground">Start with a 1-month free trial. No credit card required.</p>
                     <div className="my-8">
                         <span className="text-5xl font-extrabold">R99</span>
@@ -241,7 +310,7 @@ export default function LandingPage() {
                             "Email & WhatsApp Support",
                         ].map((text, i) => (
                            <li key={i} className="flex items-center gap-3">
-                               <CheckCircle className="h-5 w-5 text-green-500" />
+                               <Check className="h-5 w-5 text-green-500" />
                                <span>{text}</span>
                            </li>
                         ))}
@@ -251,7 +320,7 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ Section */}
-        <section id="faq" className="py-20 md:py-32 border-t bg-muted/40">
+        <section id="faq" className="py-20 md:py-28 border-t bg-muted/40">
             <div className="container mx-auto max-w-3xl px-4 md:px-6">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Frequently Asked Questions</h2>
@@ -266,6 +335,23 @@ export default function LandingPage() {
                       </AccordionItem>
                     ))}
                 </Accordion>
+            </div>
+        </section>
+        
+        {/* Final CTA Section */}
+        <section className="py-20 md:py-32 border-t">
+             <div className="container mx-auto max-w-7xl px-4 md:px-6 text-center">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
+                    Start Managing Your Business Smarter Today
+                </h2>
+                <p className="mx-auto mt-4 max-w-xl text-lg text-muted-foreground">
+                    Join hundreds of small businesses who have taken control of their finances and operations with Dulus Business Manager.
+                </p>
+                <div className="mt-8">
+                    <Button size="lg" asChild>
+                        <Link href="/signup">Start Your Free Trial Now <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                    </Button>
+                </div>
             </div>
         </section>
       </main>
@@ -286,3 +372,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    

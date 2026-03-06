@@ -13,22 +13,10 @@
       "imageHint": "abstract tech"
     },
     {
-      "id": "feature-clients",
-      "description": "Image for client management feature",
-      "imageUrl": "https://images.unsplash.com/photo-1550177977-ad69e8f3cae0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwZW9wbGUlMjBidXNpbmVzc3xlbnwwfHx8fDE3NjUzNjkxOTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "people business"
-    },
-    {
-      "id": "feature-invoicing",
-      "description": "Image for invoicing feature",
-      "imageUrl": "https://images.unsplash.com/photo-1518893560155-b89cac6db0c7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxpbnZvaWNlJTIwZG9jdW1lbnR8ZW58MHx8fHwxNzY1MzI2NTI1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "invoice document"
-    },
-    {
-      "id": "feature-ai",
-      "description": "Image for AI insights feature",
-      "imageUrl": "https://images.unsplash.com/photo-1626908013351-800ddd734b8a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxhYnN0cmFjdCUyMGRhdGF8ZW58MHx8fHwxNzY1Mjg4Njk1fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "abstract data"
+      "id": "dashboard-screenshot",
+      "description": "Screenshot of the DBM dashboard",
+      "imageUrl": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3wzNzk2NTR8MHwxfHNlYXJjaHwxfHxmaW5hbmNlJTIwZGFzaGJvYXJkfGVufDB8fHx8MTcxODk4NjAzOXww&ixlib=rb-4.0.3&q=80&w=1080",
+      "imageHint": "dashboard analytics"
     }
   ]
 }
