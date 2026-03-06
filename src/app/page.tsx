@@ -213,8 +213,8 @@ export default function LandingPage() {
                     <div className="absolute top-1/2 left-0 w-full h-px bg-border/50 hidden md:block" />
                     {howItWorksSteps.map((step) => (
                         <div key={step.number} className="relative text-center p-6 bg-background rounded-lg border shadow-sm">
-                             <div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-background px-2">
-                                <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary bg-primary/10 font-bold text-primary">
+                             <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary bg-background font-bold text-primary">
                                     {step.number}
                                 </div>
                             </div>
