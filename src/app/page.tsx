@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Check, LayoutDashboard, UsersRound, FileText, TrendingUp, Bot, Sparkles, FilePieChart, X } from 'lucide-react';
+import { ArrowRight, Check, LayoutDashboard, UsersRound, FileText, TrendingUp, Bot, Sparkles, FilePieChart, X, Youtube, Instagram, Linkedin } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
@@ -110,7 +110,7 @@ export default function LandingPage() {
                 <Link href="/login">Login</Link>
             </Button>
             <Button asChild>
-              <Link href="/signup">Start Free Trial <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link href="/signup">Sign Up <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </div>
         </div>
@@ -126,13 +126,25 @@ export default function LandingPage() {
                 <p className="mx-auto mt-6 max-w-3xl text-lg text-muted-foreground md:text-xl">
                     Manage invoices, clients, sales, and business performance in one place — built for small businesses.
                 </p>
-                <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+                <div className="mt-8 flex justify-center gap-4">
                     <Button size="lg" asChild>
                         <Link href="/signup">Start Your 1-Month Free Trial</Link>
                     </Button>
-                    <Button size="lg" variant="outline" asChild>
-                        <Link href="#demo">Watch Demo</Link>
-                    </Button>
+                </div>
+                <div className="mt-16 mx-auto max-w-5xl">
+                    <Card className="overflow-hidden rounded-lg border shadow-2xl shadow-primary/10">
+                        <CardContent className="p-0">
+                             <Image
+                                src={PlaceHolderImages.find(p => p.id === 'dashboard-screenshot')?.imageUrl || "https://picsum.photos/seed/dashboard-screenshot/1200/800"}
+                                alt="Dulus Business Manager Dashboard"
+                                width={1200}
+                                height={800}
+                                className="w-full h-auto"
+                                data-ai-hint="dashboard analytics"
+                                priority
+                            />
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
              <div
@@ -188,34 +200,8 @@ export default function LandingPage() {
             </div>
         </section>
 
-        {/* Dashboard Screenshot Section */}
-        <section id="demo" className="py-20 md:py-28 bg-muted/40 border-y">
-            <div className="container mx-auto max-w-7xl px-4 md:px-6">
-                 <div className="text-center">
-                    <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">See Your Business at a Glance</h2>
-                    <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
-                       Our clean, simple dashboard gives you instant access to revenue, invoices, clients, and performance analytics.
-                    </p>
-                </div>
-                <div className="mt-12">
-                    <Card className="overflow-hidden shadow-2xl shadow-primary/10">
-                        <CardContent className="p-0">
-                             <Image
-                                src={PlaceHolderImages.find(p => p.id === 'dashboard-screenshot')?.imageUrl || "https://picsum.photos/seed/dashboard-screenshot/1200/800"}
-                                alt="Dulus Business Manager Dashboard"
-                                width={1200}
-                                height={800}
-                                className="w-full h-auto"
-                                data-ai-hint="dashboard analytics"
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
-        </section>
-
         {/* How It Works Section */}
-        <section id="how-it-works" className="py-20 md:py-28">
+        <section id="how-it-works" className="py-20 md:py-28  bg-muted/40 border-y">
             <div className="container mx-auto max-w-7xl px-4 md:px-6">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Get Started in Minutes</h2>
@@ -241,7 +227,7 @@ export default function LandingPage() {
         </section>
 
         {/* AI Feature Section */}
-        <section id="ai-features" className="py-20 md:py-28 bg-muted/40 border-y">
+        <section id="ai-features" className="py-20 md:py-28">
             <div className="container mx-auto max-w-4xl px-4 md:px-6 text-center">
                 <Badge variant="outline" className="mb-4 py-1 px-3 rounded-full text-primary border-primary">Your Secret Weapon</Badge>
                 <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Built with AI to Save You Time</h2>
@@ -250,7 +236,7 @@ export default function LandingPage() {
                 </p>
                 <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 text-left">
                     {aiFeatures.map((feature) => (
-                        <Card key={feature.title} className="p-6 text-center bg-background/50">
+                        <Card key={feature.title} className="p-6 text-center bg-card">
                             <div className="inline-flex items-center justify-center w-12 h-12 rounded-lg bg-primary/10 text-primary mb-4">
                                 <feature.icon className="w-6 h-6" />
                             </div>
@@ -263,7 +249,7 @@ export default function LandingPage() {
         </section>
         
         {/* Who It's For Section */}
-        <section id="who-its-for" className="py-20 md:py-28">
+        <section id="who-its-for" className="py-20 md:py-28 bg-muted/40 border-y">
             <div className="container mx-auto max-w-4xl px-4 md:px-6 text-center">
                  <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Perfect for Businesses Like Yours</h2>
                  <div className="flex flex-wrap justify-center gap-x-6 gap-y-4 mt-8">
@@ -278,7 +264,7 @@ export default function LandingPage() {
         </section>
 
         {/* Social Proof Section */}
-        <section className="py-20 md:py-28 bg-muted/40 border-y">
+        <section className="py-20 md:py-28">
              <div className="container mx-auto max-w-3xl px-4 md:px-6 text-center">
                 <blockquote className="text-xl italic md:text-2xl text-foreground">
                     “DBM made managing my invoices so much easier and saved me hours every week. I finally feel in control of my business finances.”
@@ -288,7 +274,7 @@ export default function LandingPage() {
         </section>
 
         {/* Pricing Section */}
-        <section id="pricing" className="py-20 md:py-28">
+        <section id="pricing" className="py-20 md:py-28 bg-muted/40 border-y">
             <div className="container mx-auto flex max-w-7xl justify-center px-4 md:px-6">
                 <div className="w-full max-w-md rounded-2xl border-2 border-primary bg-card p-8 text-center shadow-2xl shadow-primary/10">
                     <h3 className="text-3xl font-bold">Simple, Transparent Pricing</h3>
@@ -320,7 +306,7 @@ export default function LandingPage() {
         </section>
 
         {/* FAQ Section */}
-        <section id="faq" className="py-20 md:py-28 border-t bg-muted/40">
+        <section id="faq" className="py-20 md:py-28">
             <div className="container mx-auto max-w-3xl px-4 md:px-6">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Frequently Asked Questions</h2>
@@ -339,7 +325,7 @@ export default function LandingPage() {
         </section>
         
         {/* Final CTA Section */}
-        <section className="py-20 md:py-32 border-t">
+        <section className="py-20 md:py-32 border-t bg-muted/40">
              <div className="container mx-auto max-w-7xl px-4 md:px-6 text-center">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
                     Start Managing Your Business Smarter Today
@@ -357,20 +343,31 @@ export default function LandingPage() {
       </main>
 
       <footer className="w-full border-t">
-        <div className="container mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 text-center md:flex-row md:px-6">
-            <div className="flex flex-col items-center md:items-start">
+        <div className="container mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 py-8 sm:flex-row md:px-6">
+            <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
                 <Logo />
                 <p className="mt-2 text-sm text-muted-foreground">&copy; {new Date().getFullYear()} Dulus Data Dynamics. All rights reserved.</p>
             </div>
-            <div className="flex gap-4">
-                <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground">Terms of Service</Link>
-                <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground">Privacy Policy</Link>
-                 <a href="https://dulusdatadynamics.netlify.app" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">Website</a>
+            <div className="flex flex-col items-center gap-4 sm:items-end">
+              <nav className="flex gap-4 sm:gap-6">
+                  <Link href="/terms" className="text-sm text-muted-foreground hover:text-foreground">Terms</Link>
+                  <Link href="/privacy" className="text-sm text-muted-foreground hover:text-foreground">Privacy</Link>
+                  <a href="https://dulusdatadynamics.netlify.app" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">Website</a>
+              </nav>
+              <div className="flex gap-4">
+                  <a href="https://youtube.com/@dbm_sa?si=2xb6bp08eN_28GuO" target="_blank" rel="noopener noreferrer" aria-label="Youtube" className="text-muted-foreground transition-colors hover:text-foreground">
+                      <Youtube className="h-5 w-5" />
+                  </a>
+                  <a href="https://www.instagram.com/dbm_sa?igsh=b2tpamVtNTg4Nmtk" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-muted-foreground transition-colors hover:text-foreground">
+                      <Instagram className="h-5 w-5" />
+                  </a>
+                  <a href="https://www.linkedin.com/in/keshav-dulu-1b65a53b3?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-muted-foreground transition-colors hover:text-foreground">
+                      <Linkedin className="h-5 w-5" />
+                  </a>
+              </div>
             </div>
         </div>
       </footer>
     </div>
   );
 }
-
-    
