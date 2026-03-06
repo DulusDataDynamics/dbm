@@ -135,12 +135,12 @@ export default function LandingPage() {
                     <Card className="overflow-hidden rounded-lg border shadow-2xl shadow-primary/10">
                         <CardContent className="p-0">
                              <Image
-                                src={PlaceHolderImages.find(p => p.id === 'dashboard-screenshot')?.imageUrl || "https://picsum.photos/seed/dashboard-screenshot/1200/800"}
-                                alt="Dulus Business Manager Dashboard"
+                                src={PlaceHolderImages.find(p => p.id === 'landing-hero')?.imageUrl || "https://picsum.photos/seed/landing-hero/1200/800"}
+                                alt="Abstract representation of business technology"
                                 width={1200}
                                 height={800}
                                 className="w-full h-auto"
-                                data-ai-hint="dashboard analytics"
+                                data-ai-hint="abstract tech"
                                 priority
                             />
                         </CardContent>
@@ -371,3 +371,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
