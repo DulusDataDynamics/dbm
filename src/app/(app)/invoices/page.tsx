@@ -26,7 +26,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil, Send, MessageSquare, Mail } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil, Send, MessageSquare, Mail, Search } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -34,6 +34,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
 import { InvoiceForm } from '@/components/app/invoice-form';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
 
 export default function InvoicesPage() {
   const { user, isUserLoading } = useAuth();
@@ -55,6 +56,8 @@ export default function InvoicesPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
   const [isProcessing, startTransition] = useTransition();
+
+  const [searchQuery, setSearchQuery] = useState('');
 
 
   useEffect(() => {
@@ -79,6 +82,23 @@ export default function InvoicesPage() {
   }, [db, user?.uid, isUserLoading]);
 
   const clientsMap = useMemo(() => new Map(clients.map(c => [c.id, c.name])), [clients]);
+
+  const filteredInvoices = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    if (!query) return invoices;
+
+    return invoices.filter(invoice => {
+      const clientName = (clientsMap.get(invoice.clientId) || '').toLowerCase();
+      const invoiceIdShort = invoice.id.substring(0, 6).toLowerCase();
+      
+      return (
+        clientName.includes(query) ||
+        invoice.status.toLowerCase().includes(query) ||
+        invoiceIdShort.includes(query) ||
+        invoice.total.toString().includes(query)
+      );
+    });
+  }, [invoices, searchQuery, clientsMap]);
 
   const handleAddInvoice = () => {
     setSelectedInvoice(null);
@@ -193,10 +213,22 @@ export default function InvoicesPage() {
                 <CardTitle>Invoices</CardTitle>
                 <CardDescription>Create and manage your client invoices.</CardDescription>
             </div>
-             <Button size="sm" onClick={handleAddInvoice} disabled={loading || !db || !user}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Create Invoice
-            </Button>
+             <div className="flex w-full items-center gap-2 sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search by client, status, ID..."
+                  className="w-full rounded-lg bg-background pl-8 sm:w-[200px] lg:w-[300px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button size="sm" onClick={handleAddInvoice} disabled={loading || !db || !user}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Create Invoice
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -220,7 +252,7 @@ export default function InvoicesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices.map(inv => (
+                  {filteredInvoices.map(inv => (
                     <TableRow key={inv.id}>
                       <TableCell className="font-medium">{clientsMap.get(inv.clientId) || 'Unknown Client'}</TableCell>
                       <TableCell className="hidden sm:table-cell">{getStatusBadge(inv.status)}</TableCell>

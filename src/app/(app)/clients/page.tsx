@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, MessageSquare, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { deleteClient, subscribeToClients } from '@/lib/firestore';
 import { Client } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ClientForm } from '@/components/app/client-form';
 import {
@@ -42,6 +42,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
+import { Input } from '@/components/ui/input';
 
 export default function ClientsPage() {
   const db = useFirestore();
@@ -52,6 +53,7 @@ export default function ClientsPage() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   
   useEffect(() => {
@@ -67,6 +69,15 @@ export default function ClientsPage() {
 
     return () => unsubscribe();
   }, [db, user?.uid, isUserLoading]);
+
+  const filteredClients = useMemo(() => {
+    if (!searchQuery) return clients;
+    return clients.filter(client =>
+      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      client.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (client.phone && client.phone.toLowerCase().includes(searchQuery.toLowerCase()))
+    );
+  }, [clients, searchQuery]);
 
   const handleAddClient = () => {
     setSelectedClient(null);
@@ -120,10 +131,22 @@ export default function ClientsPage() {
               <CardTitle>Clients</CardTitle>
               <CardDescription>Manage your clients and view their details.</CardDescription>
             </div>
-            <Button size="sm" onClick={handleAddClient} disabled={loading || !db || !user}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Add Client
-            </Button>
+            <div className="flex w-full items-center gap-2 sm:w-auto">
+              <div className="relative flex-1 sm:flex-initial">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="Search clients..."
+                  className="w-full rounded-lg bg-background pl-8 sm:w-[200px] lg:w-[300px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Button size="sm" onClick={handleAddClient} disabled={loading || !db || !user}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Client
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -145,7 +168,7 @@ export default function ClientsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {clients.map((client) => (
+                {filteredClients.map((client) => (
                   <TableRow key={client.id}>
                     <TableCell className="font-medium">{client.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{client.email}</TableCell>
