@@ -7,6 +7,7 @@ import {
   Settings,
   LifeBuoy,
   Truck,
+  Boxes,
 } from 'lucide-react';
 
 export const NAV_LINKS = [
@@ -29,6 +30,11 @@ export const NAV_LINKS = [
     href: '/transport-invoices',
     icon: Truck,
     label: 'Transport Invoices',
+  },
+  {
+    href: '/inventory',
+    icon: Boxes,
+    label: 'Inventory',
   },
   {
     href: '/tasks',

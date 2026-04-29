@@ -25,37 +25,45 @@ import {
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isUserLoading } = useAuth();
-  
-  // Determine if the current page is an auth page (login, signup) or a public page
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
-  const isPublicPage = !pathname.startsWith('/dashboard') && !pathname.startsWith('/clients') && !pathname.startsWith('/invoices') && !pathname.startsWith('/tasks') && !pathname.startsWith('/inventory') && !pathname.startsWith('/reports') && !pathname.startsWith('/settings') && !pathname.startsWith('/support');
 
-  // If it's a public or auth page, render children directly without the main app layout
+  // Create a list of all protected app routes from the constants.
+  const appRoutes = [...NAV_LINKS, ...SUPPORT_LINKS].map((link) => link.href);
+
+  // Determine the page type based on the current path.
+  const isAppPage = appRoutes.some((route) => pathname.startsWith(route));
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isPublicPage = !isAppPage && !isAuthPage;
+
   if (isUserLoading) {
-     return (
-        <div className="flex min-h-screen w-full items-center justify-center bg-background">
-          <div className="flex flex-col items-center gap-4">
-            <Logo />
-            <div className="text-center">
-                <p className="text-lg font-medium text-foreground">
-                    Getting things ready...
-                </p>
-                <p className="text-sm text-muted-foreground">Please wait a moment while we load the app.</p>
-            </div>
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4">
+          <Logo />
+          <div className="text-center">
+            <p className="text-lg font-medium text-foreground">
+              Getting things ready...
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Please wait a moment while we load the app.
+            </p>
           </div>
         </div>
+      </div>
     );
   }
 
-  if (!user && !isPublicPage) {
-     return <Protected>{children}</Protected>;
+  // If user is not logged in and is trying to access an app page,
+  // the Protected component will handle the redirect to the login page.
+  if (!user && isAppPage) {
+    return <Protected>{children}</Protected>;
   }
 
-  if (isAuthPage || isPublicPage) {
+  // If it's a public or auth page, render children directly without the main app layout.
+  if (isPublicPage || isAuthPage) {
     return <>{children}</>;
   }
 
-
+  // If the user is logged in, render the main app layout for app pages.
   return (
     <Protected>
       <SidebarProvider>
@@ -104,16 +112,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </Sidebar>
         <SidebarInset>
           <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur-sm">
-             <div className="flex items-center gap-4">
-                <SidebarTrigger />
-             </div>
-             <div className="flex items-center gap-4">
-                <UserNav />
-             </div>
+            <div className="flex items-center gap-4">
+              <SidebarTrigger />
+            </div>
+            <div className="flex items-center gap-4">
+              <UserNav />
+            </div>
           </header>
-          <main className="flex-1 p-4 md:p-6 lg:p-8">
-            {children}
-          </main>
+          <main className="flex-1 p-4 md:p-6 lg:p-8">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </Protected>
