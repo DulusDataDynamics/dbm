@@ -21,19 +21,19 @@ type TripRow = {
   date: Date | undefined;
   from: string;
   to: string;
-  containerNo: string;
+  container: string;
   rate: string;
 };
 
-export function TransportInvoiceForm({ isStandalonePage = false }: { isStandalonePage?: boolean }) {
+export function TransportInvoiceForm() {
   const [rows, setRows] = useState<TripRow[]>([
-    { date: new Date(), from: '', to: '', containerNo: '', rate: '' },
+    { date: new Date(), from: '', to: '', container: '', rate: '' },
   ]);
 
   const addRow = () => {
     setRows([
       ...rows,
-      { date: new Date(), from: '', to: '', containerNo: '', rate: '' },
+      { date: new Date(), from: '', to: '', container: '', rate: '' },
     ]);
   };
 
@@ -62,7 +62,7 @@ export function TransportInvoiceForm({ isStandalonePage = false }: { isStandalon
               <TableHead className="w-[180px]">Date</TableHead>
               <TableHead>From</TableHead>
               <TableHead>To</TableHead>
-              <TableHead>Container No.</TableHead>
+              <TableHead>Container</TableHead>
               <TableHead className="w-[150px] text-right">Rate</TableHead>
               <TableHead className="w-[50px]">
                 <span className="sr-only">Remove</span>
@@ -113,8 +113,8 @@ export function TransportInvoiceForm({ isStandalonePage = false }: { isStandalon
                 <TableCell>
                   <Input
                     placeholder="ABC-12345"
-                    value={row.containerNo}
-                    onChange={(e) => updateRow(i, 'containerNo', e.target.value)}
+                    value={row.container}
+                    onChange={(e) => updateRow(i, 'container', e.target.value)}
                   />
                 </TableCell>
                 <TableCell>
