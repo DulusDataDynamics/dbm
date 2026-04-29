@@ -2,7 +2,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb, isAdminEnabled } from '@/lib/firebase-admin';
 import { collection, writeBatch, getDocs, query } from 'firebase-admin/firestore';
-import { clients, tasks, inventory } from '@/lib/data';
+import { clients, tasks, loads } from '@/lib/data';
 
 async function seedCollection(collectionName: string, data: any[], userId: string) {
     if (!adminDb) {
@@ -50,7 +50,7 @@ export async function GET(req: Request) {
         
         results.push(await seedCollection('clients', clients, userId));
         results.push(await seedCollection('tasks', tasks, userId));
-        results.push(await seedCollection('inventory', inventory, userId));
+        results.push(await seedCollection('loads', loads, userId));
         
         const allSkipped = results.every(r => r.skipped);
 

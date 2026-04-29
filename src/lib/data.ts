@@ -1,10 +1,10 @@
 
-import { Client, Invoice, Task, InventoryItem } from './types';
+import { Client, Invoice, Task, Load } from './types';
 
 // Omit 'id' as Firestore will generate it.
 type SeedClient = Omit<Client, 'id'>;
 type SeedTask = Omit<Task, 'id'>;
-type SeedInventoryItem = Omit<InventoryItem, 'id'>;
+type SeedLoad = Omit<Load, 'id'>;
 
 export const clients: SeedClient[] = [
   { name: 'Innovate Inc.', email: 'contact@innovate.com', phone: '123-456-7890' },
@@ -25,7 +25,7 @@ export const tasks: SeedTask[] = [
   { title: 'Onboard Apex Designs', description: 'Send welcome kit and initial questionnaire.', status: 'Completed', priority: 'High', dueDate: '2024-05-20', assignedTo: 'John Doe' },
 ];
 
-export const inventory: SeedInventoryItem[] = [
+export const loads: SeedLoad[] = [
   { name: '20L Diesel', sku: 'DIE-20L', category: 'Fuel', quantity: 150, price: 500, reorderLevel: 50 },
   { name: 'Standard Tyre', sku: 'TYR-ST-1', category: 'Parts', quantity: 20, price: 3500, reorderLevel: 8 },
   { name: '5L Engine Oil', sku: 'OIL-5L-SYN', category: 'Lubricants', quantity: 40, price: 850, reorderLevel: 20 },

@@ -40,7 +40,7 @@ export type Task = {
   assignedTo?: string;
 };
 
-export type InventoryItem = {
+export type Load = {
   id: string;
   name: string;
   sku?: string;

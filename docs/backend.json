@@ -111,26 +111,26 @@
       },
       "required": ["title", "status", "priority", "dueDate"]
     },
-    "inventoryItem": {
-      "title": "Inventory Item",
-      "description": "An item in the inventory.",
+    "load": {
+      "title": "Load",
+      "description": "A load or item being managed.",
       "type": "object",
       "properties": {
         "sku": {
           "type": "string",
-          "description": "The SKU of the inventory item."
+          "description": "The SKU of the load."
         },
         "name": {
           "type": "string",
-          "description": "The name of the inventory item."
+          "description": "The name of the load."
         },
         "quantity": {
           "type": "number",
-          "description": "The quantity of the inventory item."
+          "description": "The quantity of the load."
         },
         "price": {
           "type": "number",
-          "description": "The price of the inventory item."
+          "description": "The price of the load."
         }
       },
       "required": ["sku", "name", "quantity", "price"]
@@ -152,9 +152,9 @@
       "schema": { "$ref": "#/entities/task" },
       "description": "Stores task information for a specific user."
     },
-    "/users/{userId}/inventory/{itemId}": {
-      "schema": { "$ref": "#/entities/inventoryItem" },
-      "description": "Stores inventory item information for a specific user."
+    "/users/{userId}/loads/{loadId}": {
+      "schema": { "$ref": "#/entities/load" },
+      "description": "Stores load information for a specific user."
     }
   }
 }

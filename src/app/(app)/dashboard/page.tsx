@@ -5,11 +5,12 @@ import {
   subscribeToClients,
   subscribeToInvoices,
   subscribeToTasks,
+  subscribeToLoads,
 } from '@/lib/firestore';
-import { Client, Invoice, Task } from '@/lib/types';
+import { Client, Invoice, Task, Load } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/app/stat-card';
-import { Users, FileText, CheckCircle2 } from 'lucide-react';
+import { Users, FileText, CheckCircle2, Boxes } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loads, setLoads] = useState<Load[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,8 +51,9 @@ export default function DashboardPage() {
     
     const unsubClients = subscribeToClients(db, user.uid, setClients);
     const unsubInvoices = subscribeToInvoices(db, user.uid, setInvoices);
-    const unsubTasks = subscribeToTasks(db, user.uid, (data) => {
-      setTasks(data);
+    const unsubTasks = subscribeToTasks(db, user.uid, setTasks);
+    const unsubLoads = subscribeToLoads(db, user.uid, (data) => {
+      setLoads(data);
       setLoading(false); 
     });
 
@@ -58,6 +61,7 @@ export default function DashboardPage() {
       unsubClients();
       unsubInvoices();
       unsubTasks();
+      unsubLoads();
     };
   }, [db, user?.uid, isUserLoading]);
 
@@ -80,9 +84,10 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {loading ? (
           <>
+            <Skeleton className="h-28" />
             <Skeleton className="h-28" />
             <Skeleton className="h-28" />
             <Skeleton className="h-28" />
@@ -103,6 +108,11 @@ export default function DashboardPage() {
               title="Pending Tasks"
               value={pendingTasks.toString()}
               icon={CheckCircle2}
+            />
+             <StatCard
+              title="Total Loads"
+              value={loads.length.toString()}
+              icon={Boxes}
             />
           </>
         )}

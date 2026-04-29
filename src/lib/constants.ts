@@ -32,9 +32,9 @@ export const NAV_LINKS = [
     label: 'Transport Invoices',
   },
   {
-    href: '/inventory',
+    href: '/loads',
     icon: Boxes,
-    label: 'Inventory',
+    label: 'Loads',
   },
   {
     href: '/tasks',

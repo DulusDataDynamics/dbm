@@ -6,9 +6,9 @@ import {
   subscribeToClients,
   subscribeToInvoices,
   subscribeToTasks,
-  subscribeToInventory,
+  subscribeToLoads,
 } from '@/lib/firestore';
-import { Client, Invoice, Task, InventoryItem } from '@/lib/types';
+import { Client, Invoice, Task, Load } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/app/stat-card';
 import { Users, FileText, CheckCircle2, Boxes } from 'lucide-react';
@@ -41,7 +41,7 @@ export default function DashboardPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [loads, setLoads] = useState<Load[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,8 +53,8 @@ export default function DashboardPage() {
     const unsubClients = subscribeToClients(db, user.uid, setClients);
     const unsubInvoices = subscribeToInvoices(db, user.uid, setInvoices);
     const unsubTasks = subscribeToTasks(db, user.uid, setTasks);
-    const unsubInventory = subscribeToInventory(db, user.uid, (data) => {
-      setInventory(data);
+    const unsubLoads = subscribeToLoads(db, user.uid, (data) => {
+      setLoads(data);
       setLoading(false); // End loading after all subscriptions are initiated and first data is received
     });
 
@@ -62,7 +62,7 @@ export default function DashboardPage() {
       unsubClients();
       unsubInvoices();
       unsubTasks();
-      unsubInventory();
+      unsubLoads();
     };
   }, [db, user?.uid, isUserLoading]);
 
@@ -110,8 +110,8 @@ export default function DashboardPage() {
               icon={CheckCircle2}
             />
             <StatCard
-              title="Inventory Items"
-              value={inventory.length.toString()}
+              title="Total Loads"
+              value={loads.length.toString()}
               icon={Boxes}
             />
           </>
