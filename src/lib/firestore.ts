@@ -1,4 +1,3 @@
-
 import {
   collection,
   onSnapshot,
@@ -139,6 +138,10 @@ export async function updateInvoiceStatus(db: Firestore, userId: string, id: str
   await updateDoc(getDocRef(db, userId, 'invoices', id), { status });
 }
 
+export async function updateTransportInvoiceStatus(db: Firestore, userId: string, id: string, status: InvoiceStatus) {
+  await updateDoc(getDocRef(db, userId, 'transportInvoices', id), { status });
+}
+
 export async function duplicateInvoice(db: Firestore, userId: string, invoiceId: string) {
     const originalInvoiceRef = getDocRef(db, userId, 'invoices', invoiceId);
     const originalInvoiceSnap = await getDoc(originalInvoiceRef);
@@ -160,6 +163,29 @@ export async function duplicateInvoice(db: Firestore, userId: string, invoiceId:
     };
 
     await addDoc(getCollectionRef(db, userId, 'invoices'), duplicatedInvoice);
+}
+
+export async function duplicateTransportInvoice(db: Firestore, userId: string, invoiceId: string) {
+    const originalInvoiceRef = getDocRef(db, userId, 'transportInvoices', invoiceId);
+    const originalInvoiceSnap = await getDoc(originalInvoiceRef);
+
+    if (!originalInvoiceSnap.exists()) {
+        throw new Error("Original transport invoice not found.");
+    }
+
+    const originalData = originalInvoiceSnap.data() as TransportInvoice;
+    
+    // Create a new object excluding the original ID
+    const { id, ...newData } = originalData;
+
+    const duplicatedInvoice = {
+        ...newData,
+        status: 'Draft' as InvoiceStatus,
+        createdAt: new Date().toISOString(),
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
+    };
+
+    await addDoc(getCollectionRef(db, userId, 'transportInvoices'), duplicatedInvoice);
 }
 
 
