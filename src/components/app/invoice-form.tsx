@@ -42,18 +42,18 @@ import { ScrollArea } from '../ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 const invoiceItemSchema = z.object({
-  date: z.string().min(1, "Date is required."),
-  from: z.string().min(1, "'From' location is required."),
-  to: z.string().min(1, "'To' location is required."),
-  container: z.string().min(1, "Container No. is required."),
-  rate: z.coerce.number().min(0, "Rate must be a positive number."),
+  description: z.string().min(1, "Description is required."),
+  quantity: z.coerce.number().min(0, "Quantity must be a positive number."),
+  price: z.coerce.number().min(0, "Price must be a positive number."),
 });
 
 const formSchema = z.object({
   clientId: z.string().min(1, 'Please select a client.'),
   status: z.enum(['Draft', 'Unpaid', 'Paid', 'Overdue']),
   dueDate: z.date({ required_error: 'A due date is required.' }),
-  items: z.array(invoiceItemSchema).min(1, "At least one trip is required."),
+  items: z.array(invoiceItemSchema).min(1, "At least one item is required."),
+  subtotal: z.number(),
+  tax: z.number(),
   total: z.number(),
   createdAt: z.string().optional(),
 });
@@ -76,7 +76,9 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
     defaultValues: {
       clientId: '',
       status: 'Draft',
-      items: [{ date: format(new Date(), 'yyyy-MM-dd'), from: '', to: '', container: '', rate: 0 }],
+      items: [{ description: '', quantity: 1, price: 0 }],
+      subtotal: 0,
+      tax: 0,
       total: 0,
     },
   });
@@ -92,7 +94,9 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
   });
 
   useEffect(() => {
-    const { total } = calculateInvoiceTotals(watchedItems || []);
+    const { subtotal, tax, total } = calculateInvoiceTotals(watchedItems || []);
+    form.setValue('subtotal', subtotal, { shouldValidate: false });
+    form.setValue('tax', tax, { shouldValidate: false });
     form.setValue('total', total, { shouldValidate: false });
   }, [watchedItems, form]);
 
@@ -115,7 +119,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
           clientId: '',
           status: 'Draft',
           dueDate: new Date(new Date().setDate(new Date().getDate() + 30)), // Due in 30 days
-          items: [{ date: format(new Date(), 'yyyy-MM-dd'), from: '', to: '', container: '', rate: 0 }],
+          items: [{ description: '', quantity: 1, price: 0 }],
         });
       }
     }
@@ -123,10 +127,12 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
 
   const onSubmit = async (data: InvoiceFormValues) => {
     if (!db || !userId) return;
-    const { total } = calculateInvoiceTotals(data.items);
+    const { subtotal, tax, total } = calculateInvoiceTotals(data.items);
     const invoiceData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
+      subtotal,
+      tax,
       total
     };
     await saveInvoice(db, userId, invoice?.id || null, invoiceData);
@@ -217,11 +223,10 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className='w-1/5'>Date</TableHead>
-                        <TableHead>From</TableHead>
-                        <TableHead>To</TableHead>
-                        <TableHead>Container No.</TableHead>
-                        <TableHead className="text-right">Rate</TableHead>
+                        <TableHead className="w-2/5">Description</TableHead>
+                        <TableHead>Quantity</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
                         <TableHead><span className="sr-only">Remove</span></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -229,29 +234,22 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                       {fields.map((item, index) => (
                         <TableRow key={item.id}>
                           <TableCell>
-                            <FormField control={form.control} name={`items.${index}.date`} render={({ field }) => (
-                              <FormItem><FormControl><Input type="date" {...field} /></FormControl><FormMessage className="text-xs" /></FormItem>
+                            <FormField control={form.control} name={`items.${index}.description`} render={({ field }) => (
+                              <FormItem><FormControl><Input {...field} placeholder="Item description" /></FormControl><FormMessage className="text-xs" /></FormItem>
                             )} />
                           </TableCell>
                            <TableCell>
-                             <FormField control={form.control} name={`items.${index}.from`} render={({ field }) => (
-                               <FormItem><FormControl><Input {...field} placeholder="e.g. Durban Port" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                             <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
+                               <FormItem><FormControl><Input type="number" {...field} placeholder="1" /></FormControl><FormMessage className="text-xs" /></FormItem>
                              )} />
                            </TableCell>
                            <TableCell>
-                             <FormField control={form.control} name={`items.${index}.to`} render={({ field }) => (
-                               <FormItem><FormControl><Input {...field} placeholder="e.g. JHB Warehouse" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                             <FormField control={form.control} name={`items.${index}.price`} render={({ field }) => (
+                               <FormItem><FormControl><Input type="number" {...field} placeholder="0.00" /></FormControl><FormMessage className="text-xs" /></FormItem>
                              )} />
                            </TableCell>
-                           <TableCell>
-                            <FormField control={form.control} name={`items.${index}.container`} render={({ field }) => (
-                              <FormItem><FormControl><Input {...field} placeholder="e.g. MSCU123456" /></FormControl><FormMessage className="text-xs" /></FormItem>
-                            )} />
-                           </TableCell>
-                           <TableCell>
-                             <FormField control={form.control} name={`items.${index}.rate`} render={({ field }) => (
-                               <FormItem><FormControl><Input type="number" {...field} placeholder="0.00" className="text-right" /></FormControl><FormMessage className="text-xs" /></FormItem>
-                             )} />
+                           <TableCell className="text-right font-medium">
+                            R {((watchedItems?.[index]?.quantity || 0) * (watchedItems?.[index]?.price || 0)).toFixed(2)}
                            </TableCell>
                           <TableCell className="text-right">
                             <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
@@ -262,13 +260,21 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                   </Table>
                 </div>
                 
-                <Button type="button" variant="outline" size="sm" onClick={() => append({ date: format(new Date(), 'yyyy-MM-dd'), from: '', to: '', container: '', rate: 0 })}>
+                <Button type="button" variant="outline" size="sm" onClick={() => append({ description: '', quantity: 1, price: 0 })}>
                   <Plus className="mr-2 h-4 w-4" /> Add Row
                 </Button>
 
                 {/* Totals Section */}
                 <div className="flex justify-end pt-4">
                   <div className="w-full max-w-sm space-y-2">
+                    <div className="flex justify-between">
+                        <span>Subtotal</span>
+                        <span>R {(form.getValues('subtotal') || 0).toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span>Tax (15%)</span>
+                        <span>R {(form.getValues('tax') || 0).toFixed(2)}</span>
+                    </div>
                     <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
                         <span>Total</span>
                         <span>R {(form.getValues('total') || 0).toFixed(2)}</span>

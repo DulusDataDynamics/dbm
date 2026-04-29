@@ -10,11 +10,9 @@ export type Client = {
 export type InvoiceStatus = 'Draft' | 'Unpaid' | 'Paid' | 'Overdue';
 
 export type InvoiceItem = {
-  date: string;
-  from: string;
-  to: string;
-  container: string;
-  rate: number;
+  description: string;
+  quantity: number;
+  price: number;
 };
 
 export type Invoice = {
@@ -22,6 +20,8 @@ export type Invoice = {
   clientId: string;
   status: InvoiceStatus;
   items: InvoiceItem[];
+  subtotal: number;
+  tax: number;
   total: number;
   dueDate: string; // ISO Date
   createdAt: string; // ISO Date

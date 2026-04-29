@@ -182,13 +182,12 @@ export default function DownloadInvoices() {
       doc.text(inv.client?.name || 'N/A', 40, 145);
       if (inv.client?.email) doc.text(inv.client.email, 40, 155);
 
-      const itemsTableColumns = ['Date', 'From', 'To', 'Container No.', 'Rate'];
+      const itemsTableColumns = ['Description', 'Quantity', 'Price', 'Total'];
       const itemsTableRows = inv.items.map(item => [
-          formatDate(item.date),
-          item.from,
-          item.to,
-          item.container,
-          `R ${item.rate.toFixed(2)}`,
+          item.description,
+          item.quantity,
+          `R ${item.price.toFixed(2)}`,
+          `R ${(item.quantity * item.price).toFixed(2)}`
       ]);
 
       // @ts-ignore
@@ -204,6 +203,9 @@ export default function DownloadInvoices() {
             
             // Totals
             const totalsX = doc.internal.pageSize.width - 40;
+            doc.setFontSize(10);
+            doc.text(`Subtotal: R ${inv.subtotal.toFixed(2)}`, totalsX, finalY + 25, { align: 'right' });
+            doc.text(`Tax: R ${inv.tax.toFixed(2)}`, totalsX, finalY + 40, { align: 'right' });
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.text(`Total: R ${inv.total.toFixed(2)}`, totalsX, finalY + 55, { align: 'right' });

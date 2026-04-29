@@ -35,16 +35,14 @@
     },
     "invoiceItem": {
       "title": "Invoice Item",
-      "description": "A single line item in an invoice, representing a trip.",
+      "description": "A single line item in an invoice.",
       "type": "object",
       "properties": {
-        "date": { "type": "string", "format": "date" },
-        "from": { "type": "string" },
-        "to": { "type": "string" },
-        "container": { "type": "string" },
-        "rate": { "type": "number" }
+        "description": { "type": "string" },
+        "quantity": { "type": "number" },
+        "price": { "type": "number" }
       },
-      "required": ["date", "from", "to", "container", "rate"]
+      "required": ["description", "quantity", "price"]
     },
     "invoice": {
       "title": "Invoice",
@@ -59,6 +57,8 @@
             "$ref": "#/entities/invoiceItem"
           }
         },
+        "subtotal": { "type": "number" },
+        "tax": { "type": "number" },
         "total": { "type": "number" },
         "dueDate": {
           "type": "string",

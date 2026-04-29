@@ -62,6 +62,8 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
   }
 
   const brandColor = settings?.brandColor || '#2B579A';
+  const taxRate = profile?.defaultTaxRate !== undefined ? profile.defaultTaxRate / 100 : 0.15;
+
 
   return (
     <div
@@ -107,31 +109,37 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
       <table className="w-full border-collapse mb-8 text-sm">
         <thead>
           <tr style={{ backgroundColor: brandColor }} className="text-white">
-            <th className="p-2.5 text-left font-bold">Date</th>
-            <th className="p-2.5 text-left font-bold">From</th>
-            <th className="p-2.5 text-left font-bold">To</th>
-            <th className="p-2.5 text-left font-bold">Container No.</th>
-            <th className="p-2.5 text-right font-bold">Rate</th>
+            <th className="p-2.5 text-left font-bold">Description</th>
+            <th className="p-2.5 text-center font-bold">Qty</th>
+            <th className="p-2.5 text-right font-bold">Unit Price</th>
+            <th className="p-2.5 text-right font-bold">Total</th>
           </tr>
         </thead>
         <tbody>
           {invoice.items.map((item, index) => (
             <tr key={index} className="border-b">
-              <td className="p-2.5">{new Date(item.date).toLocaleDateString()}</td>
-              <td className="p-2.5">{item.from}</td>
-              <td className="p-2.5">{item.to}</td>
-              <td className="p-2.5">{item.container}</td>
-              <td className="p-2.5 text-right">R {item.rate.toFixed(2)}</td>
+              <td className="p-2.5">{item.description}</td>
+              <td className="p-2.5 text-center">{item.quantity}</td>
+              <td className="p-2.5 text-right">R {item.price.toFixed(2)}</td>
+              <td className="p-2.5 text-right">R {(item.quantity * item.price).toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* TOTAL */}
+      {/* TOTALS */}
       <div className="flex justify-end mb-8">
         <div className="w-1/2">
           <table className="w-full text-sm">
             <tbody>
+              <tr>
+                <td className="p-2 text-right">Subtotal:</td>
+                <td className="p-2 text-right">R {invoice.subtotal.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td className="p-2 text-right">Tax ({taxRate * 100}%):</td>
+                <td className="p-2 text-right">R {invoice.tax.toFixed(2)}</td>
+              </tr>
               <tr className="border-t-2 font-bold text-lg" style={{ borderColor: brandColor }}>
                 <td className="p-2 text-right">Total:</td>
                 <td className="p-2 text-right">R {invoice.total.toFixed(2)}</td>

@@ -12,11 +12,11 @@ export const clients: SeedClient[] = [
   { name: 'Apex Designs', email: 'hello@apex.design', phone: '555-123-4567' },
 ];
 
-export const invoices: Omit<Invoice, 'id'|'total'>[] = [
-    { clientId: "INNOVATE_INC_ID", status: 'Paid', dueDate: '2024-05-15', createdAt: '2024-04-15T10:00:00Z', items: [{ date: '2024-04-14', from: 'Durban Port', to: 'JHB Warehouse', container: 'CMAU1234567', rate: 15000 }] },
-    { clientId: "INNOVATE_INC_ID", status: 'Unpaid', dueDate: '2024-07-25', createdAt: '2024-06-25T11:00:00Z', items: [{ date: '2024-06-24', from: 'Cape Town Port', to: 'JHB Warehouse', container: 'MSCU7654321', rate: 18000 }] },
-    { clientId: "QUANTUM_SOLUTIONS_ID", status: 'Unpaid', dueDate: '2024-06-20', createdAt: '2024-05-20T14:30:00Z', items: [{ date: '2024-05-19', from: 'Durban Port', to: 'Pretoria Depot', container: 'TOLU1122334', rate: 16500 }] },
-    { clientId: "APEX_DESIGNS_ID", status: 'Draft', dueDate: '2024-07-01', createdAt: '2024-06-15T09:00:00Z', items: [{ date: '2024-06-15', from: 'JHB Warehouse', to: 'Local Client', container: 'FSCU9988776', rate: 2500 }] }
+export const invoices: Omit<Invoice, 'id'|'total'|'subtotal'|'tax'>[] = [
+    { clientId: "INNOVATE_INC_ID", status: 'Paid', dueDate: '2024-05-15', createdAt: '2024-04-15T10:00:00Z', items: [{ description: 'Web Development', quantity: 1, price: 1500 }] },
+    { clientId: "INNOVATE_INC_ID", status: 'Unpaid', dueDate: '2024-07-25', createdAt: '2024-06-25T11:00:00Z', items: [{ description: 'Logo Design', quantity: 1, price: 500 }, { description: 'Brand Guide', quantity: 1, price: 1000 }] },
+    { clientId: "QUANTUM_SOLUTIONS_ID", status: 'Unpaid', dueDate: '2024-06-20', createdAt: '2024-05-20T14:30:00Z', items: [{ description: 'Cloud Consulting', quantity: 10, price: 150 }] },
+    { clientId: "APEX_DESIGNS_ID", status: 'Draft', dueDate: '2024-07-01', createdAt: '2024-06-15T09:00:00Z', items: [{ description: 'UI/UX Mockups', quantity: 5, price: 80 }] }
 ];
 
 export const tasks: SeedTask[] = [

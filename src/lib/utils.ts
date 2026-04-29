@@ -8,9 +8,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function calculateInvoiceTotals(items: InvoiceItem[]) {
-  const total = items.reduce((acc, item) => acc + (item.rate || 0), 0);
-  return { subtotal: total, total };
+export function calculateInvoiceTotals(items: InvoiceItem[], taxRate: number = 0.15) {
+  const subtotal = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
+  const tax = subtotal * taxRate;
+  const total = subtotal + tax;
+  return { subtotal, tax, total };
 }
 
 export function mapToAISchema(invoices: Invoice[], clients: Client[]): GenerateRevenueInsightsInput {
@@ -23,10 +25,10 @@ export function mapToAISchema(invoices: Invoice[], clients: Client[]): GenerateR
     const client = clientsMap.get(invoice.clientId);
     return invoice.items.map((item: InvoiceItem) => ({
       id: invoice.id,
-      product: `Trip: ${item.from} to ${item.to}`,
-      amount: item.rate,
-      quantity: 1, // Each trip is a single item
-      date: item.date || invoice.createdAt || new Date().toISOString(),
+      product: item.description,
+      amount: item.price * item.quantity,
+      quantity: item.quantity,
+      date: invoice.createdAt || new Date().toISOString(),
     }));
   });
 
