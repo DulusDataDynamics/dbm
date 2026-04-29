@@ -21,6 +21,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { ScrollArea } from '../ui/scroll-area';
+import { useToast } from '@/hooks/use-toast';
+
 
 type TripRow = {
   date: string;
@@ -41,6 +43,7 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
   const [rows, setRows] = useState<TripRow[]>([
     { date: '', from: '', to: '', container: '', rate: '' },
   ]);
+  const { toast } = useToast();
 
   const addRow = () => {
     setRows([
@@ -79,23 +82,30 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
       total,
       createdAt: new Date().toISOString(),
     };
-
+  
     try {
       const res = await fetch("/api/invoices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(invoice),
       });
-
+  
       if (res.ok) {
-        alert("Invoice saved!");
+        toast({
+            title: "Invoice Saved",
+            description: "Your transport invoice has been saved successfully.",
+        });
         onClose();
       } else {
         throw new Error("Failed to save invoice");
       }
     } catch (error) {
       console.error(error);
-      alert("Error saving invoice.");
+      toast({
+        variant: "destructive",
+        title: "Error Saving Invoice",
+        description: "There was a problem saving your invoice. Please try again.",
+      });
     }
   };
 
