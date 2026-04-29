@@ -35,10 +35,11 @@ import { Calendar as CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Client, TransportInvoice } from '@/lib/types';
-import { saveTransportInvoice, subscribeToClients } from '@/lib/firestore';
+import { subscribeToClients } from '@/lib/firestore';
 import type { Firestore } from 'firebase/firestore';
 import { ScrollArea } from '../ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { useToast } from '@/hooks/use-toast';
 
 const transportInvoiceItemSchema = z.object({
   date: z.date({ required_error: 'A date is required.' }),
@@ -69,6 +70,7 @@ interface TransportInvoiceFormProps {
 
 export function TransportInvoiceForm({ db, userId, isOpen, onClose, invoice }: TransportInvoiceFormProps) {
   const [clients, setClients] = useState<Client[]>([]);
+  const { toast } = useToast();
 
   const form = useForm<TransportInvoiceFormValues>({
     resolver: zodResolver(formSchema),
@@ -121,19 +123,35 @@ export function TransportInvoiceForm({ db, userId, isOpen, onClose, invoice }: T
   }, [invoice, form, isOpen]);
 
   const onSubmit = async (data: TransportInvoiceFormValues) => {
-    if (!db || !userId) return;
-    
-    const invoiceData = {
-      ...data,
+    const invoicePayload = {
+      type: 'transport',
+      clientId: data.clientId,
+      status: data.status,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
-      items: data.items.map(item => ({
-        ...item,
+      trips: data.items.map(item => ({
         date: format(item.date, 'yyyy-MM-dd'),
+        from: item.from,
+        to: item.to,
+        containerNo: item.containerNo,
+        rate: item.rate,
       })),
-      total: data.items.reduce((sum, item) => sum + item.rate, 0),
+      total: data.total,
     };
-    await saveTransportInvoice(db, userId, invoice?.id || null, invoiceData as Omit<TransportInvoice, 'id'>);
-    onClose();
+
+    const res = await fetch('/api/invoices', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(invoicePayload),
+    });
+
+    if (res.ok) {
+      toast({ title: 'Invoice saved successfully.' });
+      onClose();
+    } else {
+      toast({ variant: 'destructive', title: 'Error saving invoice.' });
+    }
   };
 
   return (
