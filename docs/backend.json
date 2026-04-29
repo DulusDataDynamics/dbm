@@ -76,81 +76,6 @@
       },
       "required": ["clientId", "items", "total", "dueDate", "status", "createdAt"]
     },
-    "transportInvoiceItem": {
-      "title": "Transport Invoice Item",
-      "description": "A single line item in a transport invoice, representing a trip.",
-      "type": "object",
-      "properties": {
-        "date": {
-          "type": "string",
-          "format": "date"
-        },
-        "from": {
-          "type": "string"
-        },
-        "to": {
-          "type": "string"
-        },
-        "containerNo": {
-          "type": "string"
-        },
-        "rate": {
-          "type": "number"
-        }
-      },
-      "required": [
-        "date",
-        "from",
-        "to",
-        "rate"
-      ]
-    },
-    "transportInvoice": {
-      "title": "Transport Invoice",
-      "description": "An invoice for a client, specifically for transport services.",
-      "type": "object",
-      "properties": {
-        "clientId": {
-          "type": "string"
-        },
-        "items": {
-          "type": "array",
-          "description": "A list of trips for the invoice.",
-          "items": {
-            "$ref": "#/entities/transportInvoiceItem"
-          }
-        },
-        "total": {
-          "type": "number"
-        },
-        "dueDate": {
-          "type": "string",
-          "format": "date"
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "Draft",
-            "Unpaid",
-            "Paid",
-            "Overdue"
-          ],
-          "description": "The current status of the invoice."
-        }
-      },
-      "required": [
-        "clientId",
-        "items",
-        "total",
-        "dueDate",
-        "status",
-        "createdAt"
-      ]
-    },
     "task": {
       "title": "Task",
       "description": "A task to be completed.",
@@ -222,12 +147,6 @@
     "/users/{userId}/invoices/{invoiceId}": {
       "schema": { "$ref": "#/entities/invoice" },
       "description": "Stores invoice information for a specific client."
-    },
-    "/users/{userId}/transportInvoices/{invoiceId}": {
-      "schema": {
-        "$ref": "#/entities/transportInvoice"
-      },
-      "description": "Stores transport invoice information for a specific client."
     },
     "/users/{userId}/tasks/{taskId}": {
       "schema": { "$ref": "#/entities/task" },

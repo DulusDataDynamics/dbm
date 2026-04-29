@@ -14,7 +14,7 @@ import {
   Firestore,
   writeBatch,
 } from 'firebase/firestore';
-import type { Client, Invoice, Task, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus, InventoryItem, TransportInvoice } from './types';
+import type { Client, Invoice, Task, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus, InventoryItem } from './types';
 
 function getCollectionRef(db: Firestore, userId: string, collectionName: string) {
     return collection(db, 'users', userId, collectionName);
@@ -40,14 +40,6 @@ export function subscribeToInvoices(db: Firestore, userId: string, callback: (da
   const q = query(getCollectionRef(db, userId, 'invoices'), orderBy('createdAt', 'desc'));
   return onSnapshot(q, (snapshot) => {
     const invoicesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Invoice[];
-    callback(invoicesData);
-  });
-}
-
-export function subscribeToTransportInvoices(db: Firestore, userId: string, callback: (data: TransportInvoice[]) => void) {
-  const q = query(getCollectionRef(db, userId, 'transportInvoices'), orderBy('createdAt', 'desc'));
-  return onSnapshot(q, (snapshot) => {
-    const invoicesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TransportInvoice[];
     callback(invoicesData);
   });
 }
@@ -110,18 +102,6 @@ export async function saveInvoice(db: Firestore, userId: string, id: string | nu
   }
 }
 
-export async function saveTransportInvoice(db: Firestore, userId: string, id: string | null, data: Omit<TransportInvoice, 'id'>) {
-  if (id) {
-    await setDoc(getDocRef(db, userId, 'transportInvoices', id), data, { merge: true });
-  } else {
-    const invoiceDataWithTimestamp = {
-      ...data,
-      createdAt: new Date().toISOString(),
-    };
-    await addDoc(getCollectionRef(db, userId, 'transportInvoices'), invoiceDataWithTimestamp);
-  }
-}
-
 // ============================================================================
 // Quick Updates & Actions
 // ============================================================================
@@ -136,10 +116,6 @@ export async function updateTaskPriority(db: Firestore, userId: string, id: stri
 
 export async function updateInvoiceStatus(db: Firestore, userId: string, id: string, status: InvoiceStatus) {
   await updateDoc(getDocRef(db, userId, 'invoices', id), { status });
-}
-
-export async function updateTransportInvoiceStatus(db: Firestore, userId: string, id: string, status: InvoiceStatus) {
-  await updateDoc(getDocRef(db, userId, 'transportInvoices', id), { status });
 }
 
 export async function duplicateInvoice(db: Firestore, userId: string, invoiceId: string) {
@@ -165,30 +141,6 @@ export async function duplicateInvoice(db: Firestore, userId: string, invoiceId:
     await addDoc(getCollectionRef(db, userId, 'invoices'), duplicatedInvoice);
 }
 
-export async function duplicateTransportInvoice(db: Firestore, userId: string, invoiceId: string) {
-    const originalInvoiceRef = getDocRef(db, userId, 'transportInvoices', invoiceId);
-    const originalInvoiceSnap = await getDoc(originalInvoiceRef);
-
-    if (!originalInvoiceSnap.exists()) {
-        throw new Error("Original transport invoice not found.");
-    }
-
-    const originalData = originalInvoiceSnap.data() as TransportInvoice;
-    
-    // Create a new object excluding the original ID
-    const { id, ...newData } = originalData;
-
-    const duplicatedInvoice = {
-        ...newData,
-        status: 'Draft' as InvoiceStatus,
-        createdAt: new Date().toISOString(),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
-    };
-
-    await addDoc(getCollectionRef(db, userId, 'transportInvoices'), duplicatedInvoice);
-}
-
-
 // ============================================================================
 // Delete Operations
 // ============================================================================
@@ -204,21 +156,11 @@ export async function deleteClient(db: Firestore, userId: string, id: string) {
   const invoicesSnapshot = await getDocs(invoicesQuery);
   invoicesSnapshot.forEach(doc => batch.delete(doc.ref));
 
-  // Also delete transport invoices for the client
-  const transportInvoicesQuery = query(getCollectionRef(db, userId, 'transportInvoices'), where('clientId', '==', id));
-  const transportInvoicesSnapshot = await getDocs(transportInvoicesQuery);
-  transportInvoicesSnapshot.forEach(doc => batch.delete(doc.ref));
-
-
   await batch.commit();
 }
 
 export async function deleteInvoice(db: Firestore, userId: string, id: string) {
     await deleteDoc(getDocRef(db, userId, 'invoices', id));
-}
-
-export async function deleteTransportInvoice(db: Firestore, userId: string, id: string) {
-    await deleteDoc(getDocRef(db, userId, 'transportInvoices', id));
 }
 
 export async function deleteTask(db: Firestore, userId: string, id: string) {
