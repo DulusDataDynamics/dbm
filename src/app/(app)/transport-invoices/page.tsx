@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,18 +9,43 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import TransportInvoiceForm from '@/components/app/transport-invoice-form';
+import { Badge } from '@/components/ui/badge';
 
 export default function TransportInvoicesPage() {
-  const [loading, setLoading] = useState(true); // Will be used with data fetching
+  const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  
-  // Mock data for display, will be replaced with real data
-  const invoices: any[] = [];
-  
-  // This will be replaced with useEffect for data fetching
-  useState(() => {
-    setTimeout(() => setLoading(false), 1000);
-  });
+  const [invoices, setInvoices] = useState<any[]>([]);
+
+  const fetchInvoices = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/invoices');
+      if (res.ok) {
+        const data = await res.json();
+        const transportInvoices = (data.invoices || [])
+          .filter((inv: any) => inv.type === 'transport')
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setInvoices(transportInvoices);
+      } else {
+        console.error('Failed to fetch invoices');
+        setInvoices([]);
+      }
+    } catch (error) {
+      console.error('Error fetching invoices:', error);
+      setInvoices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvoices();
+  }, []);
+
+  const handleFormClose = () => {
+    setIsFormOpen(false);
+    fetchInvoices(); // Refetch invoices after form is closed
+  };
 
   return (
     <>
@@ -28,10 +53,10 @@ export default function TransportInvoicesPage() {
         <CardHeader>
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <CardTitle>Transport Invoices</CardTitle>
-                <CardDescription>Create and manage your transport and logistics invoices.</CardDescription>
+              <CardTitle>Transport Invoices</CardTitle>
+              <CardDescription>Create and manage your transport and logistics invoices.</CardDescription>
             </div>
-             <div className="flex w-full items-center gap-2 sm:w-auto">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -57,10 +82,10 @@ export default function TransportInvoicesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Invoice ID</TableHead>
                     <TableHead>Client</TableHead>
-                    <TableHead className="hidden sm:table-cell">Status</TableHead>
-                    <TableHead className="hidden md:table-cell">Created</TableHead>
-                    <TableHead className="hidden md:table-cell">Due</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead>
                       <span className="sr-only">Actions</span>
@@ -68,15 +93,28 @@ export default function TransportInvoicesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices.length > 0 ? invoices.map(inv => (
-                    <TableRow key={inv.id}>
-                        {/* Cells will be populated with data later */}
-                    </TableRow>
-                  )) : (
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-24 text-center">
-                            No transport invoices found.
+                  {invoices.length > 0 ? (
+                    invoices.map((inv) => (
+                      <TableRow key={inv.id}>
+                        <TableCell className="font-mono text-xs">{inv.id.substring(0, 7)}</TableCell>
+                        <TableCell className="font-medium">{inv.clientName || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{inv.status || 'Draft'}</Badge>
                         </TableCell>
+                        <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell className="text-right">R {Number(inv.total).toFixed(2)}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-end">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        No transport invoices found.
+                      </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -85,11 +123,8 @@ export default function TransportInvoicesPage() {
           )}
         </CardContent>
       </Card>
-      
-      <TransportInvoiceForm 
-          isOpen={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
-      />
+
+      <TransportInvoiceForm isOpen={isFormOpen} onClose={handleFormClose} />
     </>
   );
 }
