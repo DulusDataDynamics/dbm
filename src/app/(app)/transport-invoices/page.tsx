@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { TransportInvoiceForm } from '@/components/app/transport-invoice-form';
 
 export default function TransportInvoicesPage() {
-
   return (
     <>
       <Card>
@@ -19,11 +18,11 @@ export default function TransportInvoicesPage() {
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Create Transport Invoice</CardTitle>
-              <CardDescription>Fill out the trips below to generate a new transport invoice.</CardDescription>
+              <CardDescription>
+                Fill out the trips below to generate a new transport invoice.
+              </CardDescription>
             </div>
-            <Button size="sm">
-              Save Invoice
-            </Button>
+            <Button size="sm">Save Invoice</Button>
           </div>
         </CardHeader>
         <CardContent>
