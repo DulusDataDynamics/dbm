@@ -1,3 +1,4 @@
+
 'use client';
 import { Client, BusinessProfile, InvoiceSettings, Invoice } from '@/lib/types';
 import { Building } from 'lucide-react';
@@ -106,19 +107,21 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
       <table className="w-full border-collapse mb-8 text-sm">
         <thead>
           <tr style={{ backgroundColor: brandColor }} className="text-white">
-            <th className="p-2.5 text-left font-bold">Description</th>
-            <th className="p-2.5 text-center font-bold">Qty</th>
-            <th className="p-2.5 text-right font-bold">Unit Price</th>
-            <th className="p-2.5 text-right font-bold">Total</th>
+            <th className="p-2.5 text-left font-bold">Date</th>
+            <th className="p-2.5 text-left font-bold">From</th>
+            <th className="p-2.5 text-left font-bold">To</th>
+            <th className="p-2.5 text-left font-bold">Container No.</th>
+            <th className="p-2.5 text-right font-bold">Rate</th>
           </tr>
         </thead>
         <tbody>
           {invoice.items.map((item, index) => (
             <tr key={index} className="border-b">
-              <td className="p-2.5">{item.description}</td>
-              <td className="p-2.5 text-center">{item.quantity}</td>
-              <td className="p-2.5 text-right">R {item.price.toFixed(2)}</td>
-              <td className="p-2.5 text-right">R {(item.quantity * item.price).toFixed(2)}</td>
+              <td className="p-2.5">{new Date(item.date).toLocaleDateString()}</td>
+              <td className="p-2.5">{item.from}</td>
+              <td className="p-2.5">{item.to}</td>
+              <td className="p-2.5">{item.container}</td>
+              <td className="p-2.5 text-right">R {item.rate.toFixed(2)}</td>
             </tr>
           ))}
         </tbody>

@@ -15,8 +15,7 @@ import {
   Firestore,
   writeBatch,
 } from 'firebase/firestore';
-import type { Client, Invoice, Task, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus, InvoiceItem } from './types';
-import { calculateInvoiceTotals } from './utils';
+import type { Client, Invoice, Task, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus, InventoryItem } from './types';
 
 function getCollectionRef(db: Firestore, userId: string, collectionName: string) {
     return collection(db, 'users', userId, collectionName);
@@ -54,6 +53,14 @@ export function subscribeToTasks(db: Firestore, userId: string, callback: (data:
   });
 }
 
+export function subscribeToInventory(db: Firestore, userId: string, callback: (data: InventoryItem[]) => void) {
+  const q = query(getCollectionRef(db, userId, 'inventory'), orderBy('name', 'asc'));
+  return onSnapshot(q, (snapshot) => {
+    const inventoryData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as InventoryItem[];
+    callback(inventoryData);
+  });
+}
+
 // ============================================================================
 // Save / Create / Update Operations
 // ============================================================================
@@ -71,6 +78,14 @@ export async function saveTask(db: Firestore, userId: string, id: string | null,
     await setDoc(getDocRef(db, userId, 'tasks', id), data, { merge: true });
   } else {
     await addDoc(getCollectionRef(db, userId, 'tasks'), data);
+  }
+}
+
+export async function saveInventoryItem(db: Firestore, userId: string, id: string | null, data: Omit<InventoryItem, 'id'>) {
+  if (id) {
+    await setDoc(getDocRef(db, userId, 'inventory', id), data, { merge: true });
+  } else {
+    await addDoc(getCollectionRef(db, userId, 'inventory'), data);
   }
 }
 
@@ -151,6 +166,10 @@ export async function deleteInvoice(db: Firestore, userId: string, id: string) {
 
 export async function deleteTask(db: Firestore, userId: string, id: string) {
   await deleteDoc(getDocRef(db, userId, 'tasks', id));
+}
+
+export async function deleteInventoryItem(db: Firestore, userId: string, id: string) {
+    await deleteDoc(getDocRef(db, userId, 'inventory', id));
 }
 
 // ============================================================================

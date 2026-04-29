@@ -35,14 +35,16 @@
     },
     "invoiceItem": {
       "title": "Invoice Item",
-      "description": "A single line item in an invoice.",
+      "description": "A single line item in an invoice, representing a trip.",
       "type": "object",
       "properties": {
-        "description": { "type": "string" },
-        "quantity": { "type": "number" },
-        "price": { "type": "number" }
+        "date": { "type": "string", "format": "date" },
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "container": { "type": "string" },
+        "rate": { "type": "number" }
       },
-      "required": ["description", "quantity", "price"]
+      "required": ["date", "from", "to", "container", "rate"]
     },
     "invoice": {
       "title": "Invoice",
@@ -57,7 +59,6 @@
             "$ref": "#/entities/invoiceItem"
           }
         },
-        "subtotal": { "type": "number" },
         "total": { "type": "number" },
         "dueDate": {
           "type": "string",
@@ -109,6 +110,30 @@
         }
       },
       "required": ["title", "status", "priority", "dueDate"]
+    },
+    "inventoryItem": {
+      "title": "Inventory Item",
+      "description": "An item in the inventory.",
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "description": "The SKU of the inventory item."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the inventory item."
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of the inventory item."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the inventory item."
+        }
+      },
+      "required": ["sku", "name", "quantity", "price"]
     }
   },
   "auth": {
@@ -126,6 +151,10 @@
     "/users/{userId}/tasks/{taskId}": {
       "schema": { "$ref": "#/entities/task" },
       "description": "Stores task information for a specific user."
+    },
+    "/users/{userId}/inventory/{itemId}": {
+      "schema": { "$ref": "#/entities/inventoryItem" },
+      "description": "Stores inventory item information for a specific user."
     }
   }
 }

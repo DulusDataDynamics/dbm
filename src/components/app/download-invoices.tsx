@@ -46,7 +46,10 @@ export default function DownloadInvoices() {
   function formatDate(dateString?: string) {
     if (!dateString) return '';
     try {
-      return new Date(dateString).toLocaleDateString();
+      // Add a day to correct for timezone issues with 'yyyy-MM-dd' strings
+      const date = new Date(dateString);
+      const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+      return new Date(date.getTime() + userTimezoneOffset).toLocaleDateString();
     } catch {
       return dateString;
     }
@@ -179,12 +182,13 @@ export default function DownloadInvoices() {
       doc.text(inv.client?.name || 'N/A', 40, 145);
       if (inv.client?.email) doc.text(inv.client.email, 40, 155);
 
-      const itemsTableColumns = ['Description', 'Qty', 'Price', 'Total'];
+      const itemsTableColumns = ['Date', 'From', 'To', 'Container No.', 'Rate'];
       const itemsTableRows = inv.items.map(item => [
-          item.description,
-          item.quantity.toString(),
-          `R ${item.price.toFixed(2)}`,
-          `R ${(item.price * item.quantity).toFixed(2)}`,
+          formatDate(item.date),
+          item.from,
+          item.to,
+          item.container,
+          `R ${item.rate.toFixed(2)}`,
       ]);
 
       // @ts-ignore
@@ -200,9 +204,6 @@ export default function DownloadInvoices() {
             
             // Totals
             const totalsX = doc.internal.pageSize.width - 40;
-            doc.setFontSize(10);
-            doc.text(`Subtotal: R ${inv.subtotal.toFixed(2)}`, totalsX, finalY + 20, { align: 'right' });
-            doc.text(`Tax (${(profile.defaultTaxRate || 15)}%): R ${inv.tax.toFixed(2)}`, totalsX, finalY + 35, { align: 'right' });
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.text(`Total: R ${inv.total.toFixed(2)}`, totalsX, finalY + 55, { align: 'right' });

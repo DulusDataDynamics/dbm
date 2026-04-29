@@ -39,19 +39,21 @@ import { Client, Invoice } from '@/lib/types';
 import { saveInvoice, subscribeToClients } from '@/lib/firestore';
 import type { Firestore } from 'firebase/firestore';
 import { ScrollArea } from '../ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 
 const invoiceItemSchema = z.object({
-  description: z.string().min(1, "Description is required."),
-  quantity: z.coerce.number().min(0.01, "Quantity must be positive."),
-  price: z.coerce.number().min(0, "Price cannot be negative."),
+  date: z.string().min(1, "Date is required."),
+  from: z.string().min(1, "'From' location is required."),
+  to: z.string().min(1, "'To' location is required."),
+  container: z.string().min(1, "Container No. is required."),
+  rate: z.coerce.number().min(0, "Rate must be a positive number."),
 });
 
 const formSchema = z.object({
   clientId: z.string().min(1, 'Please select a client.'),
   status: z.enum(['Draft', 'Unpaid', 'Paid', 'Overdue']),
   dueDate: z.date({ required_error: 'A due date is required.' }),
-  items: z.array(invoiceItemSchema).min(1, "At least one item is required."),
-  subtotal: z.number(),
+  items: z.array(invoiceItemSchema).min(1, "At least one trip is required."),
   total: z.number(),
   createdAt: z.string().optional(),
 });
@@ -74,8 +76,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
     defaultValues: {
       clientId: '',
       status: 'Draft',
-      items: [{ description: '', quantity: 1, price: 0 }],
-      subtotal: 0,
+      items: [{ date: format(new Date(), 'yyyy-MM-dd'), from: '', to: '', container: '', rate: 0 }],
       total: 0,
     },
   });
@@ -91,8 +92,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
   });
 
   useEffect(() => {
-    const { subtotal, total } = calculateInvoiceTotals(watchedItems || []);
-    form.setValue('subtotal', subtotal, { shouldValidate: false });
+    const { total } = calculateInvoiceTotals(watchedItems || []);
     form.setValue('total', total, { shouldValidate: false });
   }, [watchedItems, form]);
 
@@ -115,7 +115,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
           clientId: '',
           status: 'Draft',
           dueDate: new Date(new Date().setDate(new Date().getDate() + 30)), // Due in 30 days
-          items: [{ description: '', quantity: 1, price: 0 }],
+          items: [{ date: format(new Date(), 'yyyy-MM-dd'), from: '', to: '', container: '', rate: 0 }],
         });
       }
     }
@@ -123,11 +123,10 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
 
   const onSubmit = async (data: InvoiceFormValues) => {
     if (!db || !userId) return;
-    const { subtotal, total } = calculateInvoiceTotals(data.items);
+    const { total } = calculateInvoiceTotals(data.items);
     const invoiceData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
-      subtotal,
       total
     };
     await saveInvoice(db, userId, invoice?.id || null, invoiceData);
@@ -136,7 +135,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>{invoice ? 'Edit Invoice' : 'Create Invoice'}</DialogTitle>
           <DialogDescription>
@@ -213,45 +212,67 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                   />
                 </div>
 
-                {/* Items Header */}
-                <div className="grid grid-cols-12 gap-2 items-center mt-4">
-                  <div className="col-span-5"><FormLabel>Description</FormLabel></div>
-                  <div className="col-span-2"><FormLabel>Quantity</FormLabel></div>
-                  <div className="col-span-2"><FormLabel>Price</FormLabel></div>
-                  <div className="col-span-2"><FormLabel>Total</FormLabel></div>
-                  <div className="col-span-1"></div>
+                {/* Items Table */}
+                <div className="pt-4">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className='w-1/5'>Date</TableHead>
+                        <TableHead>From</TableHead>
+                        <TableHead>To</TableHead>
+                        <TableHead>Container No.</TableHead>
+                        <TableHead className="text-right">Rate</TableHead>
+                        <TableHead><span className="sr-only">Remove</span></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {fields.map((item, index) => (
+                        <TableRow key={item.id}>
+                          <TableCell>
+                            <FormField control={form.control} name={`items.${index}.date`} render={({ field }) => (
+                              <FormItem><FormControl><Input type="date" {...field} /></FormControl><FormMessage className="text-xs" /></FormItem>
+                            )} />
+                          </TableCell>
+                           <TableCell>
+                             <FormField control={form.control} name={`items.${index}.from`} render={({ field }) => (
+                               <FormItem><FormControl><Input {...field} placeholder="e.g. Durban Port" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                             )} />
+                           </TableCell>
+                           <TableCell>
+                             <FormField control={form.control} name={`items.${index}.to`} render={({ field }) => (
+                               <FormItem><FormControl><Input {...field} placeholder="e.g. JHB Warehouse" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                             )} />
+                           </TableCell>
+                           <TableCell>
+                            <FormField control={form.control} name={`items.${index}.container`} render={({ field }) => (
+                              <FormItem><FormControl><Input {...field} placeholder="e.g. MSCU123456" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                            )} />
+                           </TableCell>
+                           <TableCell>
+                             <FormField control={form.control} name={`items.${index}.rate`} render={({ field }) => (
+                               <FormItem><FormControl><Input type="number" {...field} placeholder="0.00" className="text-right" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                             )} />
+                           </TableCell>
+                          <TableCell className="text-right">
+                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
-
-                {/* Items Array */}
-                {fields.map((item, index) => (
-                  <div key={item.id} className="grid grid-cols-12 gap-2 items-start">
-                    <FormField control={form.control} name={`items.${index}.description`} render={({ field }) => (
-                      <FormItem className="col-span-5"><FormControl><Input {...field} placeholder="Item or service" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                      <FormItem className="col-span-2"><FormControl><Input type="number" step="any" {...field} placeholder="1" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <FormField control={form.control} name={`items.${index}.price`} render={({ field }) => (
-                      <FormItem className="col-span-2"><FormControl><Input type="number" step="any" {...field} placeholder="100.00" /></FormControl><FormMessage /></FormItem>
-                    )} />
-                    <div className="col-span-2 flex h-10 items-center justify-end rounded-md border border-input bg-muted px-3 py-2 text-sm">
-                      R {((watchedItems?.[index]?.quantity || 0) * (watchedItems?.[index]?.price || 0)).toFixed(2)}
-                    </div>
-                    <div className="col-span-1">
-                      <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                    </div>
-                  </div>
-                ))}
                 
-                <Button type="button" variant="outline" size="sm" onClick={() => append({ description: '', quantity: 1, price: 0 })}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Item
+                <Button type="button" variant="outline" size="sm" onClick={() => append({ date: format(new Date(), 'yyyy-MM-dd'), from: '', to: '', container: '', rate: 0 })}>
+                  <Plus className="mr-2 h-4 w-4" /> Add Row
                 </Button>
 
                 {/* Totals Section */}
                 <div className="flex justify-end pt-4">
                   <div className="w-full max-w-sm space-y-2">
-                    <div className="flex justify-between"><span>Subtotal</span><span>R {(form.getValues('subtotal') || 0).toFixed(2)}</span></div>
-                    <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2"><span>Total</span><span>R {(form.getValues('total') || 0).toFixed(2)}</span></div>
+                    <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
+                        <span>Total</span>
+                        <span>R {(form.getValues('total') || 0).toFixed(2)}</span>
+                    </div>
                   </div>
                 </div>
 

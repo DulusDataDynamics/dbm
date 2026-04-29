@@ -9,9 +9,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function calculateInvoiceTotals(items: InvoiceItem[]) {
-  const subtotal = items.reduce((acc, item) => acc + ((item.quantity || 0) * (item.price || 0)), 0);
-  const total = subtotal;
-  return { subtotal, total };
+  const total = items.reduce((acc, item) => acc + (item.rate || 0), 0);
+  return { subtotal: total, total };
 }
 
 export function mapToAISchema(invoices: Invoice[], clients: Client[]): GenerateRevenueInsightsInput {
@@ -24,10 +23,10 @@ export function mapToAISchema(invoices: Invoice[], clients: Client[]): GenerateR
     const client = clientsMap.get(invoice.clientId);
     return invoice.items.map((item: InvoiceItem) => ({
       id: invoice.id,
-      product: item.description,
-      amount: item.quantity * item.price,
-      quantity: item.quantity,
-      date: invoice.createdAt || new Date().toISOString(), // Use invoice creation date
+      product: `Trip: ${item.from} to ${item.to}`,
+      amount: item.rate,
+      quantity: 1, // Each trip is a single item
+      date: item.date || invoice.createdAt || new Date().toISOString(),
     }));
   });
 
