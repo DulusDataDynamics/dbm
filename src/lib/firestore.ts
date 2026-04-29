@@ -15,7 +15,7 @@ import {
   Firestore,
   writeBatch,
 } from 'firebase/firestore';
-import type { Client, Invoice, Task, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus, InventoryItem } from './types';
+import type { Client, Invoice, Task, BusinessProfile, InvoiceSettings, TaskStatus, TaskPriority, InvoiceStatus, InventoryItem, TransportInvoice } from './types';
 
 function getCollectionRef(db: Firestore, userId: string, collectionName: string) {
     return collection(db, 'users', userId, collectionName);
@@ -41,6 +41,14 @@ export function subscribeToInvoices(db: Firestore, userId: string, callback: (da
   const q = query(getCollectionRef(db, userId, 'invoices'), orderBy('createdAt', 'desc'));
   return onSnapshot(q, (snapshot) => {
     const invoicesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Invoice[];
+    callback(invoicesData);
+  });
+}
+
+export function subscribeToTransportInvoices(db: Firestore, userId: string, callback: (data: TransportInvoice[]) => void) {
+  const q = query(getCollectionRef(db, userId, 'transportInvoices'), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snapshot) => {
+    const invoicesData = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as TransportInvoice[];
     callback(invoicesData);
   });
 }
@@ -103,6 +111,18 @@ export async function saveInvoice(db: Firestore, userId: string, id: string | nu
   }
 }
 
+export async function saveTransportInvoice(db: Firestore, userId: string, id: string | null, data: Omit<TransportInvoice, 'id'>) {
+  if (id) {
+    await setDoc(getDocRef(db, userId, 'transportInvoices', id), data, { merge: true });
+  } else {
+    const invoiceDataWithTimestamp = {
+      ...data,
+      createdAt: new Date().toISOString(),
+    };
+    await addDoc(getCollectionRef(db, userId, 'transportInvoices'), invoiceDataWithTimestamp);
+  }
+}
+
 // ============================================================================
 // Quick Updates & Actions
 // ============================================================================
@@ -153,15 +173,26 @@ export async function deleteClient(db: Firestore, userId: string, id: string) {
   const clientDocRef = getDocRef(db, userId, 'clients', id);
   batch.delete(clientDocRef);
   
+  // Also delete standard invoices for the client
   const invoicesQuery = query(getCollectionRef(db, userId, 'invoices'), where('clientId', '==', id));
   const invoicesSnapshot = await getDocs(invoicesQuery);
   invoicesSnapshot.forEach(doc => batch.delete(doc.ref));
+
+  // Also delete transport invoices for the client
+  const transportInvoicesQuery = query(getCollectionRef(db, userId, 'transportInvoices'), where('clientId', '==', id));
+  const transportInvoicesSnapshot = await getDocs(transportInvoicesQuery);
+  transportInvoicesSnapshot.forEach(doc => batch.delete(doc.ref));
+
 
   await batch.commit();
 }
 
 export async function deleteInvoice(db: Firestore, userId: string, id: string) {
     await deleteDoc(getDocRef(db, userId, 'invoices', id));
+}
+
+export async function deleteTransportInvoice(db: Firestore, userId: string, id: string) {
+    await deleteDoc(getDocRef(db, userId, 'transportInvoices', id));
 }
 
 export async function deleteTask(db: Firestore, userId: string, id: string) {

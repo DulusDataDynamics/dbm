@@ -27,6 +27,24 @@ export type Invoice = {
   createdAt: string; // ISO Date
 };
 
+export type TransportInvoiceItem = {
+  date: string; // ISO Date string
+  from: string;
+  to: string;
+  containerNo: string;
+  rate: number;
+};
+
+export type TransportInvoice = {
+  id: string;
+  clientId: string;
+  status: InvoiceStatus;
+  items: TransportInvoiceItem[];
+  total: number;
+  dueDate: string; // ISO Date
+  createdAt: string; // ISO Date
+};
+
 export type TaskStatus = 'Pending' | 'In Progress' | 'Completed';
 export type TaskPriority = 'Low' | 'Medium' | 'High';
 

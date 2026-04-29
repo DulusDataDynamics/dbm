@@ -6,6 +6,7 @@ import {
   BarChart3,
   Settings,
   LifeBuoy,
+  Truck,
 } from 'lucide-react';
 
 export const NAV_LINKS = [
@@ -23,6 +24,11 @@ export const NAV_LINKS = [
     href: '/invoices',
     icon: FileText,
     label: 'Invoices',
+  },
+  {
+    href: '/transport-invoices',
+    icon: Truck,
+    label: 'Transport Invoices',
   },
   {
     href: '/tasks',
