@@ -1,51 +1,75 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Search } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, Truck, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import TransportInvoiceForm from '@/components/app/transport-invoice-form';
 import { Badge } from '@/components/ui/badge';
+import { useAuth, useFirestore } from '@/firebase';
+import { subscribeToInvoices, subscribeToClients, getBusinessProfile, getInvoiceSettings } from '@/lib/firestore';
+import { Invoice, Client, BusinessProfile, InvoiceSettings } from '@/lib/types';
+import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
 
 export default function TransportInvoicesPage() {
+  const { user, isUserLoading } = useAuth();
+  const db = useFirestore();
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [invoices, setInvoices] = useState<any[]>([]);
-
-  const fetchInvoices = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/invoices');
-      if (res.ok) {
-        const data = await res.json();
-        const transportInvoices = (data.invoices || [])
-          .filter((inv: any) => inv.type === 'transport')
-          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setInvoices(transportInvoices);
-      } else {
-        console.error('Failed to fetch invoices');
-        setInvoices([]);
-      }
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
-      setInvoices([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
+  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings | null>(null);
+  
+  const [isViewOpen, setIsViewOpen] = useState(false);
+  const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    if (isUserLoading || !db || !user?.uid) {
+      setLoading(true);
+      return;
+    }
 
-  const handleFormClose = () => {
-    setIsFormOpen(false);
-    fetchInvoices(); // Refetch invoices after form is closed
+    const unsubClients = subscribeToClients(db, user.uid, setClients);
+    const unsubInvoices = subscribeToInvoices(db, user.uid, (data) => {
+      setInvoices(data.filter(inv => inv.type === 'transport'));
+      setLoading(false);
+    });
+
+    getBusinessProfile(db, user.uid).then(setBusinessProfile);
+    getInvoiceSettings(db, user.uid).then(setInvoiceSettings);
+
+    return () => {
+      unsubClients();
+      unsubInvoices();
+    };
+  }, [db, user?.uid, isUserLoading]);
+
+  const clientsMap = useMemo(() => new Map(clients.map(c => [c.id, c.name])), [clients]);
+
+  const filteredInvoices = useMemo(() => {
+    if (!searchQuery) return invoices;
+    const query = searchQuery.toLowerCase();
+    return invoices.filter(inv => {
+      const clientName = (clientsMap.get(inv.clientId) || '').toLowerCase();
+      return clientName.includes(query) || inv.id.toLowerCase().includes(query);
+    });
+  }, [invoices, searchQuery, clientsMap]);
+
+  const handleViewInvoice = (invoice: Invoice) => {
+    setViewingInvoice(invoice);
+    setIsViewOpen(true);
   };
+
+  const selectedClientForView = useMemo(() => {
+    if (!viewingInvoice) return null;
+    return clients.find(c => c.id === viewingInvoice.clientId) || null;
+  }, [viewingInvoice, clients]);
 
   return (
     <>
@@ -54,20 +78,22 @@ export default function TransportInvoicesPage() {
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Transport Invoices</CardTitle>
-              <CardDescription>Create and manage your transport and logistics invoices.</CardDescription>
+              <CardDescription>Logistics-specific billing with trip details.</CardDescription>
             </div>
             <div className="flex w-full items-center gap-2 sm:w-auto">
               <div className="relative flex-1 sm:flex-initial">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   type="search"
-                  placeholder="Search invoices..."
+                  placeholder="Search by client..."
                   className="w-full rounded-lg bg-background pl-8 sm:w-[200px] lg:w-[300px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button size="sm" onClick={() => setIsFormOpen(true)}>
+              <Button size="sm" onClick={() => setIsFormOpen(true)} disabled={loading}>
                 <PlusCircle className="mr-2 h-4 w-4" />
-                Create Invoice
+                Create Transport Invoice
               </Button>
             </div>
           </div>
@@ -93,19 +119,21 @@ export default function TransportInvoicesPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {invoices.length > 0 ? (
-                    invoices.map((inv) => (
+                  {filteredInvoices.length > 0 ? (
+                    filteredInvoices.map((inv) => (
                       <TableRow key={inv.id}>
-                        <TableCell className="font-mono text-xs">{inv.id.substring(0, 7)}</TableCell>
-                        <TableCell className="font-medium">{inv.clientName || 'N/A'}</TableCell>
+                        <TableCell className="font-mono text-xs">{inv.id.substring(0, 7).toUpperCase()}</TableCell>
+                        <TableCell className="font-medium">{clientsMap.get(inv.clientId) || 'Unknown Client'}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{inv.status || 'Draft'}</Badge>
+                          <Badge variant={inv.status === 'Paid' ? 'default' : 'secondary'}>{inv.status}</Badge>
                         </TableCell>
                         <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
-                        <TableCell className="text-right">R {Number(inv.total).toFixed(2)}</TableCell>
+                        <TableCell className="text-right">R {inv.total.toFixed(2)}</TableCell>
                         <TableCell>
                           <div className="flex justify-end">
-                            <MoreHorizontal className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" onClick={() => handleViewInvoice(inv)}>
+                              <Eye className="h-4 w-4" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -124,7 +152,18 @@ export default function TransportInvoicesPage() {
         </CardContent>
       </Card>
 
-      <TransportInvoiceForm isOpen={isFormOpen} onClose={handleFormClose} />
+      <TransportInvoiceForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} />
+
+      {viewingInvoice && (
+        <ViewInvoiceDialog 
+          isOpen={isViewOpen}
+          onClose={() => setIsViewOpen(false)}
+          invoice={viewingInvoice}
+          client={selectedClientForView}
+          profile={businessProfile}
+          settings={invoiceSettings}
+        />
+      )}
     </>
   );
 }

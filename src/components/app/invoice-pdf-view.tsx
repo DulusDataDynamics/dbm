@@ -1,4 +1,3 @@
-
 'use client';
 import { Client, BusinessProfile, InvoiceSettings, Invoice } from '@/lib/types';
 import { Building } from 'lucide-react';
@@ -63,7 +62,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
 
   const brandColor = settings?.brandColor || '#2B579A';
   const taxRate = profile?.defaultTaxRate !== undefined ? profile.defaultTaxRate / 100 : 0.15;
-
+  const isTransport = invoice.type === 'transport';
 
   return (
     <div
@@ -105,25 +104,49 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
         {client.phone && <p>{client.phone}</p>}
       </div>
 
-      {/* ITEMS */}
+      {/* ITEMS / TRIPS */}
       <table className="w-full border-collapse mb-8 text-sm">
         <thead>
           <tr style={{ backgroundColor: brandColor }} className="text-white">
-            <th className="p-2.5 text-left font-bold">Description</th>
-            <th className="p-2.5 text-center font-bold">Qty</th>
-            <th className="p-2.5 text-right font-bold">Unit Price</th>
-            <th className="p-2.5 text-right font-bold">Total</th>
+            {isTransport ? (
+              <>
+                <th className="p-2.5 text-left font-bold">Date</th>
+                <th className="p-2.5 text-left font-bold">From</th>
+                <th className="p-2.5 text-left font-bold">To</th>
+                <th className="p-2.5 text-left font-bold">Container</th>
+                <th className="p-2.5 text-right font-bold">Rate</th>
+              </>
+            ) : (
+              <>
+                <th className="p-2.5 text-left font-bold">Description</th>
+                <th className="p-2.5 text-center font-bold">Qty</th>
+                <th className="p-2.5 text-right font-bold">Unit Price</th>
+                <th className="p-2.5 text-right font-bold">Total</th>
+              </>
+            )}
           </tr>
         </thead>
         <tbody>
-          {invoice.items.map((item, index) => (
-            <tr key={index} className="border-b">
-              <td className="p-2.5">{item.description}</td>
-              <td className="p-2.5 text-center">{item.quantity}</td>
-              <td className="p-2.5 text-right">R {item.price.toFixed(2)}</td>
-              <td className="p-2.5 text-right">R {(item.quantity * item.price).toFixed(2)}</td>
-            </tr>
-          ))}
+          {isTransport ? (
+            invoice.trips?.map((trip, index) => (
+              <tr key={index} className="border-b">
+                <td className="p-2.5">{trip.date}</td>
+                <td className="p-2.5">{trip.from}</td>
+                <td className="p-2.5">{trip.to}</td>
+                <td className="p-2.5">{trip.container}</td>
+                <td className="p-2.5 text-right">R {Number(trip.rate).toFixed(2)}</td>
+              </tr>
+            ))
+          ) : (
+            invoice.items?.map((item, index) => (
+              <tr key={index} className="border-b">
+                <td className="p-2.5">{item.description}</td>
+                <td className="p-2.5 text-center">{item.quantity}</td>
+                <td className="p-2.5 text-right">R {Number(item.price).toFixed(2)}</td>
+                <td className="p-2.5 text-right">R {(item.quantity * item.price).toFixed(2)}</td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
 
@@ -132,14 +155,18 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
         <div className="w-1/2">
           <table className="w-full text-sm">
             <tbody>
-              <tr>
-                <td className="p-2 text-right">Subtotal:</td>
-                <td className="p-2 text-right">R {invoice.subtotal.toFixed(2)}</td>
-              </tr>
-              <tr>
-                <td className="p-2 text-right">Tax ({taxRate * 100}%):</td>
-                <td className="p-2 text-right">R {invoice.tax.toFixed(2)}</td>
-              </tr>
+              {!isTransport && (
+                <>
+                  <tr>
+                    <td className="p-2 text-right">Subtotal:</td>
+                    <td className="p-2 text-right">R {invoice.subtotal.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2 text-right">Tax ({taxRate * 100}%):</td>
+                    <td className="p-2 text-right">R {invoice.tax.toFixed(2)}</td>
+                  </tr>
+                </>
+              )}
               <tr className="border-t-2 font-bold text-lg" style={{ borderColor: brandColor }}>
                 <td className="p-2 text-right">Total:</td>
                 <td className="p-2 text-right">R {invoice.total.toFixed(2)}</td>

@@ -21,16 +21,18 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ScrollArea } from '../ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
-
-type TripRow = {
-  date: string;
-  from: string;
-  to: string;
-  container: string;
-  rate: string;
-};
+import { useAuth, useFirestore } from '@/firebase';
+import { subscribeToClients, saveInvoice } from '@/lib/firestore';
+import { Client, TripRow } from '@/lib/types';
 
 interface TransportInvoiceFormProps {
   isOpen: boolean;
@@ -38,16 +40,25 @@ interface TransportInvoiceFormProps {
 }
 
 export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoiceFormProps) {
-  const [clientName, setClientName] = useState('');
+  const db = useFirestore();
+  const { user } = useAuth();
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [rows, setRows] = useState<TripRow[]>([
-    { date: '', from: '', to: '', container: '', rate: '' },
+    { date: '', from: '', to: '', container: '', rate: 0 },
   ]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!db || !user?.uid) return;
+    const unsubscribe = subscribeToClients(db, user.uid, setClients);
+    return () => unsubscribe();
+  }, [db, user?.uid]);
 
   const addRow = () => {
     setRows([
       ...rows,
-      { date: '', from: '', to: '', container: '', rate: '' },
+      { date: '', from: '', to: '', container: '', rate: 0 },
     ]);
   };
 
@@ -57,56 +68,56 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
     setRows(updated);
   };
 
-  const updateRow = (index: number, field: keyof TripRow, value: string) => {
+  const updateRow = (index: number, field: keyof TripRow, value: string | number) => {
     const updated = [...rows];
-    updated[index][field] = value;
+    (updated[index] as any)[field] = field === 'rate' ? Number(value) : value;
     setRows(updated);
   };
 
   const total = rows.reduce((sum, row) => {
-    return sum + Number(row.rate || 0);
+    return sum + (row.rate || 0);
   }, 0);
 
   useEffect(() => {
     if (!isOpen) {
-      setClientName('');
-      setRows([{ date: '', from: '', to: '', container: '', rate: '' }]);
+      setSelectedClientId('');
+      setRows([{ date: '', from: '', to: '', container: '', rate: 0 }]);
     }
   }, [isOpen]);
 
   const handleSave = async () => {
-    const invoice = {
-      type: 'transport',
-      clientName,
-      status: 'Draft',
+    if (!selectedClientId) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Please select a client.' });
+      return;
+    }
+
+    if (!db || !user?.uid) return;
+
+    const invoiceData = {
+      clientId: selectedClientId,
+      type: 'transport' as const,
+      status: 'Draft' as const,
       trips: rows,
-      total,
+      items: [], // Standard system expects items array
+      subtotal: total,
+      tax: 0,
+      total: total,
+      dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
     };
 
     try {
-      const res = await fetch('/api/invoices', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(invoice),
+      await saveInvoice(db, user.uid, null, invoiceData);
+      toast({
+        title: 'Invoice Saved',
+        description: 'Your transport invoice has been saved to your records.',
       });
-
-      if (res.ok) {
-        toast({
-          title: 'Invoice Saved',
-          description: 'Your transport invoice has been saved successfully.',
-        });
-        onClose();
-      } else {
-        throw new Error('Failed to save invoice');
-      }
+      onClose();
     } catch (error) {
       console.error(error);
       toast({
         variant: 'destructive',
         title: 'Error Saving Invoice',
-        description: 'There was a problem saving your invoice. Please try again.',
+        description: 'There was a problem saving your invoice to Firestore.',
       });
     }
   };
@@ -123,15 +134,18 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
 
         <ScrollArea className="max-h-[60vh] p-1">
           <div className="space-y-4 p-4">
-            <div className="w-full sm:w-1/2">
-              <Label htmlFor="clientName">Client Name</Label>
-              <Input
-                id="clientName"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Enter client name"
-                className="mt-1"
-              />
+            <div className="w-full sm:w-1/2 space-y-2">
+              <Label>Select Client</Label>
+              <Select onValueChange={setSelectedClientId} value={selectedClientId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a client..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {clients.map(client => (
+                    <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="overflow-x-auto">
@@ -178,7 +192,7 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
                       <TableCell className="min-w-[120px]">
                         <Input
                           type="number"
-                          value={row.rate}
+                          value={row.rate || ''}
                           onChange={(e) => updateRow(i, 'rate', e.target.value)}
                           placeholder="0.00"
                         />

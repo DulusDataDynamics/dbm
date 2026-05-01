@@ -1,0 +1,19 @@
+[
+  {
+    "id": "1777489198862",
+    "type": "transport",
+    "clientName": "",
+    "status": "Draft",
+    "trips": [
+      {
+        "date": "2026-04-29",
+        "from": "MSC",
+        "to": "DCT",
+        "container": "KEHTS12345",
+        "rate": "4500"
+      }
+    ],
+    "total": 4500,
+    "createdAt": "2026-04-29T18:59:58.862Z"
+  }
+]

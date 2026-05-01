@@ -1,5 +1,3 @@
-
-
 export type Client = {
   id: string;
   name: string;
@@ -15,11 +13,23 @@ export type InvoiceItem = {
   price: number;
 };
 
+export type TripRow = {
+  date: string;
+  from: string;
+  to: string;
+  container: string;
+  rate: number;
+};
+
+export type InvoiceType = 'standard' | 'transport';
+
 export type Invoice = {
   id: string;
   clientId: string;
+  type: InvoiceType;
   status: InvoiceStatus;
   items: InvoiceItem[];
+  trips?: TripRow[]; // Added for transport invoices
   subtotal: number;
   tax: number;
   total: number;

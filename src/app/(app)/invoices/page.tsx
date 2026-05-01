@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState, useMemo, useTransition } from 'react';
@@ -27,7 +26,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
-import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil, Send, MessageSquare, Mail, Search } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Copy, Trash, Eye, CheckCircle, Clock, AlertCircle, CircleDot, Pencil, Send, MessageSquare, Mail, Search, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -242,6 +241,7 @@ export default function InvoicesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Type</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead className="hidden sm:table-cell">Status</TableHead>
                     <TableHead className="hidden md:table-cell">Created</TableHead>
@@ -255,6 +255,16 @@ export default function InvoicesPage() {
                 <TableBody>
                   {filteredInvoices.map(inv => (
                     <TableRow key={inv.id}>
+                      <TableCell>
+                        {inv.type === 'transport' ? (
+                          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+                            <Truck className="mr-1 h-3 w-3" />
+                            Transport
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Standard</Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="font-medium">{clientsMap.get(inv.clientId) || 'Unknown Client'}</TableCell>
                       <TableCell className="hidden sm:table-cell">{getStatusBadge(inv.status)}</TableCell>
                       <TableCell className="hidden md:table-cell">{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
