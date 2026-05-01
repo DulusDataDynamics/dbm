@@ -12,8 +12,8 @@ import { Client, Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { Download, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import { useState, useRef } from 'react';
+import 'jspdf-autotable';
+import { useState } from 'react';
 import { InvoicePDFView } from './invoice-pdf-view';
 import { ScrollArea } from '../ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -30,63 +30,102 @@ interface ViewInvoiceDialogProps {
 export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, settings }: ViewInvoiceDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [pdfReady, setPdfReady] = useState(false);
-  const pdfPreviewRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
   const downloadPdf = async () => {
-    if (!invoice || !pdfPreviewRef.current) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Invoice content is not ready.' });
+    if (!invoice || !client || !profile) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Invoice data is not fully loaded.' });
       return;
     }
 
     setIsDownloading(true);
-    toast({ title: 'Downloading PDF...', description: 'Preparing invoice layout...' });
-
     try {
-      const container = pdfPreviewRef.current;
-      const target = container.querySelector(
-        `#invoice-pdf-view-${invoice.id}`
-      ) as HTMLElement;
-
-      if (!target) {
-        throw new Error('Invoice PDF node not found');
-      }
-
-      const canvas = await html2canvas(target, {
-        scale: Math.max(2, window.devicePixelRatio || 2),
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        windowWidth: target.scrollWidth,
-        windowHeight: target.scrollHeight,
+      const doc = new jsPDF({
+        unit: 'pt',
+        format: 'a4',
       });
 
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const brandColor = settings?.brandColor || '#2B579A';
+      const isTransport = invoice.type === 'transport';
+      
+      // Header
+      doc.setFontSize(20);
+      doc.setTextColor(brandColor);
+      doc.text(profile.companyName || "Your Business", 40, 50);
+      doc.setTextColor('#000000');
+      
+      doc.setFontSize(10);
+      doc.text(profile.businessAddress || '', 40, 65);
+      doc.text(`Email: ${profile.businessEmail || ''}`, 40, 75);
+      doc.text(`Phone: ${profile.businessPhone || ''}`, 40, 85);
 
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
+      doc.setFontSize(24);
+      doc.setFont('helvetica', 'bold');
+      doc.text("INVOICE", doc.internal.pageSize.width - 40, 50, { align: 'right' });
+      
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(`Invoice #: ${settings?.invoicePrefix || ''}${invoice.id.substring(0, 6).toUpperCase()}`, doc.internal.pageSize.width - 40, 65, { align: 'right' });
+      doc.text(`Date: ${new Date(invoice.createdAt).toLocaleDateString()}`, doc.internal.pageSize.width - 40, 75, { align: 'right' });
+      doc.text(`Due Date: ${new Date(invoice.dueDate).toLocaleDateString()}`, doc.internal.pageSize.width - 40, 85, { align: 'right' });
 
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // Bill To
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'bold');
+      doc.text('BILL TO', 40, 130);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      doc.text(client.name, 40, 145);
+      doc.text(client.email, 40, 155);
+      if (client.phone) doc.text(client.phone, 40, 165);
 
-      let heightLeft = imgHeight;
-      let position = 0;
+      // Table
+      const columns = isTransport 
+        ? ['Date', 'From', 'To', 'Container', 'Rate']
+        : ['Description', 'Qty', 'Price', 'Total'];
+      
+      const rows = isTransport 
+        ? (invoice.trips || []).map(t => [t.date, t.from, t.to, t.container, `R ${Number(t.rate).toFixed(2)}`])
+        : (invoice.items || []).map(i => [i.description, i.quantity, `R ${Number(i.price).toFixed(2)}`, `R ${(i.quantity * i.price).toFixed(2)}`]);
 
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      // @ts-ignore
+      doc.autoTable({
+        startY: 190,
+        head: [columns],
+        body: rows,
+        headStyles: { fillColor: brandColor },
+        theme: 'striped',
+      });
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      // Totals
+      // @ts-ignore
+      const finalY = doc.lastAutoTable.finalY + 30;
+      doc.setFontSize(10);
+      if (!isTransport) {
+        doc.text(`Subtotal: R ${invoice.subtotal.toFixed(2)}`, doc.internal.pageSize.width - 40, finalY, { align: 'right' });
+        doc.text(`Tax: R ${invoice.tax.toFixed(2)}`, doc.internal.pageSize.width - 40, finalY + 15, { align: 'right' });
+      }
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`Total: R ${invoice.total.toFixed(2)}`, doc.internal.pageSize.width - 40, finalY + 35, { align: 'right' });
+
+      // Footer
+      const pageHeight = doc.internal.pageSize.height;
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text(settings?.footerMessage || "Thank you for your business!", doc.internal.pageSize.width / 2, pageHeight - 50, { align: 'center' });
+      
+      if (settings?.showWatermark) {
+        doc.setFontSize(8);
+        doc.setTextColor('#aaaaaa');
+        doc.text("Generated by Dulus Business Manager", doc.internal.pageSize.width / 2, pageHeight - 35, { align: 'center' });
       }
 
-      pdf.save(`Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`);
+      doc.save(`Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`);
+      toast({ title: 'Success', description: 'Invoice downloaded as PDF.' });
     } catch (error) {
-      console.error('PDF download error:', error);
-      toast({ variant: 'destructive', title: 'Download Failed', description: 'Could not generate the PDF.' });
+      console.error('PDF generation error:', error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not generate PDF.' });
     } finally {
       setIsDownloading(false);
     }
@@ -116,7 +155,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
         <div className="py-4 bg-muted/30">
           <ScrollArea className="h-[65vh]">
             {client && invoice && profile && settings ? (
-              <div className="flex justify-center" ref={pdfPreviewRef}>
+              <div className="flex justify-center">
                 <InvoicePDFView
                   client={client}
                   invoice={invoice}
@@ -151,7 +190,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
             disabled={isDownloading || !pdfReady}
           >
             <Download className="mr-2 h-4 w-4" />
-            {isDownloading ? 'Downloading...' : 'Quick Download'}
+            {isDownloading ? 'Generating PDF...' : 'Quick Download'}
           </Button>
         </DialogFooter>
       </DialogContent>
