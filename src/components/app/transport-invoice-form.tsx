@@ -32,14 +32,15 @@ import { ScrollArea } from '../ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, useFirestore } from '@/firebase';
 import { subscribeToClients, saveInvoice } from '@/lib/firestore';
-import { Client, TripRow } from '@/lib/types';
+import { Client, TripRow, Invoice } from '@/lib/types';
 
 interface TransportInvoiceFormProps {
   isOpen: boolean;
   onClose: () => void;
+  invoice?: Invoice | null;
 }
 
-export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoiceFormProps) {
+export default function TransportInvoiceForm({ isOpen, onClose, invoice }: TransportInvoiceFormProps) {
   const db = useFirestore();
   const { user } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
@@ -54,6 +55,18 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
     const unsubscribe = subscribeToClients(db, user.uid, setClients);
     return () => unsubscribe();
   }, [db, user?.uid]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (invoice) {
+        setSelectedClientId(invoice.clientId);
+        setRows(invoice.trips || [{ date: '', from: '', to: '', container: '', rate: 0 }]);
+      } else {
+        setSelectedClientId('');
+        setRows([{ date: '', from: '', to: '', container: '', rate: 0 }]);
+      }
+    }
+  }, [isOpen, invoice]);
 
   const addRow = () => {
     setRows([
@@ -78,13 +91,6 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
     return sum + (row.rate || 0);
   }, 0);
 
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedClientId('');
-      setRows([{ date: '', from: '', to: '', container: '', rate: 0 }]);
-    }
-  }, [isOpen]);
-
   const handleSave = async () => {
     if (!selectedClientId) {
       toast({ variant: 'destructive', title: 'Error', description: 'Please select a client.' });
@@ -96,20 +102,21 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
     const invoiceData = {
       clientId: selectedClientId,
       type: 'transport' as const,
-      status: 'Draft' as const,
+      status: invoice?.status || 'Draft' as const,
       trips: rows,
       items: [], // Standard system expects items array
       subtotal: total,
       tax: 0,
       total: total,
-      dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+      dueDate: invoice?.dueDate || new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
+      createdAt: invoice?.createdAt || new Date().toISOString(),
     };
 
     try {
-      await saveInvoice(db, user.uid, null, invoiceData);
+      await saveInvoice(db, user.uid, invoice?.id || null, invoiceData);
       toast({
-        title: 'Invoice Saved',
-        description: 'Your transport invoice has been saved to your records.',
+        title: invoice ? 'Invoice Updated' : 'Invoice Saved',
+        description: `Your transport invoice has been ${invoice ? 'updated' : 'saved'} to your records.`,
       });
       onClose();
     } catch (error) {
@@ -126,9 +133,9 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Create Transport Invoice</DialogTitle>
+          <DialogTitle>{invoice ? 'Edit Transport Invoice' : 'Create Transport Invoice'}</DialogTitle>
           <DialogDescription>
-            Fill out the form to create a new transport invoice. Add, edit, or remove trips as needed.
+            Fill out the form to {invoice ? 'update' : 'create'} a transport invoice. Add, edit, or remove trips as needed.
           </DialogDescription>
         </DialogHeader>
 
@@ -136,7 +143,7 @@ export default function TransportInvoiceForm({ isOpen, onClose }: TransportInvoi
           <div className="space-y-4 p-4">
             <div className="w-full sm:w-1/2 space-y-2">
               <Label>Select Client</Label>
-              <Select onValueChange={setSelectedClientId} value={selectedClientId}>
+              <Select onValueChange={setSelectedClientId} value={selectedClientId} disabled={!!invoice}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a client..." />
                 </SelectTrigger>

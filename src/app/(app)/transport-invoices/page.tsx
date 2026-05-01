@@ -1,25 +1,43 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { MoreHorizontal, PlusCircle, Search, Truck, Eye } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, Search, Truck, Eye, Pencil, Copy, Send, MessageSquare, Mail, Trash, CheckCircle, AlertCircle, Clock, CircleDot } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
 import TransportInvoiceForm from '@/components/app/transport-invoice-form';
 import { Badge } from '@/components/ui/badge';
 import { useAuth, useFirestore } from '@/firebase';
-import { subscribeToInvoices, subscribeToClients, getBusinessProfile, getInvoiceSettings } from '@/lib/firestore';
-import { Invoice, Client, BusinessProfile, InvoiceSettings } from '@/lib/types';
+import { subscribeToInvoices, subscribeToClients, getBusinessProfile, getInvoiceSettings, deleteInvoice, updateInvoiceStatus, duplicateInvoice } from '@/lib/firestore';
+import { Invoice, Client, BusinessProfile, InvoiceSettings, InvoiceStatus } from '@/lib/types';
 import { ViewInvoiceDialog } from '@/components/app/view-invoice-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent
+} from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export default function TransportInvoicesPage() {
   const { user, isUserLoading } = useAuth();
   const db = useFirestore();
+  const { toast } = useToast();
+  const [isProcessing, startTransition] = useTransition();
+
   const [loading, setLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [businessProfile, setBusinessProfile] = useState<BusinessProfile | null>(null);
@@ -27,6 +45,10 @@ export default function TransportInvoicesPage() {
   
   const [isViewOpen, setIsViewOpen] = useState(false);
   const [viewingInvoice, setViewingInvoice] = useState<Invoice | null>(null);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<Invoice | null>(null);
+
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -61,9 +83,102 @@ export default function TransportInvoicesPage() {
     });
   }, [invoices, searchQuery, clientsMap]);
 
+  const handleCreateInvoice = () => {
+    setSelectedInvoice(null);
+    setIsFormOpen(true);
+  };
+
+  const handleEditInvoice = (invoice: Invoice) => {
+    if (invoice.status !== 'Draft') {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Edit Sent Invoice',
+        description: 'Once an invoice is marked as Unpaid or Paid, it cannot be edited. You can duplicate it instead.',
+      });
+      return;
+    }
+    setSelectedInvoice(invoice);
+    setIsFormOpen(true);
+  };
+
   const handleViewInvoice = (invoice: Invoice) => {
     setViewingInvoice(invoice);
     setIsViewOpen(true);
+  };
+
+  const handleDeleteClick = (invoice: Invoice) => {
+    if (invoice.status !== 'Draft') {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Delete Sent Invoice',
+        description: 'Only draft invoices can be deleted.',
+      });
+      return;
+    }
+    setInvoiceToDelete(invoice);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (invoiceToDelete && db && user?.uid) {
+      await deleteInvoice(db, user.uid, invoiceToDelete.id);
+      toast({ title: 'Invoice deleted successfully.' });
+      setIsDeleteDialogOpen(false);
+      setInvoiceToDelete(null);
+    }
+  };
+
+  const handleDuplicateInvoice = (invoiceId: string) => {
+    if (!db || !user?.uid) return;
+    startTransition(async () => {
+      await duplicateInvoice(db, user.uid, invoiceId);
+      toast({ title: 'Invoice duplicated successfully.' });
+    });
+  };
+
+  const handleStatusChange = (invoiceId: string, status: InvoiceStatus) => {
+    if (!db || !user?.uid) return;
+    startTransition(async () => {
+      await updateInvoiceStatus(db, user.uid, invoiceId, status);
+      toast({ title: `Invoice status updated to ${status}.` });
+    });
+  };
+
+  const handleSendWhatsApp = (invoice: Invoice) => {
+    const client = clients.find(c => c.id === invoice.clientId);
+    if (!client || !client.phone) {
+      toast({
+        variant: 'destructive',
+        title: 'Cannot Send Message',
+        description: 'This client does not have a phone number saved.',
+      });
+      return;
+    }
+    const phoneNumber = client.phone.replace(/\D/g, '');
+    const message = `Hi ${client.name},\n\nHere is your transport invoice ${invoice.id.substring(0, 6).toUpperCase()} for R ${invoice.total.toFixed(2)}.\n\nThank you!`;
+    const url = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleSendEmail = (invoice: Invoice) => {
+    const client = clients.find(c => c.id === invoice.clientId);
+    if (!client) return;
+
+    const subject = `Transport Invoice ${invoice.id.substring(0, 6).toUpperCase()} from Dulus Business Manager`;
+    const body = `Hi ${client.name},\n\nPlease find your transport invoice attached (you can download it from the app).\n\nTotal Amount: R ${invoice.total.toFixed(2)}\nDue Date: ${new Date(invoice.dueDate).toLocaleDateString()}\n\nThank you!`;
+    const url = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(url, '_blank');
+  };
+
+  const getStatusBadge = (status: InvoiceStatus) => {
+    switch (status) {
+      case 'Paid': return <Badge variant="default"><CheckCircle className="mr-1 h-3 w-3" />Paid</Badge>;
+      case 'Unpaid': return <Badge variant="secondary"><AlertCircle className="mr-1 h-3 w-3" />Unpaid</Badge>;
+      case 'Overdue': return <Badge variant="destructive"><Clock className="mr-1 h-3 w-3" />Overdue</Badge>;
+      case 'Draft':
+      default:
+        return <Badge variant="outline"><CircleDot className="mr-1 h-3 w-3" />Draft</Badge>;
+    }
   };
 
   const selectedClientForView = useMemo(() => {
@@ -91,7 +206,7 @@ export default function TransportInvoicesPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button size="sm" onClick={() => setIsFormOpen(true)} disabled={loading}>
+              <Button size="sm" onClick={handleCreateInvoice} disabled={loading}>
                 <PlusCircle className="mr-2 h-4 w-4" />
                 Create Transport Invoice
               </Button>
@@ -111,7 +226,7 @@ export default function TransportInvoicesPage() {
                     <TableHead>Invoice ID</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead className="hidden md:table-cell">Created</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
                     <TableHead>
                       <span className="sr-only">Actions</span>
@@ -125,16 +240,42 @@ export default function TransportInvoicesPage() {
                         <TableCell className="font-mono text-xs">{inv.id.substring(0, 7).toUpperCase()}</TableCell>
                         <TableCell className="font-medium">{clientsMap.get(inv.clientId) || 'Unknown Client'}</TableCell>
                         <TableCell>
-                          <Badge variant={inv.status === 'Paid' ? 'default' : 'secondary'}>{inv.status}</Badge>
+                          {getStatusBadge(inv.status)}
                         </TableCell>
-                        <TableCell>{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
+                        <TableCell className="hidden md:table-cell">{new Date(inv.createdAt).toLocaleDateString()}</TableCell>
                         <TableCell className="text-right">R {inv.total.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <div className="flex justify-end">
-                            <Button variant="ghost" size="icon" onClick={() => handleViewInvoice(inv)}>
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" disabled={isProcessing}><MoreHorizontal className="h-4 w-4" /></Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem onSelect={() => handleViewInvoice(inv)}><Eye className="mr-2 h-4 w-4" /> View</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => handleEditInvoice(inv)} disabled={inv.status !== 'Draft'}><Pencil className="mr-2 h-4 w-4" /> Edit</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => handleDuplicateInvoice(inv.id)}><Copy className="mr-2 h-4 w-4" /> Duplicate</DropdownMenuItem>
+                               <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger><Send className="mr-2 h-4 w-4" /> Send to Client</DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent>
+                                      <DropdownMenuItem onSelect={() => handleSendWhatsApp(inv)}><MessageSquare className="mr-2 h-4 w-4" /> via WhatsApp</DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => handleSendEmail(inv)}><Mail className="mr-2 h-4 w-4" /> via Email</DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuSub>
+                                  <DropdownMenuSubTrigger>Change Status</DropdownMenuSubTrigger>
+                                  <DropdownMenuSubContent>
+                                      <DropdownMenuItem onSelect={() => handleStatusChange(inv.id, 'Draft')}>Draft</DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => handleStatusChange(inv.id, 'Unpaid')}>Unpaid</DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => handleStatusChange(inv.id, 'Paid')}>Paid</DropdownMenuItem>
+                                      <DropdownMenuItem onSelect={() => handleStatusChange(inv.id, 'Overdue')}>Overdue</DropdownMenuItem>
+                                  </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onSelect={() => handleDeleteClick(inv)} className="text-red-500" disabled={inv.status !== 'Draft'}>
+                                <Trash className="mr-2 h-4 w-4" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     ))
@@ -152,7 +293,11 @@ export default function TransportInvoicesPage() {
         </CardContent>
       </Card>
 
-      <TransportInvoiceForm isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} />
+      <TransportInvoiceForm 
+        isOpen={isFormOpen} 
+        onClose={() => setIsFormOpen(false)} 
+        invoice={selectedInvoice}
+      />
 
       {viewingInvoice && (
         <ViewInvoiceDialog 
@@ -164,6 +309,21 @@ export default function TransportInvoicesPage() {
           settings={invoiceSettings}
         />
       )}
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this draft transport invoice.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/80">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
