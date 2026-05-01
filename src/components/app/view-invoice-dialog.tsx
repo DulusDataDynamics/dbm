@@ -10,7 +10,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Client, Invoice, BusinessProfile, InvoiceSettings } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
-import { Download } from 'lucide-react';
+import { Download, Printer } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { useState, useRef } from 'react';
@@ -92,6 +92,11 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
     }
   };
 
+  const handlePrint = () => {
+    if (!invoice) return;
+    window.open(`/invoices/${invoice.id}/print`, '_blank');
+  };
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       setPdfReady(false);
@@ -105,7 +110,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
         <DialogHeader>
           <DialogTitle>Invoice Preview</DialogTitle>
           <DialogDescription>
-            A preview of the invoice for {client?.name}. You can download it as a PDF.
+            A preview of the invoice for {client?.name}. You can download it as a PDF or print it.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 bg-muted/30">
@@ -127,9 +132,18 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
             )}
           </ScrollArea>
         </div>
-        <DialogFooter>
+        <DialogFooter className="gap-2">
           <Button type="button" variant="outline" onClick={onClose}>
             Close
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handlePrint}
+            disabled={!invoice || !pdfReady}
+          >
+            <Printer className="mr-2 h-4 w-4" />
+            Print / Save as PDF
           </Button>
           <Button
             type="button"
@@ -137,7 +151,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
             disabled={isDownloading || !pdfReady}
           >
             <Download className="mr-2 h-4 w-4" />
-            {isDownloading ? 'Downloading...' : 'Download as PDF'}
+            {isDownloading ? 'Downloading...' : 'Quick Download'}
           </Button>
         </DialogFooter>
       </DialogContent>

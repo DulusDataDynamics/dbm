@@ -30,8 +30,9 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   const appRoutes = [...NAV_LINKS, ...SUPPORT_LINKS].map((link) => link.href);
 
   // Determine the page type based on the current path.
-  const isAppPage = appRoutes.some((route) => pathname.startsWith(route));
+  const isAppPage = appRoutes.some((route) => pathname.startsWith(route)) || pathname.includes('/invoices/');
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/signup');
+  const isPrintPage = pathname.endsWith('/print');
   const isPublicPage = !isAppPage && !isAuthPage;
 
   if (isUserLoading) {
@@ -50,6 +51,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         </div>
       </div>
     );
+  }
+
+  // If it's a print page, we want a clean view without sidebars or headers.
+  if (isPrintPage) {
+    return <Protected>{children}</Protected>;
   }
 
   // If user is not logged in and is trying to access an app page,
