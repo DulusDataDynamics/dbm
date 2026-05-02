@@ -146,13 +146,22 @@ body {
     break-inside: avoid !important;
   }
 
-  /* WRAPPERS */
-  .print-page, .print-wrapper {
+  /* PAGINATION WRAPPERS */
+  .print-page {
+    page-break-after: always !important;
+    break-after: page !important;
     width: 100% !important;
     display: block !important;
     position: static !important;
     background: #fff !important;
-    padding: 20px !important; /* Add slight inner padding for print safety */
+    padding: 30px !important; /* Standard print margin */
+    min-height: 290mm; /* Force a4-ish height */
+  }
+
+  .print-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+    min-height: auto;
   }
 
   .no-break {
@@ -174,7 +183,7 @@ body {
   }
 
   /* Hide scrollbars/UI elements */
-  header, nav, .sidebar, .no-print {
+  header, nav, .sidebar, .no-print, .no-print * {
     display: none !important;
   }
 }
