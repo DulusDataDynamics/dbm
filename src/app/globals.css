@@ -59,7 +59,7 @@ body {
     --accent: 215 28% 17%;
     --accent-foreground: 210 20% 98%;
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 20% 98%;
+    --destructive-foreground: 210 40% 98%;
     --border: 215 28% 17%;
     --input: 215 28% 17%;
     --ring: 217 91% 60%;
@@ -87,7 +87,13 @@ body {
 @media print {
   @page {
     size: A4;
-    margin: 15mm;
+    margin: 10mm;
+  }
+
+  * {
+    overflow: visible !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   body {
@@ -101,10 +107,33 @@ body {
     display: none !important;
   }
 
+  /* Force standard block layout to prevent Tailwind flex/grid from messing with page breaks */
+  .flex, .grid {
+    display: block !important;
+  }
+
+  .print-page {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    height: 277mm !important;
+    box-sizing: border-box !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    background: white !important;
+  }
+
+  .print-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
   table {
+    display: table !important;
     width: 100% !important;
     border-collapse: collapse !important;
-    display: table !important;
+    table-layout: fixed !important;
   }
 
   thead {
@@ -124,5 +153,12 @@ body {
   td, th {
     display: table-cell !important;
     font-size: 11px !important;
+    word-wrap: break-word !important;
+  }
+
+  .footer-section {
+    display: block !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
