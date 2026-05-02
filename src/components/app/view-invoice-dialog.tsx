@@ -27,7 +27,6 @@ interface ViewInvoiceDialogProps {
 
 export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, settings }: ViewInvoiceDialogProps) {
   const [isDownloading, setIsDownloading] = useState(false);
-  const [pdfReady, setPdfReady] = useState(false);
   const { toast } = useToast();
 
   const downloadPdf = async () => {
@@ -38,7 +37,6 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
 
     setIsDownloading(true);
     try {
-      // Dynamic import to avoid SSR issues with html2pdf.js
       // @ts-ignore
       const html2pdf = (await import('html2pdf.js')).default;
       const element = document.getElementById("invoice-preview");
@@ -48,20 +46,14 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
       }
 
       const opt = {
-        margin: 0,
+        margin: 10,
         filename: `Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
-          useCORS: true, 
-          letterRendering: true,
-          logging: false 
-        },
+        html2canvas: { scale: 2 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
 
       await html2pdf().from(element).set(opt).save();
-      
       toast({ title: 'Success', description: 'Invoice downloaded as PDF.' });
     } catch (error) {
       console.error('PDF generation error:', error);
@@ -76,20 +68,13 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
     window.open(`/invoices/${invoice.id}/print`, '_blank');
   };
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) {
-      setPdfReady(false);
-      onClose();
-    }
-  };
-
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-4xl">
         <DialogHeader>
           <DialogTitle>Invoice Preview</DialogTitle>
           <DialogDescription>
-            A preview of the invoice for {client?.name}. You can download it as a PDF or print it.
+            Preview of the invoice for {client?.name}.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 bg-muted/30">
@@ -102,7 +87,6 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
                     invoice={invoice}
                     profile={profile}
                     settings={settings}
-                    onReady={() => setPdfReady(true)}
                   />
                 </div>
               </div>
@@ -117,20 +101,11 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
           <Button type="button" variant="outline" onClick={onClose}>
             Close
           </Button>
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handlePrint}
-            disabled={!invoice || !pdfReady}
-          >
+          <Button type="button" variant="secondary" onClick={handlePrint} disabled={!invoice}>
             <Printer className="mr-2 h-4 w-4" />
             Print / Save as PDF
           </Button>
-          <Button
-            type="button"
-            onClick={downloadPdf}
-            disabled={isDownloading || !pdfReady}
-          >
+          <Button type="button" onClick={downloadPdf} disabled={isDownloading || !invoice}>
             <Download className="mr-2 h-4 w-4" />
             {isDownloading ? 'Generating PDF...' : 'Quick Download'}
           </Button>
