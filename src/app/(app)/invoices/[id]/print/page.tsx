@@ -80,41 +80,42 @@ export default function PrintInvoicePage() {
   const isTransport = invoice.type === 'transport';
 
   return (
-    <div className="print-wrapper bg-white p-10 text-black print-page">
-      {/* HEADER */}
-      <div className="flex justify-between items-start border-b-2 pb-6 mb-8" style={{ borderColor: brandColor }}>
-        <div>
-           {settings?.companyLogoUrl ? (
-            <img src={settings.companyLogoUrl} alt="Logo" className="h-16 w-auto mb-4 object-contain" />
-          ) : (
-            <div className="flex h-16 w-16 items-center justify-center rounded bg-gray-100 mb-4">
-               <Building className="h-8 w-8 text-gray-400" />
-            </div>
-          )}
-          <h1 className="text-2xl font-bold uppercase">{profile.companyName || 'Your Business'}</h1>
-          <p className="text-sm text-gray-600">{profile.businessAddress}</p>
-          <p className="text-sm text-gray-600">Email: {profile.businessEmail}</p>
-          <p className="text-sm text-gray-600">Phone: {profile.businessPhone}</p>
-          {profile.taxNumber && <p className="text-sm text-gray-600">Tax No: {profile.taxNumber}</p>}
-        </div>
-
-        <div className="text-right">
-          <h2 className="text-5xl font-black mb-4 tracking-tighter" style={{ color: brandColor }}>INVOICE</h2>
-          <p className="text-sm font-bold"># {settings?.invoicePrefix || ''}{invoice.id.substring(0, 6).toUpperCase()}</p>
-          <p className="text-sm">Date: {new Date(invoice.createdAt).toLocaleDateString()}</p>
-          <p className="text-sm">Due Date: {new Date(invoice.dueDate).toLocaleDateString()}</p>
-        </div>
-      </div>
-
-      {/* BILL TO */}
+    <div className="print-wrapper bg-white text-black min-h-screen">
+      {/* HEADER - Wrapped in a block for print safety */}
       <div className="mb-10 no-break">
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Bill To:</h3>
-        <p className="text-lg font-bold">{client.name}</p>
-        <p className="text-sm text-gray-600">{client.email}</p>
-        {client.phone && <p className="text-sm text-gray-600">{client.phone}</p>}
+        <div className="flex justify-between items-start border-b-2 pb-6" style={{ borderColor: brandColor }}>
+          <div>
+            {settings?.companyLogoUrl ? (
+              <img src={settings.companyLogoUrl} alt="Logo" className="h-16 w-auto mb-4 object-contain" />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded bg-gray-100 mb-4">
+                <Building className="h-8 w-8 text-gray-400" />
+              </div>
+            )}
+            <h1 className="text-2xl font-bold uppercase">{profile.companyName || 'Your Business'}</h1>
+            <p className="text-sm text-gray-600">{profile.businessAddress}</p>
+            <p className="text-sm text-gray-600">Email: {profile.businessEmail}</p>
+            <p className="text-sm text-gray-600">Phone: {profile.businessPhone}</p>
+          </div>
+
+          <div className="text-right">
+            <h2 className="text-5xl font-black mb-4 tracking-tighter" style={{ color: brandColor }}>INVOICE</h2>
+            <p className="text-sm font-bold"># {settings?.invoicePrefix || ''}{invoice.id.substring(0, 6).toUpperCase()}</p>
+            <p className="text-sm">Date: {new Date(invoice.createdAt).toLocaleDateString()}</p>
+            <p className="text-sm">Due Date: {new Date(invoice.dueDate).toLocaleDateString()}</p>
+          </div>
+        </div>
+
+        {/* BILL TO */}
+        <div className="mt-8">
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Bill To:</h3>
+          <p className="text-lg font-bold">{client.name}</p>
+          <p className="text-sm text-gray-600">{client.email}</p>
+          {client.phone && <p className="text-sm text-gray-600">{client.phone}</p>}
+        </div>
       </div>
 
-      {/* ITEMS TABLE - Strict HTML structure */}
+      {/* ITEMS TABLE - Strict HTML structure for repeating headers */}
       <table className="w-full text-left border-collapse mb-10">
         <thead>
           <tr className="text-white" style={{ backgroundColor: brandColor }}>
@@ -160,18 +161,20 @@ export default function PrintInvoicePage() {
         </tbody>
       </table>
 
-      {/* FOOTER SECTION */}
+      {/* FOOTER SECTION - Block display for integrity */}
       <div className="footer-section">
         <div className="flex justify-end mb-16 totals-section">
-          <div className="w-1/3">
+          <div className="w-full max-w-[300px]">
             <div className="flex justify-between py-2 text-sm border-b border-gray-100">
               <span className="text-gray-600 font-bold uppercase tracking-tight">Subtotal</span>
               <span className="font-bold text-gray-900">R {Number(invoice.subtotal).toFixed(2)}</span>
             </div>
-            <div className="flex justify-between py-2 text-sm border-b border-gray-100">
-              <span className="text-gray-600 font-bold uppercase tracking-tight">Tax ({profile.defaultTaxRate || 15}%)</span>
-              <span className="font-bold text-gray-900">R {Number(invoice.tax).toFixed(2)}</span>
-            </div>
+            {!isTransport && (
+              <div className="flex justify-between py-2 text-sm border-b border-gray-100">
+                <span className="text-gray-600 font-bold uppercase tracking-tight">Tax ({profile.defaultTaxRate || 15}%)</span>
+                <span className="font-bold text-gray-900">R {Number(invoice.tax).toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between py-4 text-xl border-b-2" style={{ borderColor: brandColor }}>
               <span className="font-black uppercase text-gray-900 tracking-tighter">Total</span>
               <span className="font-black text-gray-900" style={{ color: brandColor }}>R {Number(invoice.total).toFixed(2)}</span>
@@ -179,26 +182,28 @@ export default function PrintInvoicePage() {
           </div>
         </div>
 
-        <div className="border-t border-gray-100 pt-8 flex justify-between gap-10 no-break">
-          <div className="w-2/3">
-            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Info & Notes</h4>
-            <p className="text-sm text-gray-600 mb-4">{settings?.paymentTerms || 'Payment is due within 30 days.'}</p>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <p className="font-bold text-gray-900">Bank: <span className="font-normal text-gray-600">{profile.bankName || 'N/A'}</span></p>
-                <p className="font-bold text-gray-900">Account: <span className="font-normal text-gray-600">{profile.accountNumber || 'N/A'}</span></p>
-              </div>
-              <div>
-                <p className="font-bold text-gray-900">Branch: <span className="font-normal text-gray-600">{profile.branchCode || 'N/A'}</span></p>
-                <p className="font-bold text-gray-900">Ref: <span className="font-normal text-gray-600">{settings?.invoicePrefix || ''}{invoice.id.substring(0, 6).toUpperCase()}</span></p>
+        <div className="border-t border-gray-100 pt-8 no-break">
+          <div className="grid grid-cols-2 gap-10">
+            <div>
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Info & Notes</h4>
+              <p className="text-sm text-gray-600 mb-4">{settings?.paymentTerms || 'Payment is due within 30 days.'}</p>
+              <div className="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="font-bold text-gray-900">Bank: <span className="font-normal text-gray-600">{profile.bankName || 'N/A'}</span></p>
+                  <p className="font-bold text-gray-900">Account: <span className="font-normal text-gray-600">{profile.accountNumber || 'N/A'}</span></p>
+                </div>
+                <div>
+                  <p className="font-bold text-gray-900">Branch: <span className="font-normal text-gray-600">{profile.branchCode || 'N/A'}</span></p>
+                  <p className="font-bold text-gray-900">Ref: <span className="font-normal text-gray-600">{settings?.invoicePrefix || ''}{invoice.id.substring(0, 6).toUpperCase()}</span></p>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="w-1/3 text-right">
-             <p className="text-lg font-bold italic" style={{ color: brandColor }}>Thank you for your business!</p>
-             {settings?.showWatermark && (
-               <p className="text-[10px] text-gray-300 mt-4">Generated by Dulus Business Manager</p>
-             )}
+            <div className="text-right flex flex-col justify-end">
+               <p className="text-lg font-bold italic" style={{ color: brandColor }}>Thank you for your business!</p>
+               {settings?.showWatermark && (
+                 <p className="text-[10px] text-gray-300 mt-4 uppercase">Generated by Dulus Business Manager</p>
+               )}
+            </div>
           </div>
         </div>
       </div>

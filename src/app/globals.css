@@ -85,10 +85,12 @@ body {
 }
 
 @media print {
-  /* RESET EVERYTHING */
+  /* RESET EVERYTHING - Force browser to ignore screen-only layouts */
   * {
     overflow: visible !important;
     box-shadow: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   body {
@@ -96,10 +98,22 @@ body {
     padding: 0 !important;
     background: #fff !important;
     color: #000 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    overflow: visible !important;
     height: auto !important;
+  }
+
+  /* KILL TAILWIND FLEX/GRID INFLUENCE */
+  .flex, .grid {
+    display: block !important;
+  }
+
+  /* REMOVE MAX WIDTHS AND PADDING */
+  .max-w-7xl, .max-w-5xl, .max-w-4xl, .container {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  .p-4, .p-6, .p-8, .p-10, .px-4, .py-6, .px-8, .py-10 {
+    padding: 0 !important;
   }
 
   /* FORCE REAL TABLE BEHAVIOUR */
@@ -108,18 +122,16 @@ body {
     width: 100% !important;
     border-collapse: collapse !important;
     table-layout: auto !important;
-    overflow: visible !important;
     margin-bottom: 20px !important;
     page-break-inside: auto !important;
   }
 
   thead {
-    display: table-header-group !important;
+    display: table-header-group !important; /* Force repeating header */
   }
 
   tbody {
     display: table-row-group !important;
-    page-break-inside: auto !important;
   }
 
   tr {
@@ -134,18 +146,13 @@ body {
     break-inside: avoid !important;
   }
 
-  /* Force headers to repeat on every page */
-  th {
-    background-color: inherit !important;
-    color: inherit !important;
-  }
-
+  /* WRAPPERS */
   .print-page, .print-wrapper {
     width: 100% !important;
-    overflow: visible !important;
     display: block !important;
     position: static !important;
     background: #fff !important;
+    padding: 20px !important; /* Add slight inner padding for print safety */
   }
 
   .no-break {
@@ -158,8 +165,6 @@ body {
     margin-top: 40px !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
-    overflow: visible !important;
-    position: static !important;
   }
 
   .totals-section {
@@ -168,16 +173,8 @@ body {
     display: block !important;
   }
 
-  /* REMOVE BREAKING STYLES ON CONTAINERS */
-  header, main, div, section, article {
-    overflow: visible !important;
-    height: auto !important;
-    max-height: none !important;
-    position: static !important;
-  }
-
-  /* Reset flex/grid during print for table compatibility */
-  .flex, .grid {
-    display: block !important;
+  /* Hide scrollbars/UI elements */
+  header, nav, .sidebar, .no-print {
+    display: none !important;
   }
 }
