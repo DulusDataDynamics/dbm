@@ -68,7 +68,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
       style={{ width: '210mm', minHeight: '297mm', position: 'relative' }}
     >
       {/* HEADER */}
-      <header className="flex justify-between items-start mb-8 border-b-2 pb-4" style={{ borderColor: brandColor }}>
+      <div className="flex justify-between items-start mb-8 border-b-2 pb-4" style={{ borderColor: brandColor }}>
         <div className="company-info text-xs">
           {settings?.companyLogoUrl ? (
             <img src={settings.companyLogoUrl} alt="Company Logo" className="w-24 h-auto mb-2 object-contain" />
@@ -90,7 +90,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
           <p><strong>Date Issued:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</p>
           <p><strong>Due Date:</strong> {new Date(invoice.dueDate).toLocaleDateString()}</p>
         </div>
-      </header>
+      </div>
 
       {/* BILL TO */}
       <div className="my-8 no-break">
@@ -150,26 +150,20 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
       <div className="footer-section">
         <div className="flex justify-end mb-8 totals-section">
           <div className="w-1/2">
-            <table className="w-full text-sm">
-              <tbody>
-                {!isTransport && (
-                  <>
-                    <tr className="border-b border-gray-100">
-                      <td className="p-2 text-right text-gray-500 font-bold uppercase">Subtotal:</td>
-                      <td className="p-2 text-right">R {invoice.subtotal.toFixed(2)}</td>
-                    </tr>
-                    <tr className="border-b border-gray-100">
-                      <td className="p-2 text-right text-gray-500 font-bold uppercase">Tax ({taxRate * 100}%):</td>
-                      <td className="p-2 text-right">R {invoice.tax.toFixed(2)}</td>
-                    </tr>
-                  </>
-                )}
-                <tr className="border-t-2 font-bold text-lg" style={{ borderColor: brandColor }}>
-                  <td className="p-2 text-right uppercase">Total:</td>
-                  <td className="p-2 text-right" style={{ color: brandColor }}>R {invoice.total.toFixed(2)}</td>
-                </tr>
-              </tbody>
-            </table>
+             <div className="flex justify-between border-b border-gray-100 py-2">
+                <span className="text-gray-500 font-bold uppercase">Subtotal:</span>
+                <span>R {invoice.subtotal.toFixed(2)}</span>
+             </div>
+             {!isTransport && (
+                <div className="flex justify-between border-b border-gray-100 py-2">
+                    <span className="text-gray-500 font-bold uppercase">Tax ({taxRate * 100}%):</span>
+                    <span>R {invoice.tax.toFixed(2)}</span>
+                </div>
+             )}
+             <div className="flex justify-between border-t-2 py-3 font-bold text-lg" style={{ borderColor: brandColor }}>
+                <span className="uppercase">Total:</span>
+                <span style={{ color: brandColor }}>R {invoice.total.toFixed(2)}</span>
+             </div>
           </div>
         </div>
 

@@ -91,21 +91,24 @@ body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     overflow: visible !important;
+    height: auto !important;
   }
 
   .print-page {
     width: 100% !important;
     overflow: visible !important;
     display: block !important;
+    position: static !important;
   }
 
-  /* Force Real Table Behaviour */
+  /* FORCE REAL TABLE BEHAVIOUR */
   table {
     width: 100% !important;
     border-collapse: collapse !important;
     display: table !important;
     table-layout: auto !important;
     overflow: visible !important;
+    margin-bottom: 20px !important;
   }
 
   thead {
@@ -128,6 +131,12 @@ body {
     break-inside: avoid !important;
   }
 
+  /* Force headers to repeat on every page */
+  th {
+    background-color: inherit !important;
+    color: inherit !important;
+  }
+
   .no-break {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
@@ -139,18 +148,26 @@ body {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     overflow: visible !important;
+    position: static !important;
   }
 
   .totals-section {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
+    display: block !important;
   }
 
-  /* REMOVE BREAKING STYLES */
-  header, main, div, section {
+  /* REMOVE BREAKING STYLES ON CONTAINERS */
+  header, main, div, section, article {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
     position: static !important;
+    display: block !important;
+  }
+
+  /* Reset flex/grid during print for table compatibility */
+  .flex, .grid {
+    display: block !important;
   }
 }
