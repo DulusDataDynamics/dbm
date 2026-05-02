@@ -114,7 +114,7 @@ export default function PrintInvoicePage() {
         {client.phone && <p className="text-sm text-gray-600">{client.phone}</p>}
       </div>
 
-      {/* ITEMS TABLE */}
+      {/* ITEMS TABLE - Strict HTML structure */}
       <table className="w-full text-left border-collapse mb-10">
         <thead>
           <tr className="text-white" style={{ backgroundColor: brandColor }}>

@@ -100,7 +100,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
         {client.phone && <p>{client.phone}</p>}
       </div>
 
-      {/* ITEMS / TRIPS TABLE */}
+      {/* ITEMS / TRIPS TABLE - Using standard HTML hierarchy */}
       <table className="w-full border-collapse mb-8 text-sm">
         <thead>
           <tr style={{ backgroundColor: brandColor }} className="text-white">
