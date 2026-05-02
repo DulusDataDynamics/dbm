@@ -55,11 +55,11 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
   const brandColor = settings?.brandColor || '#2B579A';
   const isTransport = invoice?.type === 'transport';
 
-  // Game Changer: Manual Pagination Logic
+  // Manual Pagination Logic - Optimized for 12 rows on fixed A4 height
   const pages = useMemo(() => {
     if (!invoice) return [];
     const rows = isTransport ? (invoice.trips || []) : (invoice.items || []);
-    const rowsPerPage = 15;
+    const rowsPerPage = 12;
     const chunked = [];
     for (let i = 0; i < rows.length; i += rowsPerPage) {
       chunked.push(rows.slice(i, i + rowsPerPage));
@@ -77,101 +77,102 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
       {pages.map((pageRows, pageIndex) => (
         <div 
           key={pageIndex} 
-          className="print-page bg-white mb-8 mx-auto shadow-lg" 
-          style={{ width: '210mm', minHeight: '297mm' }}
+          className="print-page bg-white mb-8 mx-auto shadow-lg"
+          style={{ width: '210mm', height: '297mm' }}
         >
-          {/* HEADER SECTION - Repeat on every page */}
-          <div className="no-break mb-8">
-            <div className="flex justify-between items-start border-b-2 pb-4" style={{ borderColor: brandColor }}>
-              <div className="company-info text-xs">
-                {settings?.companyLogoUrl ? (
-                  <img src={settings.companyLogoUrl} alt="Company Logo" className="w-24 h-auto mb-2 object-contain" />
+          {/* TOP SECTION: Header + Table */}
+          <div className="flex-1">
+            <div className="no-break mb-8">
+              <div className="flex justify-between items-start border-b-2 pb-4" style={{ borderColor: brandColor }}>
+                <div className="company-info text-xs">
+                  {settings?.companyLogoUrl ? (
+                    <img src={settings.companyLogoUrl} alt="Company Logo" className="w-24 h-auto mb-2 object-contain" />
+                  ) : (
+                    <div className="w-20 h-20 mb-2 bg-gray-100 flex items-center justify-center rounded">
+                      <Building className="w-10 h-10 text-gray-400" />
+                    </div>
+                  )}
+                  <h2 className="text-xl font-bold text-gray-900">{profile?.companyName || 'Your Company'}</h2>
+                  <p>{profile?.businessAddress}</p>
+                  <p>Email: {profile?.businessEmail}</p>
+                  <p>Phone: {profile?.businessPhone}</p>
+                </div>
+
+                <div className="invoice-info text-right text-xs">
+                  <h1 className="text-4xl font-bold mb-2" style={{ color: brandColor }}>INVOICE</h1>
+                  <p><strong>Invoice #:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0, 6).toUpperCase()}`}</p>
+                  <p><strong>Date Issued:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</p>
+                  <p><strong>Due Date:</strong> {new Date(invoice.dueDate).toLocaleDateString()}</p>
+                  {pages.length > 1 && <p className="text-[10px] text-gray-400 mt-1">Page {pageIndex + 1} of {pages.length}</p>}
+                </div>
+              </div>
+
+              {/* BILL TO */}
+              <div className="mt-8">
+                <h3 className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">BILL TO</h3>
+                <p className="font-bold text-base">{client.name}</p>
+                <p className="text-xs">{client.email}</p>
+                {client.phone && <p className="text-xs">{client.phone}</p>}
+              </div>
+            </div>
+
+            <table className="w-full border-collapse mb-8 text-sm">
+              <thead>
+                <tr style={{ backgroundColor: brandColor }} className="text-white">
+                  {isTransport ? (
+                    <>
+                      <th className="p-2.5 text-left font-bold uppercase">Date</th>
+                      <th className="p-2.5 text-left font-bold uppercase">From</th>
+                      <th className="p-2.5 text-left font-bold uppercase">To</th>
+                      <th className="p-2.5 text-left font-bold uppercase">Container</th>
+                      <th className="p-2.5 text-right font-bold uppercase">Rate</th>
+                    </>
+                  ) : (
+                    <>
+                      <th className="p-2.5 text-left font-bold uppercase">Description</th>
+                      <th className="p-2.5 text-center font-bold uppercase">Qty</th>
+                      <th className="p-2.5 text-right font-bold uppercase">Price</th>
+                      <th className="p-2.5 text-right font-bold uppercase">Total</th>
+                    </>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {isTransport ? (
+                  (pageRows as any[]).map((trip, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="p-2.5 text-xs">{trip.date}</td>
+                      <td className="p-2.5 text-xs">{trip.from}</td>
+                      <td className="p-2.5 text-xs">{trip.to}</td>
+                      <td className="p-2.5 font-mono text-[10px]">{trip.container}</td>
+                      <td className="p-2.5 text-right font-semibold text-xs">R {Number(trip.rate).toFixed(2)}</td>
+                    </tr>
+                  ))
                 ) : (
-                  <div className="w-20 h-20 mb-2 bg-gray-100 flex items-center justify-center rounded">
-                    <Building className="w-10 h-10 text-gray-400" />
-                  </div>
+                  (pageRows as any[]).map((item, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="p-2.5 font-medium text-xs">{item.description}</td>
+                      <td className="p-2.5 text-center text-xs">{item.quantity}</td>
+                      <td className="p-2.5 text-right text-xs">R {Number(item.price).toFixed(2)}</td>
+                      <td className="p-2.5 text-right font-semibold text-xs">R {(item.quantity * item.price).toFixed(2)}</td>
+                    </tr>
+                  ))
                 )}
-                <h2 className="text-xl font-bold text-gray-900">{profile?.companyName || 'Your Company'}</h2>
-                <p>{profile?.businessAddress}</p>
-                <p>Email: {profile?.businessEmail}</p>
-                <p>Phone: {profile?.businessPhone}</p>
-              </div>
-
-              <div className="invoice-info text-right text-xs">
-                <h1 className="text-4xl font-bold mb-2" style={{ color: brandColor }}>INVOICE</h1>
-                <p><strong>Invoice #:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0, 6).toUpperCase()}`}</p>
-                <p><strong>Date Issued:</strong> {new Date(invoice.createdAt).toLocaleDateString()}</p>
-                <p><strong>Due Date:</strong> {new Date(invoice.dueDate).toLocaleDateString()}</p>
-                {pages.length > 1 && <p className="text-[10px] text-gray-400 mt-1">Page {pageIndex + 1} of {pages.length}</p>}
-              </div>
-            </div>
-
-            {/* BILL TO */}
-            <div className="mt-8">
-              <h3 className="text-xs font-bold text-gray-500 mb-1 uppercase tracking-wider">BILL TO</h3>
-              <p className="font-bold text-base">{client.name}</p>
-              <p>{client.email}</p>
-              {client.phone && <p>{client.phone}</p>}
-            </div>
+              </tbody>
+            </table>
           </div>
 
-          {/* ITEMS TABLE */}
-          <table className="w-full border-collapse mb-8 text-sm">
-            <thead>
-              <tr style={{ backgroundColor: brandColor }} className="text-white">
-                {isTransport ? (
-                  <>
-                    <th className="p-2.5 text-left font-bold uppercase">Date</th>
-                    <th className="p-2.5 text-left font-bold uppercase">From</th>
-                    <th className="p-2.5 text-left font-bold uppercase">To</th>
-                    <th className="p-2.5 text-left font-bold uppercase">Container</th>
-                    <th className="p-2.5 text-right font-bold uppercase">Rate</th>
-                  </>
-                ) : (
-                  <>
-                    <th className="p-2.5 text-left font-bold uppercase">Description</th>
-                    <th className="p-2.5 text-center font-bold uppercase">Qty</th>
-                    <th className="p-2.5 text-right font-bold uppercase">Price</th>
-                    <th className="p-2.5 text-right font-bold uppercase">Total</th>
-                  </>
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {isTransport ? (
-                (pageRows as any[]).map((trip, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="p-2.5">{trip.date}</td>
-                    <td className="p-2.5">{trip.from}</td>
-                    <td className="p-2.5">{trip.to}</td>
-                    <td className="p-2.5 font-mono text-xs">{trip.container}</td>
-                    <td className="p-2.5 text-right font-semibold">R {Number(trip.rate).toFixed(2)}</td>
-                  </tr>
-                ))
-              ) : (
-                (pageRows as any[]).map((item, index) => (
-                  <tr key={index} className="border-b">
-                    <td className="p-2.5 font-medium">{item.description}</td>
-                    <td className="p-2.5 text-center">{item.quantity}</td>
-                    <td className="p-2.5 text-right">R {Number(item.price).toFixed(2)}</td>
-                    <td className="p-2.5 text-right font-semibold">R {(item.quantity * item.price).toFixed(2)}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-
-          {/* TOTALS & FOOTER - Only on last page */}
-          {pageIndex === pages.length - 1 && (
+          {/* BOTTOM SECTION: Footer (Only on last page) */}
+          {pageIndex === pages.length - 1 ? (
             <div className="footer-section">
               <div className="flex justify-end mb-8 totals-section">
                 <div className="w-full max-w-[250px]">
-                  <div className="flex justify-between border-b border-gray-100 py-2">
+                  <div className="flex justify-between border-b border-gray-100 py-2 text-xs">
                     <span className="text-gray-500 font-bold uppercase">Subtotal</span>
                     <span>R {invoice.subtotal.toFixed(2)}</span>
                   </div>
                   {!isTransport && (
-                    <div className="flex justify-between border-b border-gray-100 py-2">
+                    <div className="flex justify-between border-b border-gray-100 py-2 text-xs">
                       <span className="text-gray-500 font-bold uppercase">Tax ({profile?.defaultTaxRate || 15}%)</span>
                       <span>R {invoice.tax.toFixed(2)}</span>
                     </div>
@@ -183,11 +184,11 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
                 </div>
               </div>
 
-              <div className="mt-12 border-t pt-8 no-break">
+              <div className="mt-8 border-t pt-8 no-break">
                 <div className="flex justify-between gap-8 text-[10px]">
                   <div className="text-gray-600 max-w-[60%]">
                     <h3 className="text-xs font-bold text-gray-800 mb-1 uppercase tracking-widest">Payment Information</h3>
-                    <p className="italic mb-3 text-gray-500">{settings?.paymentTerms || 'Please make payment by the due date.'}</p>
+                    <p className="italic mb-3 text-gray-500 text-[9px]">{settings?.paymentTerms || 'Please make payment by the due date.'}</p>
 
                     <div className="grid grid-cols-2 gap-x-6 gap-y-1">
                       <p><strong>Bank:</strong> {profile?.bankName || 'N/A'}</p>
@@ -206,6 +207,8 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
                 </div>
               </div>
             </div>
+          ) : (
+            <div className="h-0" /> // Flex spacer
           )}
         </div>
       ))}

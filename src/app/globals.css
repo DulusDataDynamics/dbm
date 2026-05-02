@@ -85,12 +85,17 @@ body {
 }
 
 @media print {
-  /* RESET EVERYTHING - Force browser to ignore screen-only layouts */
+  /* RESET EVERYTHING */
   * {
     overflow: visible !important;
     box-shadow: none !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 10mm;
   }
 
   body {
@@ -101,12 +106,12 @@ body {
     height: auto !important;
   }
 
-  /* KILL TAILWIND FLEX/GRID INFLUENCE */
+  /* KILL TAILWIND LAYOUT INFLUENCE */
   .flex, .grid {
     display: block !important;
   }
 
-  /* REMOVE MAX WIDTHS AND PADDING */
+  /* REMOVE UI SPACING */
   .max-w-7xl, .max-w-5xl, .max-w-4xl, .container {
     max-width: 100% !important;
     width: 100% !important;
@@ -123,11 +128,10 @@ body {
     border-collapse: collapse !important;
     table-layout: auto !important;
     margin-bottom: 20px !important;
-    page-break-inside: auto !important;
   }
 
   thead {
-    display: table-header-group !important; /* Force repeating header */
+    display: table-header-group !important;
   }
 
   tbody {
@@ -146,22 +150,25 @@ body {
     break-inside: avoid !important;
   }
 
-  /* PAGINATION WRAPPERS */
+  /* PHYSICAL PAGE LOCK */
   .print-page {
+    height: 297mm !important;
+    width: 210mm !important;
     page-break-after: always !important;
     break-after: page !important;
-    width: 100% !important;
-    display: block !important;
-    position: static !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
     background: #fff !important;
-    padding: 30px !important; /* Standard print margin */
-    min-height: 290mm; /* Force a4-ish height */
+    padding: 10mm !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+    position: relative !important;
   }
 
   .print-page:last-child {
     page-break-after: auto !important;
     break-after: auto !important;
-    min-height: auto;
   }
 
   .no-break {
@@ -171,18 +178,12 @@ body {
 
   .footer-section {
     display: block !important;
-    margin-top: 40px !important;
+    margin-top: 10mm !important;
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }
 
-  .totals-section {
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    display: block !important;
-  }
-
-  /* Hide scrollbars/UI elements */
+  /* Hide UI elements */
   header, nav, .sidebar, .no-print, .no-print * {
     display: none !important;
   }
