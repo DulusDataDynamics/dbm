@@ -8,7 +8,7 @@ interface InvoicePDFViewProps {
   invoice: Invoice;
   profile: BusinessProfile;
   settings: InvoiceSettings;
-  onReady?: () => void;   // ✅ render signal
+  onReady?: () => void;
 }
 
 export function InvoicePDFView({ client, invoice, profile, settings, onReady }: InvoicePDFViewProps) {
@@ -20,11 +20,9 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
     const el = rootRef.current;
 
     const waitForStableLayout = async () => {
-      // wait for paints
       await new Promise(requestAnimationFrame);
       await new Promise(requestAnimationFrame);
 
-      // wait for images
       const images = el.querySelectorAll('img');
       await Promise.all(
         Array.from(images).map(img => {
@@ -36,12 +34,10 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
         })
       );
 
-      // wait for fonts
       if (document.fonts) {
         await document.fonts.ready;
       }
 
-      // wait for layout stability
       let lastHeight = el.offsetHeight;
       await new Promise(resolve => setTimeout(resolve, 50));
       let newHeight = el.offsetHeight;
@@ -50,7 +46,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
         await new Promise(resolve => setTimeout(resolve, 50));
       }
 
-      onReady?.(); // ✅ PDF-safe signal
+      onReady?.();
     };
 
     waitForStableLayout();
@@ -68,7 +64,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
     <div
       ref={rootRef}
       id={`invoice-pdf-view-${invoice.id}`}
-      className="p-8 bg-white text-gray-800 font-sans text-sm shadow-lg print-container"
+      className="p-8 bg-white text-gray-800 font-sans text-sm shadow-lg print-page"
       style={{ width: '210mm', minHeight: '297mm', position: 'relative' }}
     >
       {/* HEADER */}
@@ -98,8 +94,8 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
 
       {/* BILL TO */}
       <div className="my-8 no-break">
-        <h3 className="text-sm font-bold text-gray-500 mb-1">BILL TO</h3>
-        <p className="font-bold">{client.name}</p>
+        <h3 className="text-sm font-bold text-gray-500 mb-1 uppercase tracking-wider">BILL TO</h3>
+        <p className="font-bold text-base">{client.name}</p>
         <p>{client.email}</p>
         {client.phone && <p>{client.phone}</p>}
       </div>
@@ -133,8 +129,8 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
                 <td className="p-2.5">{trip.date}</td>
                 <td className="p-2.5">{trip.from}</td>
                 <td className="p-2.5">{trip.to}</td>
-                <td className="p-2.5">{trip.container}</td>
-                <td className="p-2.5 text-right">R {Number(trip.rate).toFixed(2)}</td>
+                <td className="p-2.5 font-mono text-xs">{trip.container}</td>
+                <td className="p-2.5 text-right font-semibold">R {Number(trip.rate).toFixed(2)}</td>
               </tr>
             ))
           ) : (
@@ -143,7 +139,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
                 <td className="p-2.5">{item.description}</td>
                 <td className="p-2.5 text-center">{item.quantity}</td>
                 <td className="p-2.5 text-right">R {Number(item.price).toFixed(2)}</td>
-                <td className="p-2.5 text-right">R {(item.quantity * item.price).toFixed(2)}</td>
+                <td className="p-2.5 text-right font-semibold">R {(item.quantity * item.price).toFixed(2)}</td>
               </tr>
             ))
           )}
@@ -177,23 +173,24 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
           </div>
         </div>
 
-        <div className="mt-12 border-t pt-4 no-break">
+        <div className="mt-12 border-t pt-8 no-break">
           <div className="flex justify-between gap-8 text-xs">
             <div className="text-gray-600">
-              <h3 className="text-sm font-bold text-gray-800 mb-1">Payment Information</h3>
-              <p className="italic mb-2">{settings?.paymentTerms || 'Please make payment by the due date.'}</p>
+              <h3 className="text-sm font-bold text-gray-800 mb-1 uppercase tracking-widest">Payment Information</h3>
+              <p className="italic mb-4 text-gray-500">{settings?.paymentTerms || 'Please make payment by the due date.'}</p>
 
-              <p><strong>Bank:</strong> {profile?.bankName || 'N/A'}</p>
-              <p><strong>Account Holder:</strong> {profile?.accountHolder || 'N/A'}</p>
-              <p><strong>Account Number:</strong> {profile?.accountNumber || 'N/A'}</p>
-              <p><strong>Branch Code:</strong> {profile?.branchCode || 'N/A'}</p>
-              <p><strong>Reference:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0,6).toUpperCase()}`}</p>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-1">
+                <p><strong>Bank:</strong> {profile?.bankName || 'N/A'}</p>
+                <p><strong>Account:</strong> {profile?.accountNumber || 'N/A'}</p>
+                <p><strong>Branch:</strong> {profile?.branchCode || 'N/A'}</p>
+                <p><strong>Ref:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0,6).toUpperCase()}`}</p>
+              </div>
             </div>
 
             <div className="text-right">
-              <p className="font-bold text-lg" style={{ color: brandColor }}>Thank you!</p>
+              <p className="font-bold text-xl italic" style={{ color: brandColor }}>Thank you!</p>
               {settings?.showWatermark && (
-                <p className="text-[10px] text-gray-300 mt-4">Generated by Dulus Business Manager</p>
+                <p className="text-[10px] text-gray-300 mt-6 uppercase tracking-tighter">Generated by Dulus Business Manager</p>
               )}
             </div>
           </div>

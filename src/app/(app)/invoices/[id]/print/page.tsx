@@ -58,7 +58,7 @@ export default function PrintInvoicePage() {
     if (!loading && invoice && client && profile) {
       const timer = setTimeout(() => {
         window.print();
-      }, 1000); // Give it a second to render fully
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [loading, invoice, client, profile]);
@@ -80,7 +80,7 @@ export default function PrintInvoicePage() {
   const isTransport = invoice.type === 'transport';
 
   return (
-    <div className="bg-white p-10 text-black print:p-0 print-container" style={{ minHeight: '297mm' }}>
+    <div className="bg-white p-10 text-black print-page" style={{ minHeight: '297mm' }}>
       {/* HEADER */}
       <div className="flex justify-between items-start border-b-2 pb-6 mb-8" style={{ borderColor: brandColor }}>
         <div>
@@ -160,11 +160,8 @@ export default function PrintInvoicePage() {
         </tbody>
       </table>
 
-      {/* TOTALS & FOOTER SECTION */}
+      {/* FOOTER SECTION */}
       <div className="footer-section">
-        {/* Force page break before totals only if the content is very tight at bottom */}
-        {/* <div style={{ pageBreakBefore: 'always' }}></div> */}
-        
         <div className="flex justify-end mb-16 totals-section">
           <div className="w-1/3">
             <div className="flex justify-between py-2 text-sm border-b border-gray-100">
