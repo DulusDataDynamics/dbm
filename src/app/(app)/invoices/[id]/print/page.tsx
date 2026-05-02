@@ -80,7 +80,7 @@ export default function PrintInvoicePage() {
   const isTransport = invoice.type === 'transport';
 
   return (
-    <div className="bg-white p-10 text-black print:p-0" style={{ minHeight: '297mm' }}>
+    <div className="bg-white p-10 text-black print:p-0 print-container" style={{ minHeight: '297mm' }}>
       {/* HEADER */}
       <div className="flex justify-between items-start border-b-2 pb-6 mb-8" style={{ borderColor: brandColor }}>
         <div>
@@ -107,7 +107,7 @@ export default function PrintInvoicePage() {
       </div>
 
       {/* BILL TO */}
-      <div className="mb-10">
+      <div className="mb-10 no-break">
         <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Bill To:</h3>
         <p className="text-lg font-bold">{client.name}</p>
         <p className="text-sm text-gray-600">{client.email}</p>
@@ -139,7 +139,7 @@ export default function PrintInvoicePage() {
         <tbody>
           {isTransport ? (
             invoice.trips?.map((trip, i) => (
-              <tr key={i} className="border-b border-gray-200 hover:bg-gray-50">
+              <tr key={i} className="border-b border-gray-200">
                 <td className="p-3 text-sm">{trip.date}</td>
                 <td className="p-3 text-sm">{trip.from}</td>
                 <td className="p-3 text-sm">{trip.to}</td>
@@ -149,7 +149,7 @@ export default function PrintInvoicePage() {
             ))
           ) : (
             invoice.items?.map((item, i) => (
-              <tr key={i} className="border-b border-gray-200 hover:bg-gray-50">
+              <tr key={i} className="border-b border-gray-200">
                 <td className="p-3 text-sm font-medium">{item.description}</td>
                 <td className="p-3 text-center text-sm">{item.quantity}</td>
                 <td className="p-3 text-right text-sm">R {Number(item.price).toFixed(2)}</td>
@@ -160,45 +160,49 @@ export default function PrintInvoicePage() {
         </tbody>
       </table>
 
-      {/* TOTALS */}
-      <div className="flex justify-end mb-16">
-        <div className="w-1/3">
-          <div className="flex justify-between py-2 text-sm border-b border-gray-100">
-            <span className="text-gray-600 font-bold uppercase tracking-tight">Subtotal</span>
-            <span className="font-bold text-gray-900">R {Number(invoice.subtotal).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between py-2 text-sm border-b border-gray-100">
-            <span className="text-gray-600 font-bold uppercase tracking-tight">Tax ({profile.defaultTaxRate || 15}%)</span>
-            <span className="font-bold text-gray-900">R {Number(invoice.tax).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between py-4 text-xl border-b-2" style={{ borderColor: brandColor }}>
-            <span className="font-black uppercase text-gray-900 tracking-tighter">Total</span>
-            <span className="font-black text-gray-900" style={{ color: brandColor }}>R {Number(invoice.total).toFixed(2)}</span>
+      {/* TOTALS & FOOTER SECTION */}
+      <div className="footer-section">
+        {/* Force page break before totals only if the content is very tight at bottom */}
+        {/* <div style={{ pageBreakBefore: 'always' }}></div> */}
+        
+        <div className="flex justify-end mb-16 totals-section">
+          <div className="w-1/3">
+            <div className="flex justify-between py-2 text-sm border-b border-gray-100">
+              <span className="text-gray-600 font-bold uppercase tracking-tight">Subtotal</span>
+              <span className="font-bold text-gray-900">R {Number(invoice.subtotal).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between py-2 text-sm border-b border-gray-100">
+              <span className="text-gray-600 font-bold uppercase tracking-tight">Tax ({profile.defaultTaxRate || 15}%)</span>
+              <span className="font-bold text-gray-900">R {Number(invoice.tax).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between py-4 text-xl border-b-2" style={{ borderColor: brandColor }}>
+              <span className="font-black uppercase text-gray-900 tracking-tighter">Total</span>
+              <span className="font-black text-gray-900" style={{ color: brandColor }}>R {Number(invoice.total).toFixed(2)}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* FOOTER */}
-      <div className="border-t border-gray-100 pt-8 flex justify-between gap-10">
-        <div className="w-2/3">
-          <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Info & Notes</h4>
-          <p className="text-sm text-gray-600 mb-4">{settings?.paymentTerms || 'Payment is due within 30 days.'}</p>
-          <div className="grid grid-cols-2 gap-4 text-xs">
-            <div>
-              <p className="font-bold text-gray-900">Bank: <span className="font-normal text-gray-600">{profile.bankName || 'N/A'}</span></p>
-              <p className="font-bold text-gray-900">Account: <span className="font-normal text-gray-600">{profile.accountNumber || 'N/A'}</span></p>
-            </div>
-            <div>
-              <p className="font-bold text-gray-900">Branch: <span className="font-normal text-gray-600">{profile.branchCode || 'N/A'}</span></p>
-              <p className="font-bold text-gray-900">Ref: <span className="font-normal text-gray-600">{settings?.invoicePrefix || ''}{invoice.id.substring(0, 6).toUpperCase()}</span></p>
+        <div className="border-t border-gray-100 pt-8 flex justify-between gap-10 no-break">
+          <div className="w-2/3">
+            <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Payment Info & Notes</h4>
+            <p className="text-sm text-gray-600 mb-4">{settings?.paymentTerms || 'Payment is due within 30 days.'}</p>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <p className="font-bold text-gray-900">Bank: <span className="font-normal text-gray-600">{profile.bankName || 'N/A'}</span></p>
+                <p className="font-bold text-gray-900">Account: <span className="font-normal text-gray-600">{profile.accountNumber || 'N/A'}</span></p>
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">Branch: <span className="font-normal text-gray-600">{profile.branchCode || 'N/A'}</span></p>
+                <p className="font-bold text-gray-900">Ref: <span className="font-normal text-gray-600">{settings?.invoicePrefix || ''}{invoice.id.substring(0, 6).toUpperCase()}</span></p>
+              </div>
             </div>
           </div>
-        </div>
-        <div className="w-1/3 text-right">
-           <p className="text-lg font-bold italic" style={{ color: brandColor }}>Thank you for your business!</p>
-           {settings?.showWatermark && (
-             <p className="text-[10px] text-gray-300 mt-4">Generated by Dulus Business Manager</p>
-           )}
+          <div className="w-1/3 text-right">
+             <p className="text-lg font-bold italic" style={{ color: brandColor }}>Thank you for your business!</p>
+             {settings?.showWatermark && (
+               <p className="text-[10px] text-gray-300 mt-4">Generated by Dulus Business Manager</p>
+             )}
+          </div>
         </div>
       </div>
     </div>

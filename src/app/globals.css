@@ -83,3 +83,48 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .print-container {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  thead {
+    display: table-header-group; /* repeats header on new page */
+  }
+
+  tfoot {
+    display: table-footer-group;
+  }
+
+  tr {
+    page-break-inside: avoid; /* prevents row splitting */
+  }
+
+  .no-break {
+    page-break-inside: avoid;
+  }
+
+  .footer-section {
+    page-break-inside: avoid;
+    margin-top: 20px;
+  }
+
+  .totals-section {
+    page-break-inside: avoid;
+  }
+}

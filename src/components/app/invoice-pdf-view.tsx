@@ -68,7 +68,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
     <div
       ref={rootRef}
       id={`invoice-pdf-view-${invoice.id}`}
-      className="p-8 bg-white text-gray-800 font-sans text-sm shadow-lg"
+      className="p-8 bg-white text-gray-800 font-sans text-sm shadow-lg print-container"
       style={{ width: '210mm', minHeight: '297mm', position: 'relative' }}
     >
       {/* HEADER */}
@@ -97,31 +97,31 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
       </header>
 
       {/* BILL TO */}
-      <div className="my-8">
+      <div className="my-8 no-break">
         <h3 className="text-sm font-bold text-gray-500 mb-1">BILL TO</h3>
         <p className="font-bold">{client.name}</p>
         <p>{client.email}</p>
         {client.phone && <p>{client.phone}</p>}
       </div>
 
-      {/* ITEMS / TRIPS */}
+      {/* ITEMS / TRIPS TABLE */}
       <table className="w-full border-collapse mb-8 text-sm">
         <thead>
           <tr style={{ backgroundColor: brandColor }} className="text-white">
             {isTransport ? (
               <>
-                <th className="p-2.5 text-left font-bold">Date</th>
-                <th className="p-2.5 text-left font-bold">From</th>
-                <th className="p-2.5 text-left font-bold">To</th>
-                <th className="p-2.5 text-left font-bold">Container</th>
-                <th className="p-2.5 text-right font-bold">Rate</th>
+                <th className="p-2.5 text-left font-bold uppercase">Date</th>
+                <th className="p-2.5 text-left font-bold uppercase">From</th>
+                <th className="p-2.5 text-left font-bold uppercase">To</th>
+                <th className="p-2.5 text-left font-bold uppercase">Container</th>
+                <th className="p-2.5 text-right font-bold uppercase">Rate</th>
               </>
             ) : (
               <>
-                <th className="p-2.5 text-left font-bold">Description</th>
-                <th className="p-2.5 text-center font-bold">Qty</th>
-                <th className="p-2.5 text-right font-bold">Unit Price</th>
-                <th className="p-2.5 text-right font-bold">Total</th>
+                <th className="p-2.5 text-left font-bold uppercase">Description</th>
+                <th className="p-2.5 text-center font-bold uppercase">Qty</th>
+                <th className="p-2.5 text-right font-bold uppercase">Unit Price</th>
+                <th className="p-2.5 text-right font-bold uppercase">Total</th>
               </>
             )}
           </tr>
@@ -150,48 +150,52 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
         </tbody>
       </table>
 
-      {/* TOTALS */}
-      <div className="flex justify-end mb-8">
-        <div className="w-1/2">
-          <table className="w-full text-sm">
-            <tbody>
-              {!isTransport && (
-                <>
-                  <tr>
-                    <td className="p-2 text-right">Subtotal:</td>
-                    <td className="p-2 text-right">R {invoice.subtotal.toFixed(2)}</td>
-                  </tr>
-                  <tr>
-                    <td className="p-2 text-right">Tax ({taxRate * 100}%):</td>
-                    <td className="p-2 text-right">R {invoice.tax.toFixed(2)}</td>
-                  </tr>
-                </>
-              )}
-              <tr className="border-t-2 font-bold text-lg" style={{ borderColor: brandColor }}>
-                <td className="p-2 text-right">Total:</td>
-                <td className="p-2 text-right">R {invoice.total.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <div className="absolute bottom-8 left-8 right-8 text-xs">
-        <div className="flex justify-between gap-8 border-t pt-4">
-          <div className="text-gray-600">
-            <h3 className="text-sm font-bold text-gray-800 mb-1">Payment Information</h3>
-            <p className="italic mb-2">{settings?.paymentTerms || 'Please make payment by the due date.'}</p>
-
-            <p><strong>Bank:</strong> {profile?.bankName || 'N/A'}</p>
-            <p><strong>Account Holder:</strong> {profile?.accountHolder || 'N/A'}</p>
-            <p><strong>Account Number:</strong> {profile?.accountNumber || 'N/A'}</p>
-            <p><strong>Branch Code:</strong> {profile?.branchCode || 'N/A'}</p>
-            <p><strong>Reference:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0,6).toUpperCase()}`}</p>
+      {/* TOTALS & FOOTER */}
+      <div className="footer-section">
+        <div className="flex justify-end mb-8 totals-section">
+          <div className="w-1/2">
+            <table className="w-full text-sm">
+              <tbody>
+                {!isTransport && (
+                  <>
+                    <tr className="border-b border-gray-100">
+                      <td className="p-2 text-right text-gray-500 font-bold uppercase">Subtotal:</td>
+                      <td className="p-2 text-right">R {invoice.subtotal.toFixed(2)}</td>
+                    </tr>
+                    <tr className="border-b border-gray-100">
+                      <td className="p-2 text-right text-gray-500 font-bold uppercase">Tax ({taxRate * 100}%):</td>
+                      <td className="p-2 text-right">R {invoice.tax.toFixed(2)}</td>
+                    </tr>
+                  </>
+                )}
+                <tr className="border-t-2 font-bold text-lg" style={{ borderColor: brandColor }}>
+                  <td className="p-2 text-right uppercase">Total:</td>
+                  <td className="p-2 text-right" style={{ color: brandColor }}>R {invoice.total.toFixed(2)}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
+        </div>
 
-          <div className="text-right">
-            <p className="font-bold text-lg" style={{ color: brandColor }}>Thank you!</p>
+        <div className="mt-12 border-t pt-4 no-break">
+          <div className="flex justify-between gap-8 text-xs">
+            <div className="text-gray-600">
+              <h3 className="text-sm font-bold text-gray-800 mb-1">Payment Information</h3>
+              <p className="italic mb-2">{settings?.paymentTerms || 'Please make payment by the due date.'}</p>
+
+              <p><strong>Bank:</strong> {profile?.bankName || 'N/A'}</p>
+              <p><strong>Account Holder:</strong> {profile?.accountHolder || 'N/A'}</p>
+              <p><strong>Account Number:</strong> {profile?.accountNumber || 'N/A'}</p>
+              <p><strong>Branch Code:</strong> {profile?.branchCode || 'N/A'}</p>
+              <p><strong>Reference:</strong> {`${settings?.invoicePrefix || ''}${invoice.id.substring(0,6).toUpperCase()}`}</p>
+            </div>
+
+            <div className="text-right">
+              <p className="font-bold text-lg" style={{ color: brandColor }}>Thank you!</p>
+              {settings?.showWatermark && (
+                <p className="text-[10px] text-gray-300 mt-4">Generated by Dulus Business Manager</p>
+              )}
+            </div>
           </div>
         </div>
       </div>
