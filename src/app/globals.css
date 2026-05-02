@@ -87,51 +87,24 @@ body {
 @media print {
   @page {
     size: A4;
-    margin: 10mm;
+    margin: 15mm;
   }
 
   body {
+    background: white !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: white !important;
-  }
-
-  * {
-    overflow: visible !important;
-  }
-
-  /* Kill Tailwind layouts */
-  .flex, .grid {
-    display: block !important;
+    color: black !important;
   }
 
   .no-print {
     display: none !important;
   }
 
-  .print-page {
-    width: 100% !important;
-    height: 277mm !important;
-    box-sizing: border-box !important;
-    page-break-after: always !important;
-    break-after: page !important;
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: space-between !important;
-    background: white !important;
-    padding: 0 !important;
-    margin: 0 !important;
-  }
-
-  .print-page:last-child {
-    page-break-after: auto !important;
-  }
-
   table {
-    display: table !important;
     width: 100% !important;
     border-collapse: collapse !important;
-    table-layout: fixed !important;
+    display: table !important;
   }
 
   thead {
@@ -150,12 +123,6 @@ body {
 
   td, th {
     display: table-cell !important;
-    word-wrap: break-word !important;
-    font-size: 12px !important;
-  }
-
-  .footer-section {
-    display: block !important;
-    page-break-inside: avoid !important;
+    font-size: 11px !important;
   }
 }
