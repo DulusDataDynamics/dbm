@@ -107,7 +107,7 @@ body {
     display: none !important;
   }
 
-  /* Force standard block layout to prevent Tailwind flex/grid from messing with page breaks */
+  /* 🔥 Aggressive Layout Reset */
   .flex, .grid {
     display: block !important;
   }
@@ -117,11 +117,13 @@ body {
     flex-direction: column !important;
     justify-content: space-between !important;
     width: 100% !important;
-    height: 277mm !important;
+    height: 277mm !important; /* A4 height (297) - margins (20) */
     box-sizing: border-box !important;
     page-break-after: always !important;
     break-after: page !important;
     background: white !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .print-page:last-child {

@@ -78,13 +78,18 @@ export default function PrintInvoicePage() {
 
   const brandColor = settings.brandColor || '#2B579A';
   const isTransport = invoice.type === 'transport';
+  
+  // 🔥 MANUAL PAGINATION (Chunking)
   const rowsPerPage = 12;
-
-  // Manual pagination logic
   const itemsToPaginate = isTransport ? (invoice.trips || []) : (invoice.items || []);
   const pages = [];
-  for (let i = 0; i < Math.max(1, itemsToPaginate.length); i += rowsPerPage) {
-    pages.push(itemsToPaginate.slice(i, i + rowsPerPage));
+  
+  if (itemsToPaginate.length === 0) {
+    pages.push([]); // Ensure at least one page renders
+  } else {
+    for (let i = 0; i < itemsToPaginate.length; i += rowsPerPage) {
+      pages.push(itemsToPaginate.slice(i, i + rowsPerPage));
+    }
   }
 
   return (

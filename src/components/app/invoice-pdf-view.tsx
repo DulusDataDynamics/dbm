@@ -13,13 +13,18 @@ interface InvoicePDFViewProps {
 export function InvoicePDFView({ client, invoice, profile, settings, onReady }: InvoicePDFViewProps) {
   const brandColor = settings?.brandColor || '#2B579A';
   const isTransport = invoice.type === 'transport';
+  
+  // 🔥 MANUAL PAGINATION (Chunking)
   const rowsPerPage = 12;
-
-  // Manual pagination logic
   const itemsToPaginate = isTransport ? (invoice.trips || []) : (invoice.items || []);
   const pages = [];
-  for (let i = 0; i < Math.max(1, itemsToPaginate.length); i += rowsPerPage) {
-    pages.push(itemsToPaginate.slice(i, i + rowsPerPage));
+  
+  if (itemsToPaginate.length === 0) {
+    pages.push([]); // Ensure at least one page renders
+  } else {
+    for (let i = 0; i < itemsToPaginate.length; i += rowsPerPage) {
+      pages.push(itemsToPaginate.slice(i, i + rowsPerPage));
+    }
   }
 
   return (
@@ -29,7 +34,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
 
         return (
           <div key={pageIndex} className="print-page bg-white p-8 text-black shadow-lg mx-auto">
-            {/* WRAPPER FOR TOP CONTENT (needed for justify-between) */}
+            {/* WRAPPER FOR TOP CONTENT */}
             <div>
               <div className="flex justify-between items-start border-b-2 pb-4 mb-6" style={{ borderColor: brandColor }}>
                 <div>
@@ -110,7 +115,7 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
 
             {/* FOOTER SECTION pinned at bottom */}
             {isLastPage ? (
-              <div className="footer-section">
+              <div className="footer-section mt-auto">
                 <div className="flex justify-end mb-6">
                   <div className="w-full max-w-[200px]">
                     <div className="flex justify-between py-1 text-[10px] border-b border-gray-50">
