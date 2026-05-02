@@ -85,20 +85,29 @@ body {
 }
 
 @media print {
+  /* HARD RESET FOR PRINTING */
+  * {
+    overflow: visible !important;
+    box-shadow: none !important;
+  }
+
   body {
     margin: 0 !important;
     padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
     overflow: visible !important;
     height: auto !important;
   }
 
-  .print-page {
+  .print-page, .print-wrapper {
     width: 100% !important;
     overflow: visible !important;
     display: block !important;
     position: static !important;
+    background: #fff !important;
   }
 
   /* FORCE REAL TABLE BEHAVIOUR */
@@ -109,6 +118,7 @@ body {
     table-layout: auto !important;
     overflow: visible !important;
     margin-bottom: 20px !important;
+    page-break-inside: auto !important;
   }
 
   thead {
@@ -117,6 +127,7 @@ body {
 
   tbody {
     display: table-row-group !important;
+    page-break-inside: auto !important;
   }
 
   tr {
@@ -170,4 +181,7 @@ body {
   .flex, .grid {
     display: block !important;
   }
+
+  /* Specifically restore flex for items that NEED it to look right but don't break tables */
+  /* If specific rows need internal flex, define them here. Otherwise, block is safer. */
 }

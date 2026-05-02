@@ -64,8 +64,8 @@ export function InvoicePDFView({ client, invoice, profile, settings, onReady }: 
     <div
       ref={rootRef}
       id={`invoice-pdf-view-${invoice.id}`}
-      className="p-8 bg-white text-gray-800 font-sans text-sm shadow-lg print-page"
-      style={{ width: '210mm', minHeight: '297mm', position: 'relative' }}
+      className="p-8 bg-white text-gray-800 font-sans text-sm shadow-lg print-page print-wrapper"
+      style={{ width: '210mm' }}
     >
       {/* HEADER */}
       <div className="flex justify-between items-start mb-8 border-b-2 pb-4" style={{ borderColor: brandColor }}>

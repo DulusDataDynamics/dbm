@@ -80,7 +80,7 @@ export default function PrintInvoicePage() {
   const isTransport = invoice.type === 'transport';
 
   return (
-    <div className="bg-white p-10 text-black print-page" style={{ minHeight: '297mm' }}>
+    <div className="print-wrapper bg-white p-10 text-black print-page">
       {/* HEADER */}
       <div className="flex justify-between items-start border-b-2 pb-6 mb-8" style={{ borderColor: brandColor }}>
         <div>
