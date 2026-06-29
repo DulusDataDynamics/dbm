@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import type { InvoiceItem, Invoice, Client } from "./types"
@@ -8,10 +7,10 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function calculateInvoiceTotals(items: InvoiceItem[], taxRate: number = 0.15) {
+export function calculateInvoiceTotals(items: InvoiceItem[]) {
   const subtotal = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-  const tax = subtotal * taxRate;
-  const total = subtotal + tax;
+  const tax = 0; // Tax is now disabled
+  const total = subtotal;
   return { subtotal, tax, total };
 }
 

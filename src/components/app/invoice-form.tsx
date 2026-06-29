@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -152,7 +151,6 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <ScrollArea className="max-h-[70vh] p-1">
               <div className="space-y-4 p-4">
-                {/* Client and Due Date */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
@@ -218,7 +216,6 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                   />
                 </div>
 
-                {/* Items Table */}
                 <div className="pt-4">
                   <Table>
                     <TableHeader>
@@ -264,19 +261,10 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                   <Plus className="mr-2 h-4 w-4" /> Add Row
                 </Button>
 
-                {/* Totals Section */}
                 <div className="flex justify-end pt-4">
                   <div className="w-full max-w-sm space-y-2">
-                    <div className="flex justify-between">
-                        <span>Subtotal</span>
-                        <span>R {(form.getValues('subtotal') || 0).toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                        <span>Tax (15%)</span>
-                        <span>R {(form.getValues('tax') || 0).toFixed(2)}</span>
-                    </div>
                     <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
-                        <span>Total</span>
+                        <span>Total Amount</span>
                         <span>R {(form.getValues('total') || 0).toFixed(2)}</span>
                     </div>
                   </div>

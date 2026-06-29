@@ -160,16 +160,6 @@ export default function PrintInvoicePage() {
       <div className="footer-section">
         <div className="flex justify-end mb-12">
           <div className="w-full max-w-[300px]">
-            <div className="flex justify-between py-2 text-sm border-b border-gray-100">
-              <span className="text-gray-600 font-bold uppercase">Subtotal</span>
-              <span className="font-bold">R {Number(invoice.subtotal).toFixed(2)}</span>
-            </div>
-            {!isTransport && (
-              <div className="flex justify-between py-2 text-sm border-b border-gray-100">
-                <span className="text-gray-600 font-bold uppercase">Tax ({profile.defaultTaxRate || 15}%)</span>
-                <span className="font-bold">R {Number(invoice.tax).toFixed(2)}</span>
-              </div>
-            )}
             <div className="flex justify-between py-4 text-xl border-b-2" style={{ borderColor: brandColor }}>
               <span className="font-black uppercase tracking-tighter">Total</span>
               <span className="font-black" style={{ color: brandColor }}>R {Number(invoice.total).toFixed(2)}</span>

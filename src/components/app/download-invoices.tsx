@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState } from 'react';
@@ -105,7 +104,7 @@ export default function DownloadInvoices() {
         description: err?.message || 'An unknown error occurred.',
       });
     } finally {
-      setLoading(false);
+      loading && setLoading(false);
     }
   }
 
@@ -203,12 +202,9 @@ export default function DownloadInvoices() {
             
             // Totals
             const totalsX = doc.internal.pageSize.width - 40;
-            doc.setFontSize(10);
-            doc.text(`Subtotal: R ${inv.subtotal.toFixed(2)}`, totalsX, finalY + 25, { align: 'right' });
-            doc.text(`Tax: R ${inv.tax.toFixed(2)}`, totalsX, finalY + 40, { align: 'right' });
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
-            doc.text(`Total: R ${inv.total.toFixed(2)}`, totalsX, finalY + 55, { align: 'right' });
+            doc.text(`Total: R ${inv.total.toFixed(2)}`, totalsX, finalY + 40, { align: 'right' });
             doc.setFont('helvetica', 'normal');
 
             // Footer
