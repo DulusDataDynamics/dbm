@@ -2,10 +2,8 @@
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowRight, Check, LayoutDashboard, UsersRound, FileText, TrendingUp, Bot, Sparkles, FilePieChart, X, Youtube, Instagram } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -339,7 +337,7 @@ export default function LandingPage() {
                   <a href="https://dulusdatadynamics.netlify.app" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">Website</a>
               </nav>
               <div className="flex gap-4">
-                  <a href="https://www.youtube.com/@Dulus_sa" target="_blank" rel="noopener noreferrer" aria-label="Youtube" className="text-muted-foreground transition-colors hover:text-foreground">
+                  <a href="https://youtube.com/@dbmsa_yt?si=OgH9TxJo4hJ_87Es" target="_blank" rel="noopener noreferrer" aria-label="Youtube" className="text-muted-foreground transition-colors hover:text-foreground">
                       <Youtube className="h-5 w-5" />
                   </a>
                   <a href="https://www.instagram.com/dbm_sa?igsh=b2tpamVtNTg4Nmtk" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-muted-foreground transition-colors hover:text-foreground">
