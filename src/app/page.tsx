@@ -1,10 +1,9 @@
-
 'use client';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Check, LayoutDashboard, UsersRound, FileText, TrendingUp, Bot, Sparkles, FilePieChart, X, Youtube, Instagram, Linkedin } from 'lucide-react';
+import { ArrowRight, Check, LayoutDashboard, UsersRound, FileText, TrendingUp, Bot, Sparkles, FilePieChart, X, Youtube, Instagram } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Badge } from '@/components/ui/badge';
@@ -130,21 +129,6 @@ export default function LandingPage() {
                     <Button size="lg" asChild>
                         <Link href="/signup">Start Your 1-Month Free Trial</Link>
                     </Button>
-                </div>
-                <div className="mt-16 mx-auto max-w-5xl">
-                    <Card className="overflow-hidden rounded-lg border shadow-2xl shadow-primary/10">
-                        <CardContent className="p-0">
-                             <Image
-                                src={PlaceHolderImages.find(p => p.id === 'landing-hero')?.imageUrl || "https://picsum.photos/seed/landing-hero/1200/800"}
-                                alt="Abstract representation of business technology"
-                                width={1200}
-                                height={800}
-                                className="w-full h-auto"
-                                data-ai-hint="abstract tech"
-                                priority
-                            />
-                        </CardContent>
-                    </Card>
                 </div>
             </div>
              <div
@@ -355,14 +339,11 @@ export default function LandingPage() {
                   <a href="https://dulusdatadynamics.netlify.app" target="_blank" rel="noopener noreferrer" className="text-sm text-muted-foreground hover:text-foreground">Website</a>
               </nav>
               <div className="flex gap-4">
-                  <a href="https://youtube.com/@dbm_sa?si=2xb6bp08eN_28GuO" target="_blank" rel="noopener noreferrer" aria-label="Youtube" className="text-muted-foreground transition-colors hover:text-foreground">
+                  <a href="https://www.youtube.com/@Dulus_sa" target="_blank" rel="noopener noreferrer" aria-label="Youtube" className="text-muted-foreground transition-colors hover:text-foreground">
                       <Youtube className="h-5 w-5" />
                   </a>
                   <a href="https://www.instagram.com/dbm_sa?igsh=b2tpamVtNTg4Nmtk" target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-muted-foreground transition-colors hover:text-foreground">
                       <Instagram className="h-5 w-5" />
-                  </a>
-                  <a href="https://www.linkedin.com/in/keshav-dulu-1b65a53b3?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-muted-foreground transition-colors hover:text-foreground">
-                      <Linkedin className="h-5 w-5" />
                   </a>
               </div>
             </div>
@@ -371,5 +352,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
