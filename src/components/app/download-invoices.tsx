@@ -45,7 +45,6 @@ export default function DownloadInvoices() {
   function formatDate(dateString?: string) {
     if (!dateString) return '';
     try {
-      // Add a day to correct for timezone issues with 'yyyy-MM-dd' strings
       const date = new Date(dateString);
       const userTimezoneOffset = date.getTimezoneOffset() * 60000;
       return new Date(date.getTime() + userTimezoneOffset).toLocaleDateString();
@@ -119,7 +118,6 @@ export default function DownloadInvoices() {
     const generatedDate = new Date().toLocaleString();
     const brandColor = settings?.brandColor || '#2B579A';
 
-    // Summary Page
     doc.setFontSize(18);
     doc.text(companyName, 40, 50);
     doc.setFontSize(10);
@@ -148,7 +146,6 @@ export default function DownloadInvoices() {
       margin: { left: 40, right: 40 },
     });
     
-    // Individual Invoice Pages
     invoices.forEach((inv) => {
       doc.addPage();
       
@@ -200,14 +197,12 @@ export default function DownloadInvoices() {
             // @ts-ignore
             let finalY = doc.lastAutoTable.finalY;
             
-            // Totals
             const totalsX = doc.internal.pageSize.width - 40;
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.text(`Total: R ${inv.total.toFixed(2)}`, totalsX, finalY + 40, { align: 'right' });
             doc.setFont('helvetica', 'normal');
 
-            // Footer
             const pageHeight = doc.internal.pageSize.height;
             const bottomY = pageHeight - 140;
             doc.setFontSize(10);

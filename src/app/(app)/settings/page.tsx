@@ -79,7 +79,6 @@ const profileSchema = z.object({
     accountNumber: z.string().optional(),
     branchCode: z.string().optional(),
     defaultCurrency: z.string().optional(),
-    defaultTaxRate: z.coerce.number().optional(),
 });
 
 const invoiceSettingsSchema = z.object({
@@ -125,7 +124,6 @@ export default function SettingsPage() {
       accountNumber: '',
       branchCode: '',
       defaultCurrency: 'ZAR',
-      defaultTaxRate: 15,
     }
   });
 
@@ -264,9 +262,6 @@ export default function SettingsPage() {
                                 <FormField control={profileForm.control} name="defaultCurrency" render={({ field }) => (
                                     <FormItem><FormLabel>Default Currency</FormLabel><FormControl><Input placeholder="e.g. ZAR, USD" {...field} /></FormControl></FormItem>
                                 )}/>
-                                 <FormField control={profileForm.control} name="defaultTaxRate" render={({ field }) => (
-                                    <FormItem><FormLabel>Default Tax Rate (%)</FormLabel><FormControl><Input type="number" placeholder="e.g. 15" {...field} /></FormControl></FormItem>
-                                )}/>
                            </div>
                         </div>
                       </CardContent>
@@ -319,7 +314,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="signature-image">Signature Image (optional)</Label>
-                                    <Input id="signature-image" type="file" className="max-w-sm" onChange={(e) => handleFileChange(e, setSignaturePreview)} accept="image/png, image/jpeg" />
+                                    <Input id="signature-image" type="file" className="max-sm" onChange={(e) => handleFileChange(e, setSignaturePreview)} accept="image/png, image/jpeg" />
                                     <p className="text-xs text-muted-foreground">Upload a transparent PNG for best results.</p>
                                 </div>
                             </div>

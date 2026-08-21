@@ -8,10 +8,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function calculateInvoiceTotals(items: InvoiceItem[]) {
-  const subtotal = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
-  const tax = 0; // Tax is now disabled
-  const total = subtotal;
-  return { subtotal, tax, total };
+  const total = items.reduce((acc, item) => acc + (item.quantity * item.price), 0);
+  return { total };
 }
 
 export function mapToAISchema(invoices: Invoice[], clients: Client[]): GenerateRevenueInsightsInput {

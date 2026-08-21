@@ -51,8 +51,6 @@ const formSchema = z.object({
   status: z.enum(['Draft', 'Unpaid', 'Paid', 'Overdue']),
   dueDate: z.date({ required_error: 'A due date is required.' }),
   items: z.array(invoiceItemSchema).min(1, "At least one item is required."),
-  subtotal: z.number(),
-  tax: z.number(),
   total: z.number(),
   createdAt: z.string().optional(),
 });
@@ -76,8 +74,6 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
       clientId: '',
       status: 'Draft',
       items: [{ description: '', quantity: 1, price: 0 }],
-      subtotal: 0,
-      tax: 0,
       total: 0,
     },
   });
@@ -93,9 +89,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
   });
 
   useEffect(() => {
-    const { subtotal, tax, total } = calculateInvoiceTotals(watchedItems || []);
-    form.setValue('subtotal', subtotal, { shouldValidate: false });
-    form.setValue('tax', tax, { shouldValidate: false });
+    const { total } = calculateInvoiceTotals(watchedItems || []);
     form.setValue('total', total, { shouldValidate: false });
   }, [watchedItems, form]);
 
@@ -119,6 +113,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
           status: 'Draft',
           dueDate: new Date(new Date().setDate(new Date().getDate() + 30)), // Due in 30 days
           items: [{ description: '', quantity: 1, price: 0 }],
+          total: 0,
         });
       }
     }
@@ -126,12 +121,10 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
 
   const onSubmit = async (data: InvoiceFormValues) => {
     if (!db || !userId) return;
-    const { subtotal, tax, total } = calculateInvoiceTotals(data.items);
+    const { total } = calculateInvoiceTotals(data.items);
     const invoiceData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
-      subtotal,
-      tax,
       total
     };
     await saveInvoice(db, userId, invoice?.id || null, invoiceData);

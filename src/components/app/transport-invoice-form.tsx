@@ -104,9 +104,7 @@ export default function TransportInvoiceForm({ isOpen, onClose, invoice }: Trans
       type: 'transport' as const,
       status: invoice?.status || 'Draft' as const,
       trips: rows,
-      items: [], // Standard system expects items array
-      subtotal: total,
-      tax: 0,
+      items: [],
       total: total,
       dueDate: invoice?.dueDate || new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0],
       createdAt: invoice?.createdAt || new Date().toISOString(),

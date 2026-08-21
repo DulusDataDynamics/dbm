@@ -29,9 +29,7 @@ export type Invoice = {
   type: InvoiceType;
   status: InvoiceStatus;
   items: InvoiceItem[];
-  trips?: TripRow[]; // Added for transport invoices
-  subtotal: number;
-  tax: number;
+  trips?: TripRow[];
   total: number;
   dueDate: string; // ISO Date
   createdAt: string; // ISO Date
@@ -73,7 +71,6 @@ export type BusinessProfile = {
   accountNumber?: string;
   branchCode?: string;
   defaultCurrency?: string;
-  defaultTaxRate?: number;
 };
 
 export type InvoiceSettings = {
