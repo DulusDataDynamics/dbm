@@ -251,7 +251,7 @@ export default function LandingPage() {
                 <blockquote className="text-xl italic md:text-2xl text-foreground">
                     “DBM made managing my invoices so much easier and saved me hours every week. I finally feel in control of my business finances.”
                 </blockquote>
-                <p className="mt-6 font-semibold">- Small Business Owner</p>
+                <p className="mt-6 font-semibold">- AKR Freight</p>
              </div>
         </section>
 
