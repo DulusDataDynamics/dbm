@@ -222,9 +222,9 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                     </TableHeader>
                     <TableBody>
                       {fields.map((item, index) => {
-                        const qty = parseFloat(String(watchedItems?.[index]?.quantity || 0));
-                        const prc = parseFloat(String(watchedItems?.[index]?.price || 0));
-                        const rowTotal = parseFloat((qty * prc).toFixed(2));
+                        const qty = parseFloat(String(watchedItems?.[index]?.quantity || 0).replace(',', '.'));
+                        const prc = parseFloat(String(watchedItems?.[index]?.price || 0).replace(',', '.'));
+                        const rowTotal = isNaN(qty) || isNaN(prc) ? 0 : Math.round(((qty * prc) + Number.EPSILON) * 100) / 100;
 
                         return (
                           <TableRow key={item.id}>
@@ -244,7 +244,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                                )} />
                              </TableCell>
                              <TableCell className="text-right font-medium">
-                              R {isNaN(rowTotal) ? '0.00' : rowTotal.toFixed(2)}
+                              R {rowTotal.toFixed(2)}
                              </TableCell>
                             <TableCell className="text-right">
                               <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
