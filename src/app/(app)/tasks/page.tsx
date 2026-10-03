@@ -22,10 +22,6 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
@@ -57,7 +53,6 @@ export default function TasksPage() {
       return;
     }
     const unsubscribe = subscribeToTasks(db, user.uid, (tasksData) => {
-      // Sort by due date, then by status
       const sortedTasks = tasksData.sort((a, b) => {
         if (a.dueDate < b.dueDate) return -1;
         if (a.dueDate > b.dueDate) return 1;
@@ -76,13 +71,6 @@ export default function TasksPage() {
     if (!db || !user?.uid) return;
     startTransition(async () => {
       await updateTaskStatus(db, user.uid, task.id, status);
-    });
-  };
-
-  const handlePriorityChange = (task: Task, priority: TaskPriority) => {
-    if (!db || !user?.uid) return;
-    startTransition(async () => {
-      await updateTaskPriority(db, user.uid, task.id, priority);
     });
   };
 
@@ -111,7 +99,7 @@ export default function TasksPage() {
 
   const isOverdue = (task: Task) => {
     return new Date(task.dueDate) < new Date() && task.status !== 'Completed';
-  }
+  };
 
   const getStatusBadgeVariant = (status: TaskStatus) => {
     switch (status) {

@@ -90,10 +90,8 @@ export async function saveLoad(db: Firestore, userId: string, id: string | null,
 
 export async function saveInvoice(db: Firestore, userId: string, id: string | null, data: Omit<Invoice, 'id'>) {
   if (id) {
-    // Updating an existing invoice
     await setDoc(getDocRef(db, userId, 'invoices', id), data, { merge: true });
   } else {
-    // Creating a new invoice
     const invoiceDataWithTimestamp = {
       ...data,
       createdAt: new Date().toISOString(),
@@ -127,15 +125,13 @@ export async function duplicateInvoice(db: Firestore, userId: string, invoiceId:
     }
 
     const originalData = originalInvoiceSnap.data() as Invoice;
-    
-    // Create a new object excluding the original ID
     const { id, ...newData } = originalData;
 
     const duplicatedInvoice = {
         ...newData,
         status: 'Draft' as InvoiceStatus,
         createdAt: new Date().toISOString(),
-        dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(), // New due date
+        dueDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString(),
     };
 
     await addDoc(getCollectionRef(db, userId, 'invoices'), duplicatedInvoice);
@@ -151,7 +147,6 @@ export async function deleteClient(db: Firestore, userId: string, id: string) {
   const clientDocRef = getDocRef(db, userId, 'clients', id);
   batch.delete(clientDocRef);
   
-  // Also delete standard invoices for the client
   const invoicesQuery = query(getCollectionRef(db, userId, 'invoices'), where('clientId', '==', id));
   const invoicesSnapshot = await getDocs(invoicesQuery);
   invoicesSnapshot.forEach(doc => batch.delete(doc.ref));
