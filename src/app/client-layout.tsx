@@ -6,7 +6,7 @@ import { useAuth } from '@/firebase';
 import { Protected } from '@/components/auth/protected';
 import { Logo } from '@/components/logo';
 import Link from 'next/link';
-import { NAV_LINKS, SUPPORT_LINKS } from '@/lib/constants';
+import { MAIN_NAV, TRANSPORT_NAV, SUPPORT_LINKS } from '@/lib/constants';
 import { UserNav } from '@/components/app/user-nav';
 import {
   SidebarProvider,
@@ -20,14 +20,26 @@ import {
   SidebarTrigger,
   SidebarInset,
   SidebarSeparator,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarGroupContent,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from '@/components/ui/sidebar';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronRight, Truck } from 'lucide-react';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isUserLoading } = useAuth();
 
   // Create a list of all protected app routes from the constants.
-  const appRoutes = [...NAV_LINKS, ...SUPPORT_LINKS].map((link) => link.href);
+  const appRoutes = [
+    ...MAIN_NAV.map((link) => link.href),
+    ...TRANSPORT_NAV.map((link) => link.href),
+    ...SUPPORT_LINKS.map((link) => link.href),
+  ];
 
   // Determine the page type based on the current path.
   const isAppPage = appRoutes.some((route) => pathname.startsWith(route)) || pathname.includes('/invoices/');
@@ -69,6 +81,8 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     return <>{children}</>;
   }
 
+  const isTransportActive = TRANSPORT_NAV.some(item => pathname.startsWith(item.href));
+
   // If the user is logged in, render the main app layout for app pages.
   return (
     <Protected>
@@ -79,22 +93,57 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
           </SidebarHeader>
           <SidebarSeparator />
           <SidebarContent>
-            <SidebarMenu>
-              {NAV_LINKS.map((link) => (
-                <SidebarMenuItem key={link.href}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={pathname.startsWith(link.href)}
-                    tooltip={{ children: link.label }}
-                  >
-                    <Link href={link.href}>
-                      <link.icon />
-                      <span>{link.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <SidebarGroup>
+              <SidebarGroupLabel>WORKSPACE</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {MAIN_NAV.map((link) => (
+                    <SidebarMenuItem key={link.href}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={pathname === link.href}
+                        tooltip={{ children: link.label }}
+                      >
+                        <Link href={link.href}>
+                          <link.icon />
+                          <span>{link.label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            <SidebarGroup>
+              <SidebarMenu>
+                <Collapsible defaultOpen={isTransportActive} className="group/collapsible">
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton tooltip="Transport" isActive={isTransportActive}>
+                        <Truck />
+                        <span>Transport</span>
+                        <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {TRANSPORT_NAV.map((item) => (
+                          <SidebarMenuSubItem key={item.href}>
+                            <SidebarMenuSubButton asChild isActive={pathname === item.href}>
+                              <Link href={item.href}>
+                                <item.icon />
+                                <span>{item.label}</span>
+                              </Link>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              </SidebarMenu>
+            </SidebarGroup>
           </SidebarContent>
           <SidebarFooter className="flex-col !items-stretch">
             <SidebarSeparator />
@@ -103,7 +152,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                 <SidebarMenuItem key={link.href}>
                   <SidebarMenuButton
                     asChild
-                    isActive={pathname.startsWith(link.href)}
+                    isActive={pathname === link.href}
                     tooltip={{ children: link.label }}
                   >
                     <Link href={link.href}>

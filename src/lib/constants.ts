@@ -10,7 +10,7 @@ import {
   Boxes,
 } from 'lucide-react';
 
-export const NAV_LINKS = [
+export const MAIN_NAV = [
   {
     href: '/dashboard',
     icon: LayoutDashboard,
@@ -27,16 +27,6 @@ export const NAV_LINKS = [
     label: 'Invoices',
   },
   {
-    href: '/transport-invoices',
-    icon: Truck,
-    label: 'Transport Invoices',
-  },
-  {
-    href: '/loads',
-    icon: Boxes,
-    label: 'Loads',
-  },
-  {
     href: '/tasks',
     icon: CheckCircle2,
     label: 'Tasks',
@@ -45,6 +35,19 @@ export const NAV_LINKS = [
     href: '/reports',
     icon: BarChart3,
     label: 'Reports',
+  },
+];
+
+export const TRANSPORT_NAV = [
+  {
+    href: '/transport-invoices',
+    icon: FileText,
+    label: 'Transport Invoices',
+  },
+  {
+    href: '/loads',
+    icon: Boxes,
+    label: 'Loads',
   },
 ];
 
