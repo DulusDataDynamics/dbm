@@ -107,6 +107,21 @@ body {
     display: none !important;
   }
 
+  /* Prevent row splitting */
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Ensure totals and banking details stay together */
+  .footer-section, 
+  .banking-details-section,
+  .totals-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block !important;
+  }
+
   /* Reset layout constraints for print */
   .flex, .grid {
     display: block !important;
@@ -116,6 +131,7 @@ body {
     display: table !important;
     width: 100% !important;
     border-collapse: collapse !important;
+    table-layout: fixed !important;
   }
 
   thead {
@@ -135,11 +151,10 @@ body {
     display: table-cell !important;
     font-size: 11px !important;
     padding: 8px !important;
+    word-wrap: break-word !important;
   }
 
   .footer-section {
-    display: block !important;
-    page-break-inside: avoid !important;
-    margin-top: 20px !important;
+    margin-top: 30px !important;
   }
 }

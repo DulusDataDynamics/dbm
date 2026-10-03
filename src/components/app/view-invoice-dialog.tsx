@@ -46,11 +46,12 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
       }
 
       const opt = {
-        margin: 10,
+        margin: [10, 10, 10, 10],
         filename: `Invoice-${invoice.id.substring(0, 6).toUpperCase()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
       await html2pdf().from(element).set(opt).save();
@@ -81,7 +82,7 @@ export function ViewInvoiceDialog({ isOpen, onClose, invoice, client, profile, s
           <ScrollArea className="h-[65vh]">
             {client && invoice && profile && settings ? (
               <div className="flex justify-center">
-                <div id="invoice-preview">
+                <div id="invoice-preview" className="bg-white shadow-lg">
                   <InvoicePDFView
                     client={client}
                     invoice={invoice}
