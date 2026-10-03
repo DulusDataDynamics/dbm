@@ -8,23 +8,25 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Calculates the total for standard invoice items.
- * Ensures quantity and price are treated as numbers and rounds to 2 decimal places
- * using a robust rounding method to prevent floating point precision errors.
+ * Calculates the total for standard invoice items using integer math (cents)
+ * to avoid floating point precision issues.
  */
 export function calculateInvoiceTotals(items: any[]) {
-  const total = items.reduce((acc, item) => {
-    // Parse values as floats, handling potential string inputs from forms
-    const qty = parseFloat(String(item.quantity || 0).replace(',', '.'));
-    const prc = parseFloat(String(item.price || 0).replace(',', '.'));
-    
-    if (isNaN(qty) || isNaN(prc)) return acc;
-    return acc + (qty * prc);
+  const totalCents = items.reduce((acc, item) => {
+    const qty = Number(item.quantity);
+    const price = Number(item.price);
+
+    if (!Number.isFinite(qty) || !Number.isFinite(price)) {
+      return acc;
+    }
+
+    const lineTotalCents = Math.round(qty * price * 100);
+    return acc + lineTotalCents;
   }, 0);
-  
-  // Use epsilon rounding to ensure 1.005 rounds correctly to 1.01 instead of 1.00
-  const roundedTotal = Math.round((total + Number.EPSILON) * 100) / 100;
-  return { total: roundedTotal };
+
+  return {
+    total: totalCents / 100,
+  };
 }
 
 export function mapToAISchema(invoices: Invoice[], clients: Client[]): GenerateRevenueInsightsInput {

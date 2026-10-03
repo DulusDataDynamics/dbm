@@ -222,9 +222,13 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                     </TableHeader>
                     <TableBody>
                       {fields.map((item, index) => {
-                        const qty = parseFloat(String(watchedItems?.[index]?.quantity || 0).replace(',', '.'));
-                        const prc = parseFloat(String(watchedItems?.[index]?.price || 0).replace(',', '.'));
-                        const rowTotal = isNaN(qty) || isNaN(prc) ? 0 : Math.round(((qty * prc) + Number.EPSILON) * 100) / 100;
+                        const qty = Number(watchedItems?.[index]?.quantity ?? 0);
+                        const prc = Number(watchedItems?.[index]?.price ?? 0);
+
+                        const rowTotal =
+                          Number.isFinite(qty) && Number.isFinite(prc)
+                            ? Math.round(qty * prc * 100) / 100
+                            : 0;
 
                         return (
                           <TableRow key={item.id}>
