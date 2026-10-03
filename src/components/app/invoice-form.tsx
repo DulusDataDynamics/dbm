@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useForm, useFieldArray, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -51,7 +51,7 @@ const formSchema = z.object({
   status: z.enum(['Draft', 'Unpaid', 'Paid', 'Overdue']),
   dueDate: z.date({ required_error: 'A due date is required.' }),
   items: z.array(invoiceItemSchema).min(1, "At least one item is required."),
-  total: z.number(),
+  total: z.number().optional(),
   createdAt: z.string().optional(),
 });
 
@@ -88,11 +88,11 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
     name: 'items',
   });
 
-  useEffect(() => {
-    const { total } = calculateInvoiceTotals(watchedItems || []);
-    form.setValue('total', total, { shouldValidate: false });
-  }, [watchedItems, form]);
-
+  // Calculate live totals for UI display only.
+  // We do NOT use form.setValue here to avoid infinite render loops/input lag.
+  const { total: displayTotal } = useMemo(() => 
+    calculateInvoiceTotals(watchedItems || []), 
+  [watchedItems]);
 
   useEffect(() => {
     if (!db || !userId) return;
@@ -111,7 +111,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
         form.reset({
           clientId: '',
           status: 'Draft',
-          dueDate: new Date(new Date().setDate(new Date().getDate() + 30)), // Due in 30 days
+          dueDate: new Date(new Date().setDate(new Date().getDate() + 30)),
           items: [{ description: '', quantity: 1, price: 0 }],
           total: 0,
         });
@@ -121,12 +121,16 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
 
   const onSubmit = async (data: InvoiceFormValues) => {
     if (!db || !userId) return;
-    const { total } = calculateInvoiceTotals(data.items);
+    
+    // Final precision calculation before saving
+    const { total: finalTotal } = calculateInvoiceTotals(data.items);
+    
     const invoiceData = {
       ...data,
       dueDate: format(data.dueDate, 'yyyy-MM-dd'),
-      total
+      total: finalTotal
     };
+
     await saveInvoice(db, userId, invoice?.id || null, invoiceData);
     onClose();
   };
@@ -224,11 +228,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                       {fields.map((item, index) => {
                         const qty = Number(watchedItems?.[index]?.quantity ?? 0);
                         const prc = Number(watchedItems?.[index]?.price ?? 0);
-
-                        const rowTotal =
-                          Number.isFinite(qty) && Number.isFinite(prc)
-                            ? Math.round(qty * prc * 100) / 100
-                            : 0;
+                        const rowTotal = Number.isFinite(qty) && Number.isFinite(prc) ? Math.round(qty * prc * 100) / 100 : 0;
 
                         return (
                           <TableRow key={item.id}>
@@ -268,7 +268,7 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                   <div className="w-full max-w-sm space-y-2">
                     <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
                         <span>Total Amount</span>
-                        <span>R {(form.getValues('total') || 0).toFixed(2)}</span>
+                        <span>R {displayTotal.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

@@ -20,6 +20,7 @@ export function calculateInvoiceTotals(items: any[]) {
       return acc;
     }
 
+    // Convert to cents to handle money math accurately
     const lineTotalCents = Math.round(qty * price * 100);
     return acc + lineTotalCents;
   }, 0);
