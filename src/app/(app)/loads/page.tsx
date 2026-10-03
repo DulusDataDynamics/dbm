@@ -101,7 +101,7 @@ export default function LoadsPage() {
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle>Loads</CardTitle>
-              <CardDescription>Manage your products, services, and stock levels.</CardDescription>
+              <CardDescription>Manage your business loads and services.</CardDescription>
             </div>
             <Button size="sm" onClick={handleAddLoad} disabled={loading || !db || !user}>
               <PlusCircle className="mr-2 h-4 w-4" />
@@ -122,8 +122,6 @@ export default function LoadsPage() {
                   <TableHead className="hidden sm:table-cell">SKU</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead className="hidden md:table-cell">Category</TableHead>
-                  <TableHead>Quantity</TableHead>
-                  <TableHead className="hidden lg:table-cell">Reorder Level</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                   <TableHead>
                     <span className="sr-only">Actions</span>
@@ -131,21 +129,11 @@ export default function LoadsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {loads.map((load) => {
-                  const isLowStock = load.reorderLevel !== undefined && load.reorderLevel > 0 && load.quantity <= load.reorderLevel;
-                  return(
-                  <TableRow key={load.id} className={isLowStock ? 'bg-destructive/10' : ''}>
+                {loads.map((load) => (
+                  <TableRow key={load.id}>
                     <TableCell className="hidden sm:table-cell font-mono text-xs">{load.sku}</TableCell>
                     <TableCell className="font-medium">{load.name}</TableCell>
                     <TableCell className="hidden md:table-cell"><Badge variant="outline">{load.category}</Badge></TableCell>
-                    <TableCell>
-                      {isLowStock ? (
-                        <Badge variant="destructive">Low Stock ({load.quantity})</Badge>
-                      ) : (
-                        load.quantity
-                      )}
-                    </TableCell>
-                     <TableCell className="hidden lg:table-cell">{load.reorderLevel}</TableCell>
                     <TableCell className="text-right">R{load.price.toLocaleString()}</TableCell>
                     <TableCell>
                       <DropdownMenu>
@@ -163,7 +151,7 @@ export default function LoadsPage() {
                       </DropdownMenu>
                     </TableCell>
                   </TableRow>
-                )})}
+                ))}
               </TableBody>
             </Table>
           </ScrollArea>

@@ -31,9 +31,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   sku: z.string().optional(),
   category: z.string().optional(),
-  quantity: z.coerce.number().min(0, 'Quantity must be a positive number.'),
   price: z.coerce.number().min(0, 'Price must be a positive number.'),
-  reorderLevel: z.coerce.number().min(0, 'Reorder level must be a positive number.').optional(),
 });
 
 type LoadFormValues = z.infer<typeof formSchema>;
@@ -53,29 +51,34 @@ export function LoadForm({ db, userId, isOpen, onClose, load }: LoadFormProps) {
       name: '',
       sku: '',
       category: '',
-      quantity: 0,
       price: 0,
-      reorderLevel: 0,
     },
   });
 
   useEffect(() => {
     if (load) {
-      form.reset(load);
+      form.reset({
+        name: load.name,
+        sku: load.sku || '',
+        category: load.category || '',
+        price: load.price,
+      });
     } else {
       form.reset({
         name: '',
         sku: '',
         category: '',
-        quantity: 0,
         price: 0,
-        reorderLevel: 0,
       });
     }
   }, [load, form, isOpen]);
 
   const onSubmit = async (data: LoadFormValues) => {
-    await saveLoad(db, userId, load?.id || null, data);
+    // Keep existing structural fields for data consistency if needed, but UI is removed
+    await saveLoad(db, userId, load?.id || null, {
+      ...data,
+      quantity: 1, // Defaulting as UI fields are removed
+    });
     onClose();
   };
 
@@ -133,47 +136,19 @@ export function LoadForm({ db, userId, isOpen, onClose, load }: LoadFormProps) {
                     </FormItem>
                   )}
                 />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="price"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Value (R)</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="2500" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="quantity"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quantity</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="10" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField
-                    control={form.control}
-                    name="reorderLevel"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Reorder Level</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="5" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Value (R)</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="2500" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </ScrollArea>
             <DialogFooter className="pt-4 px-4">
