@@ -221,31 +221,37 @@ export function InvoiceForm({ db, userId, isOpen, onClose, invoice }: InvoiceFor
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {fields.map((item, index) => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <FormField control={form.control} name={`items.${index}.description`} render={({ field }) => (
-                              <FormItem><FormControl><Input {...field} placeholder="Item description" /></FormControl><FormMessage className="text-xs" /></FormItem>
-                            )} />
-                          </TableCell>
-                           <TableCell>
-                             <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
-                               <FormItem><FormControl><Input type="number" {...field} placeholder="1" /></FormControl><FormMessage className="text-xs" /></FormItem>
-                             )} />
-                           </TableCell>
-                           <TableCell>
-                             <FormField control={form.control} name={`items.${index}.price`} render={({ field }) => (
-                               <FormItem><FormControl><Input type="number" {...field} placeholder="0.00" /></FormControl><FormMessage className="text-xs" /></FormItem>
-                             )} />
-                           </TableCell>
-                           <TableCell className="text-right font-medium">
-                            R {((watchedItems?.[index]?.quantity || 0) * (watchedItems?.[index]?.price || 0)).toFixed(2)}
-                           </TableCell>
-                          <TableCell className="text-right">
-                            <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {fields.map((item, index) => {
+                        const qty = parseFloat(String(watchedItems?.[index]?.quantity || 0));
+                        const prc = parseFloat(String(watchedItems?.[index]?.price || 0));
+                        const rowTotal = parseFloat((qty * prc).toFixed(2));
+
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <FormField control={form.control} name={`items.${index}.description`} render={({ field }) => (
+                                <FormItem><FormControl><Input {...field} placeholder="Item description" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                              )} />
+                            </TableCell>
+                             <TableCell>
+                               <FormField control={form.control} name={`items.${index}.quantity`} render={({ field }) => (
+                                 <FormItem><FormControl><Input type="number" step="any" {...field} placeholder="1" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                               )} />
+                             </TableCell>
+                             <TableCell>
+                               <FormField control={form.control} name={`items.${index}.price`} render={({ field }) => (
+                                 <FormItem><FormControl><Input type="number" step="any" {...field} placeholder="0.00" /></FormControl><FormMessage className="text-xs" /></FormItem>
+                               )} />
+                             </TableCell>
+                             <TableCell className="text-right font-medium">
+                              R {isNaN(rowTotal) ? '0.00' : rowTotal.toFixed(2)}
+                             </TableCell>
+                            <TableCell className="text-right">
+                              <Button type="button" variant="ghost" size="icon" onClick={() => remove(index)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
